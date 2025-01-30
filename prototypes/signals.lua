@@ -194,63 +194,42 @@ data:extend {
     },
 
     {
-        type = 'fluid', -- virtual doesn't support hidden flag
+        type = 'virtual-signal',
         name = 'ltn-cargo-warning',
         icon = '__LogisticTrainNetwork__/graphics/icons/cargo-warning.png',
         icon_size = 64,
-        default_temperature = 15,
-        max_temperature = 100,
-        heat_capacity = '0.2KJ',
-        base_color = { r = 0, g = 0.34, b = 0.6 },
-        flow_color = { r = 0.7, g = 0.7, b = 0.7 },
         hidden = true,
-        auto_barrel = false,
-        subgroup = 'LTN-signal',
+        hidden_in_factoriopedia = true,
+        subgroup = 'ltn-position-signal',
         order = 'v0'
     },
     {
-        type = 'fluid', -- virtual doesn't support hidden flag
+        type = 'virtual-signal',
         name = 'ltn-cargo-alert',
         icon = '__LogisticTrainNetwork__/graphics/icons/cargo-alert.png',
         icon_size = 64,
-        default_temperature = 15,
-        max_temperature = 100,
-        heat_capacity = '0.2KJ',
-        base_color = { r = 0, g = 0.34, b = 0.6 },
-        flow_color = { r = 0.7, g = 0.7, b = 0.7 },
         hidden = true,
-        auto_barrel = false,
-        subgroup = 'LTN-signal',
+        hidden_in_factoriopedia = true,
+        subgroup = 'ltn-position-signal',
         order = 'v1'
     },
     {
-        type = 'fluid', -- virtual doesn't support hidden flag
+        type = 'virtual-signal',
         name = 'ltn-depot-warning',
         icon = '__LogisticTrainNetwork__/graphics/icons/depot-warning.png',
         icon_size = 64,
-        default_temperature = 15,
-        max_temperature = 100,
-        heat_capacity = '0.2KJ',
-        base_color = { r = 0, g = 0.34, b = 0.6 },
-        flow_color = { r = 0.7, g = 0.7, b = 0.7 },
         hidden = true,
-        auto_barrel = false,
-        subgroup = 'LTN-signal',
+        hidden_in_factoriopedia = true,
+        subgroup = 'ltn-position-signal',
         order = 'v2'
     },
     {
-        type = 'fluid', -- virtual doesn't support hidden flag
+        type = 'virtual-signal',
         name = 'ltn-depot-empty',
         icon = '__LogisticTrainNetwork__/graphics/icons/depot-empty.png',
-        icon_size = 64,
-        default_temperature = 15,
-        max_temperature = 100,
-        heat_capacity = '0.2KJ',
-        base_color = { r = 0, g = 0.34, b = 0.6 },
-        flow_color = { r = 0.7, g = 0.7, b = 0.7 },
         hidden = true,
-        auto_barrel = false,
-        subgroup = 'LTN-signal',
+        hidden_in_factoriopedia = true,
+        subgroup = 'ltn-position-signal',
         order = 'v3'
     },
 }

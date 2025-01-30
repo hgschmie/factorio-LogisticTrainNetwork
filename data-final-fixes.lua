@@ -62,5 +62,4 @@ end
 -- end
 
 -- data.raw['constant-combinator']['logistic-train-stop-output'].item_slot_count = 4 + lococount + wagoncount + wagoncount_fluid + wagoncount_artillery + itemcount + fluidcount
-log(string.format('[LTN] found %d items, %d fluids, %d locomotives, %d cargo wagons, %d fluid wagons, %d artillery wagons.', itemcount, fluidcount, lococount,
-    wagoncount, wagoncount_fluid, wagoncount_artillery))
+log(string.format('[LTN] found %d locomotives, %d cargo wagons, %d fluid wagons, %d artillery wagons.', lococount, wagoncount, wagoncount_fluid, wagoncount_artillery))

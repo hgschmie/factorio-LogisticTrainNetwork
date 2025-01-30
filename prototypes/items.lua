@@ -10,15 +10,18 @@ ltn_stop.icon_size = 64
 ltn_stop.order = ltn_stop.order .. '-c'
 
 local ltn_stop_in = flib.copy_prototype(data.raw['item']['small-lamp'], 'logistic-train-stop-input')
-ltn_stop_in.flags = { 'hidden' }
+ltn_stop_in.hidden = true
+ltn_stop_in.hidden_in_factoriopedia = true
 
 local ltn_stop_out = flib.copy_prototype(data.raw['item']['constant-combinator'], 'logistic-train-stop-output')
-ltn_stop_out.flags = { 'hidden' }
 ltn_stop_out.icon = '__LogisticTrainNetwork__/graphics/icons/output.png'
+ltn_stop_out.hidden = true
+ltn_stop_out.hidden_in_factoriopedia = true
 ltn_stop_out.icon_size = 64
 
 local ltn_lamp_control = flib.copy_prototype(data.raw['item']['constant-combinator'], 'logistic-train-stop-lamp-control')
-ltn_lamp_control.flags = { 'hidden' }
+ltn_lamp_control.hidden = true
+ltn_lamp_control.hidden_in_factoriopedia = true
 ltn_lamp_control.icon = '__LogisticTrainNetwork__/graphics/icons/empty.png'
 ltn_lamp_control.icon_size = 32
 
