@@ -4,6 +4,8 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
+local collision_mask_util = require('collision-mask-util')
+
 local train_stop = data.raw['train-stop']['train-stop']
 train_stop.fast_replaceable_group = train_stop.fast_replaceable_group or 'train-stop'
 train_stop.next_upgrade = 'logistic-train-stop'
@@ -23,7 +25,7 @@ ltn_stop_in.minable = nil
 ltn_stop_in.selection_box = { { -0.5, -0.5 }, { 0.5, 0.5 } }
 ltn_stop_in.selection_priority = (ltn_stop_in.selection_priority or 50) + 10 -- increase priority to default + 10
 ltn_stop_in.collision_box = { { -0.15, -0.15 }, { 0.15, 0.15 } }
-ltn_stop_in.collision_mask = { 'rail-layer' }                                -- collide only with rail entities
+ltn_stop_in.collision_mask = { layers = { rail = true } }                    -- collide only with rail entities
 ltn_stop_in.energy_usage_per_tick = '10W'
 ltn_stop_in.light = { intensity = 1, size = 6 }
 ltn_stop_in.energy_source = { type = 'void' }
@@ -36,7 +38,7 @@ ltn_stop_out.minable = nil
 ltn_stop_out.selection_box = { { -0.5, -0.5 }, { 0.5, 0.5 } }
 ltn_stop_out.selection_priority = (ltn_stop_out.selection_priority or 50) + 10 -- increase priority to default + 10
 ltn_stop_out.collision_box = { { -0.15, -0.15 }, { 0.15, 0.15 } }
-ltn_stop_out.collision_mask = { 'rail-layer' }                                 -- collide only with rail entities
+ltn_stop_out.collision_mask = { layers = { rail = true } }                     -- collide only with rail entities
 ltn_stop_out.item_slot_count = 50
 ltn_stop_out.sprites = make_4way_animation_from_spritesheet
     {
@@ -91,7 +93,7 @@ ltn_lamp_control.next_upgrade = nil
 ltn_lamp_control.minable = nil
 ltn_lamp_control.selection_box = { { -0.0, -0.0 }, { 0.0, 0.0 } }
 ltn_lamp_control.collision_box = { { -0.0, -0.0 }, { 0.0, 0.0 } }
-ltn_lamp_control.collision_mask = {} -- disable collision
+ltn_lamp_control.collision_mask = collision_mask_util.new_mask() -- disable collision
 ltn_lamp_control.item_slot_count = 50
 ltn_lamp_control.flags = { 'not-blueprintable', 'not-deconstructable', 'placeable-off-grid' }
 ltn_lamp_control.sprites =
