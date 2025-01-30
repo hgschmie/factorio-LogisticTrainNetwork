@@ -26,7 +26,7 @@ function printmsg(msg, force, useFilter)
     end
 
     -- print message
-    if global.messageBuffer[msgKey] == nil or not useFilter then
+    if storage.messageBuffer[msgKey] == nil or not useFilter then
         if force and force.valid then
             force.print(msg)
         else
@@ -35,5 +35,5 @@ function printmsg(msg, force, useFilter)
     end
 
     -- add current tick to messageBuffer if msgKey doesn't exist
-    global.messageBuffer[msgKey] = global.messageBuffer[msgKey] or { tick = game.tick }
+    storage.messageBuffer[msgKey] = storage.messageBuffer[msgKey] or { tick = game.tick }
 end

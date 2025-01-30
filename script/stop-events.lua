@@ -8,7 +8,7 @@
 
 --create stop
 function CreateStop(entity)
-    if global.LogisticTrainStops[entity.unit_number] then
+    if storage.LogisticTrainStops[entity.unit_number] then
         if message_level >= 1 then printmsg({ 'ltn-message.error-duplicated-unit_number', entity.unit_number }, entity.force) end
         if debug_log then log('(CreateStop) duplicate stop unit number ' .. entity.unit_number) end
         return
@@ -135,7 +135,7 @@ function CreateStop(entity)
     entity.get_or_create_control_behavior().send_to_train = true
     entity.get_or_create_control_behavior().read_from_train = true
 
-    global.LogisticTrainStops[entity.unit_number] = {
+    storage.LogisticTrainStops[entity.unit_number] = {
         entity = entity,
         input = input,
         output = output,
@@ -159,7 +159,7 @@ function CreateStop(entity)
         provider_priority = 0,
         locked_slots = 0,
     }
-    UpdateStopOutput(global.LogisticTrainStops[entity.unit_number])
+    UpdateStopOutput(storage.LogisticTrainStops[entity.unit_number])
 
     -- register events
     -- script.on_event(defines.events.on_tick, OnTick)
@@ -181,22 +181,22 @@ end
 
 -- stop removed
 function RemoveStop(stopID, create_ghosts)
-    local stop = global.LogisticTrainStops[stopID]
+    local stop = storage.LogisticTrainStops[stopID]
 
     -- clean lookup tables
-    for k, v in pairs(global.StopDistances) do
+    for k, v in pairs(storage.StopDistances) do
         if k:find(stopID) then
-            global.StopDistances[k] = nil
+            storage.StopDistances[k] = nil
         end
     end
 
     -- remove available train
-    if stop and stop.is_depot and stop.parked_train_id and global.Dispatcher.availableTrains[stop.parked_train_id] then
-        global.Dispatcher.availableTrains_total_capacity = global.Dispatcher.availableTrains_total_capacity -
-        global.Dispatcher.availableTrains[stop.parked_train_id].capacity
-        global.Dispatcher.availableTrains_total_fluid_capacity = global.Dispatcher.availableTrains_total_fluid_capacity -
-        global.Dispatcher.availableTrains[stop.parked_train_id].fluid_capacity
-        global.Dispatcher.availableTrains[stop.parked_train_id] = nil
+    if stop and stop.is_depot and stop.parked_train_id and storage.Dispatcher.availableTrains[stop.parked_train_id] then
+        storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity -
+        storage.Dispatcher.availableTrains[stop.parked_train_id].capacity
+        storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity -
+        storage.Dispatcher.availableTrains[stop.parked_train_id].fluid_capacity
+        storage.Dispatcher.availableTrains[stop.parked_train_id] = nil
     end
 
     -- destroy IO entities, broken IO entities should be sufficiently handled in initializeTrainStops()
@@ -220,13 +220,13 @@ function RemoveStop(stopID, create_ghosts)
         if stop.lamp_control and stop.lamp_control.valid then stop.lamp_control.destroy() end
     end
 
-    global.LogisticTrainStops[stopID] = nil
+    storage.LogisticTrainStops[stopID] = nil
 
-    if not next(global.LogisticTrainStops) then
+    if not next(storage.LogisticTrainStops) then
         -- reset tick indexes
-        global.tick_state = 0
-        global.tick_stop_index = nil
-        global.tick_request_index = nil
+        storage.tick_state = 0
+        storage.tick_stop_index = nil
+        storage.tick_request_index = nil
 
         -- unregister events
         script.on_nth_tick(nil)
@@ -243,12 +243,12 @@ function OnEntityRemoved(event, create_ghosts)
     if entity.train then
         local trainID = entity.train.id
         -- remove from stop if parked
-        if global.StoppedTrains[trainID] then
+        if storage.StoppedTrains[trainID] then
             TrainLeaves(trainID)
         end
         -- removing any carriage fails a delivery
         -- otherwise I'd have to handle splitting and merging a delivery across train parts
-        local delivery = global.Dispatcher.Deliveries[trainID]
+        local delivery = storage.Dispatcher.Deliveries[trainID]
         if delivery then
             script.raise_event(on_delivery_failed_event, { train_id = trainID, shipment = delivery.shipment })
             RemoveDelivery(trainID)
@@ -263,7 +263,7 @@ local function renamedStop(targetID, old_name, new_name)
     -- find identical stop names
     local duplicateName = false
     local renameDeliveries = true
-    for stopID, stop in pairs(global.LogisticTrainStops) do
+    for stopID, stop in pairs(storage.LogisticTrainStops) do
         if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
             RemoveStop(stopID)
         elseif stop.entity.backer_name == old_name then
@@ -273,7 +273,7 @@ local function renamedStop(targetID, old_name, new_name)
     -- rename deliveries only if no other LTN stop old_name exists
     if renameDeliveries then
         if debug_log then log('(OnEntityRenamed) last LTN stop ' .. old_name .. ' renamed, updating deliveries to ' .. new_name .. '.') end
-        for trainID, delivery in pairs(global.Dispatcher.Deliveries) do
+        for trainID, delivery in pairs(storage.Dispatcher.Deliveries) do
             if delivery.to == old_name then
                 delivery.to = new_name
             end

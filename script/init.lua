@@ -10,51 +10,51 @@ local function initialize(oldVersion, newVersion)
     --log("oldVersion: "..tostring(oldVersion)..", newVersion: "..tostring(newVersion))
 
     ---- always start with stop updated after a config change, ensure consistent data and filled tables
-    global.tick_state = 0 -- index determining on_tick update mode 0: init, 1: stop update, 2: sort requests, 3: parse requests, 4: raise API update events
-    global.tick_stop_index = nil
-    global.tick_request_index = nil
-    global.tick_interval_start = nil -- stores tick of last state 0 for on_dispatcher_updated_event.update_interval
+    storage.tick_state = 0 -- index determining on_tick update mode 0: init, 1: stop update, 2: sort requests, 3: parse requests, 4: raise API update events
+    storage.tick_stop_index = nil
+    storage.tick_request_index = nil
+    storage.tick_interval_start = nil -- stores tick of last state 0 for on_dispatcher_updated_event.update_interval
 
     ---- initialize logger
-    global.messageBuffer = {}
+    storage.messageBuffer = {}
 
     ---- initialize Dispatcher
-    global.Dispatcher = global.Dispatcher or {}
+    storage.Dispatcher = storage.Dispatcher or {}
 
     -- set in UpdateAllTrains
-    global.Dispatcher.availableTrains = global.Dispatcher.availableTrains or {}
-    global.Dispatcher.availableTrains_total_capacity = global.Dispatcher.availableTrains_total_capacity or 0
-    global.Dispatcher.availableTrains_total_fluid_capacity = global.Dispatcher.availableTrains_total_fluid_capacity or 0
-    global.Dispatcher.Provided = global.Dispatcher.Provided or {}               -- dictionary [type,name] used to quickly find available items
-    global.Dispatcher.Provided_by_Stop = global.Dispatcher.Provided_by_Stop or {} -- dictionary [stopID]; used only by interface
-    global.Dispatcher.Requests = global.Dispatcher.Requests or {}               -- array of requests sorted by priority and age; used to loop over all requests
-    global.Dispatcher.Requests_by_Stop = global.Dispatcher.Requests_by_Stop or {} -- dictionary [stopID]; used to keep track of already handled requests
-    global.Dispatcher.RequestAge = global.Dispatcher.RequestAge or {}
-    global.Dispatcher.Deliveries = global.Dispatcher.Deliveries or {}
+    storage.Dispatcher.availableTrains = storage.Dispatcher.availableTrains or {}
+    storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity or 0
+    storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity or 0
+    storage.Dispatcher.Provided = storage.Dispatcher.Provided or {}               -- dictionary [type,name] used to quickly find available items
+    storage.Dispatcher.Provided_by_Stop = storage.Dispatcher.Provided_by_Stop or {} -- dictionary [stopID]; used only by interface
+    storage.Dispatcher.Requests = storage.Dispatcher.Requests or {}               -- array of requests sorted by priority and age; used to loop over all requests
+    storage.Dispatcher.Requests_by_Stop = storage.Dispatcher.Requests_by_Stop or {} -- dictionary [stopID]; used to keep track of already handled requests
+    storage.Dispatcher.RequestAge = storage.Dispatcher.RequestAge or {}
+    storage.Dispatcher.Deliveries = storage.Dispatcher.Deliveries or {}
 
     ---- initialize stops
-    global.LogisticTrainStops = global.LogisticTrainStops or {}
+    storage.LogisticTrainStops = storage.LogisticTrainStops or {}
 
     -- table of connections per surface used to decide if providers from another surface are valid sources
     -- { [surface1.index|surface2.index] = { [entity1.unit_number|entity2.unit_number] = { entity1, entity2, network_id } }
     -- entity_key_pairs are automatically removed during delivery processing if at least one of the referenced entities becomes invalid
-    global.ConnectedSurfaces = global.ConnectedSurfaces or {}
+    storage.ConnectedSurfaces = storage.ConnectedSurfaces or {}
 
     -- clean obsolete global
-    global.Dispatcher.Requested = nil
-    global.Dispatcher.Orders = nil
-    global.Dispatcher.OrderAge = nil
-    global.Dispatcher.Storage = nil
-    global.useRailTanker = nil
-    global.tickCount = nil
-    global.stopIdStartIndex = nil
-    global.Dispatcher.UpdateInterval = nil
-    global.Dispatcher.UpdateStopsPerTick = nil
-    global.TrainStopNames = nil
+    storage.Dispatcher.Requested = nil
+    storage.Dispatcher.Orders = nil
+    storage.Dispatcher.OrderAge = nil
+    storage.Dispatcher.Storage = nil
+    storage.useRailTanker = nil
+    storage.tickCount = nil
+    storage.stopIdStartIndex = nil
+    storage.Dispatcher.UpdateInterval = nil
+    storage.Dispatcher.UpdateStopsPerTick = nil
+    storage.TrainStopNames = nil
 
     -- update to 1.3.0
     if oldVersion and oldVersion < '01.03.00' then
-        for stopID, stop in pairs(global.LogisticTrainStops) do
+        for stopID, stop in pairs(storage.LogisticTrainStops) do
             stop.minDelivery = nil
             stop.ignoreMinDeliverySize = nil
         end
@@ -62,12 +62,12 @@ local function initialize(oldVersion, newVersion)
 
     -- update to 1.5.0 renamed priority to provider_priority
     if oldVersion and oldVersion < '01.05.00' then
-        for stopID, stop in pairs(global.LogisticTrainStops) do
+        for stopID, stop in pairs(storage.LogisticTrainStops) do
             stop.provider_priority = stop.priority or 0
             stop.priority = nil
         end
-        global.Dispatcher.Requests = {}
-        global.Dispatcher.RequestAge = {}
+        storage.Dispatcher.Requests = {}
+        storage.Dispatcher.RequestAge = {}
     end
 
     -- update to 1.6.1 migrate locomotiveID to trainID
@@ -87,20 +87,20 @@ local function initialize(oldVersion, newVersion)
         end
         -- log("locoID_to_trainID: "..serpent.block(locoID_to_trainID))
 
-        for locoID, delivery in pairs(global.Dispatcher.Deliveries) do
+        for locoID, delivery in pairs(storage.Dispatcher.Deliveries) do
             local trainID = locoID_to_trainID[locoID]
             if trainID then
-                log('Migrating global.Dispatcher.Deliveries from [' .. tostring(locoID) .. '] to [' .. tostring(trainID) .. ']')
+                log('Migrating storage.Dispatcher.Deliveries from [' .. tostring(locoID) .. '] to [' .. tostring(trainID) .. ']')
                 new_Deliveries[trainID] = delivery
             end
         end
         -- log("new_Deliveries: "..serpent.dump(new_Deliveries))
-        global.Dispatcher.Deliveries = new_Deliveries
+        storage.Dispatcher.Deliveries = new_Deliveries
     end
 
     -- update to 1.8.0
     if oldVersion and oldVersion < '01.08.00' then
-        for stopID, stop in pairs(global.LogisticTrainStops) do
+        for stopID, stop in pairs(storage.LogisticTrainStops) do
             stop.entity.get_or_create_control_behavior().send_to_train = true
             stop.entity.get_or_create_control_behavior().read_from_train = true
         end
@@ -108,15 +108,15 @@ local function initialize(oldVersion, newVersion)
 
     -- update to 1.12.3 migrate networkID to network_id
     if oldVersion and oldVersion < '01.12.03' then
-        for train_id, delivery in pairs(global.Dispatcher.Deliveries) do
+        for train_id, delivery in pairs(storage.Dispatcher.Deliveries) do
             delivery.network_id = delivery.networkID
             delivery.networkID = nil
         end
     end
 
     -- update to 1.13.1 renamed almost all stop properties
-    if oldVersion and oldVersion < '01.13.01' and next(global.LogisticTrainStops) then
-        for stopID, stop in pairs(global.LogisticTrainStops) do
+    if oldVersion and oldVersion < '01.13.01' and next(storage.LogisticTrainStops) then
+        for stopID, stop in pairs(storage.LogisticTrainStops) do
             stop.lamp_control = stop.lamp_control or stop.lampControl
             stop.lampControl = nil
             stop.error_code = stop.error_code or stop.errorCode or -1
@@ -158,7 +158,7 @@ local function initialize(oldVersion, newVersion)
 
     -- update to 1.9.4
     if oldVersion and oldVersion < '01.09.04' then
-        for stopID, stop in pairs(global.LogisticTrainStops) do
+        for stopID, stop in pairs(storage.LogisticTrainStops) do
             stop.lamp_control.teleport { stop.input.position.x, stop.input.position.y }                -- move control under lamp
             stop.input.disconnect_neighbour { target_entity = stop.lamp_control, wire = defines.wire_type.green } -- reconnect wires
             stop.input.disconnect_neighbour { target_entity = stop.lamp_control, wire = defines.wire_type.red }
@@ -169,14 +169,14 @@ local function initialize(oldVersion, newVersion)
 end
 
 -- run every time the mod configuration is changed to catch stops from other mods
--- ensures global.LogisticTrainStops contains valid entities
+-- ensures storage.LogisticTrainStops contains valid entities
 local function initializeTrainStops()
-    global.LogisticTrainStops = global.LogisticTrainStops or {}
+    storage.LogisticTrainStops = storage.LogisticTrainStops or {}
     -- remove invalidated stops
-    for stopID, stop in pairs(global.LogisticTrainStops) do
+    for stopID, stop in pairs(storage.LogisticTrainStops) do
         if not stop then
             log('[LTN] removing empty stop entry ' .. tostring(stopID))
-            global.LogisticTrainStops[stopID] = nil
+            storage.LogisticTrainStops[stopID] = nil
         elseif not (stop.entity and stop.entity.valid) then
             -- stop entity is corrupt/missing remove I/O entities
             log('[LTN] removing corrupt stop ' .. tostring(stopID))
@@ -189,7 +189,7 @@ local function initializeTrainStops()
             if stop.lamp_control and stop.lamp_control.valid then
                 stop.lamp_control.destroy()
             end
-            global.LogisticTrainStops[stopID] = nil
+            storage.LogisticTrainStops[stopID] = nil
         end
     end
 
@@ -198,19 +198,19 @@ local function initializeTrainStops()
         local foundStops = surface.find_entities_filtered { type = 'train-stop' }
         if foundStops then
             for k, stop in pairs(foundStops) do
-                -- validate global.LogisticTrainStops
+                -- validate storage.LogisticTrainStops
                 if ltn_stop_entity_names[stop.name] then
-                    local ltn_stop = global.LogisticTrainStops[stop.unit_number]
+                    local ltn_stop = storage.LogisticTrainStops[stop.unit_number]
                     if ltn_stop then
                         if not (ltn_stop.output and ltn_stop.output.valid and ltn_stop.input and ltn_stop.input.valid and ltn_stop.lamp_control and ltn_stop.lamp_control.valid) then
                             -- I/O entities are corrupted
                             log('[LTN] recreating corrupt stop ' .. tostring(stop.backer_name))
-                            global.LogisticTrainStops[stop.unit_number] = nil
+                            storage.LogisticTrainStops[stop.unit_number] = nil
                             CreateStop(stop) -- recreate to spawn missing I/O entities
                         end
                     else
-                        log('[LTN] recreating stop missing from global.LogisticTrainStops ' .. tostring(stop.backer_name))
-                        CreateStop(stop) -- recreate LTN stops missing from global.LogisticTrainStops
+                        log('[LTN] recreating stop missing from storage.LogisticTrainStops ' .. tostring(stop.backer_name))
+                        CreateStop(stop) -- recreate LTN stops missing from storage.LogisticTrainStops
                     end
                 end
             end
@@ -221,17 +221,17 @@ end
 -- run every time the mod configuration is changed to catch changes to wagon capacities by other mods
 local function updateAllTrains()
     -- reset global lookup tables
-    global.StoppedTrains = {} -- trains stopped at LTN stops
-    global.StopDistances = {} -- reset station distance lookup table
-    global.WagonCapacity = { --preoccupy table with wagons to ignore at 0 capacity
+    storage.StoppedTrains = {} -- trains stopped at LTN stops
+    storage.StopDistances = {} -- reset station distance lookup table
+    storage.WagonCapacity = { --preoccupy table with wagons to ignore at 0 capacity
         ['rail-tanker'] = 0
     }
-    global.Dispatcher.availableTrains_total_capacity = 0
-    global.Dispatcher.availableTrains_total_fluid_capacity = 0
-    global.Dispatcher.availableTrains = {}
+    storage.Dispatcher.availableTrains_total_capacity = 0
+    storage.Dispatcher.availableTrains_total_fluid_capacity = 0
+    storage.Dispatcher.availableTrains = {}
 
     -- remove all parked train from logistic stops
-    for stopID, stop in pairs(global.LogisticTrainStops) do
+    for stopID, stop in pairs(storage.LogisticTrainStops) do
         stop.parked_train = nil
         stop.parked_train_id = nil
         UpdateStopOutput(stop)
@@ -267,7 +267,7 @@ local function registerEvents()
 
     script.on_event({ defines.events.on_pre_surface_deleted, defines.events.on_pre_surface_cleared }, OnSurfaceRemoved)
 
-    if global.LogisticTrainStops and next(global.LogisticTrainStops) then
+    if storage.LogisticTrainStops and next(storage.LogisticTrainStops) then
         -- script.on_event(defines.events.on_tick, OnTick)
         script.on_nth_tick(nil)
         script.on_nth_tick(dispatcher_nth_tick, OnTick)

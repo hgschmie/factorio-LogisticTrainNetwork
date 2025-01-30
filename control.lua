@@ -4,7 +4,7 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
-Get_Distance = require('__flib__.misc').get_distance
+Get_Distance = require('__flib__.position').distance
 Get_Main_Locomotive = require('__flib__.train').get_main_locomotive
 Get_Train_Name = require('__flib__.train').get_backer_name
 

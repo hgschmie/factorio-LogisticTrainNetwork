@@ -1,6 +1,6 @@
 -- removes all data about surface connections; connection owners won't be notified
 function ClearAllSurfaceConnections()
-    global.ConnectedSurfaces = {}
+    storage.ConnectedSurfaces = {}
 end
 
 -- returns the string "number1|number2" in consistent order: the smaller number is always placed first
@@ -8,7 +8,7 @@ local function sorted_pair(number1, number2)
     return (number1 < number2) and (number1 .. '|' .. number2) or (number2 .. '|' .. number1)
 end
 
--- removes the surface connection between the given entities from global.SurfaceConnections. Does nothing if the connection doesn't exist.
+-- removes the surface connection between the given entities from storage.SurfaceConnections. Does nothing if the connection doesn't exist.
 function DisconnectSurfaces(entity1, entity2)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
@@ -21,7 +21,7 @@ function DisconnectSurfaces(entity1, entity2)
     end
 
     local surface_pair_key = sorted_pair(entity1.surface.index, entity2.surface.index)
-    local surface_connections = global.ConnectedSurfaces[surface_pair_key]
+    local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
 
     if surface_connections then
         local entity_pair_key = sorted_pair(entity1.unit_number, entity2.unit_number)
@@ -58,7 +58,7 @@ function ConnectSurfaces(entity1, entity2, network_id)
     end
 
     local surface_pair_key = sorted_pair(entity1.surface.index, entity2.surface.index)
-    local surface_connections = Get_Or_Create(global.ConnectedSurfaces, surface_pair_key)
+    local surface_connections = Get_Or_Create(storage.ConnectedSurfaces, surface_pair_key)
 
     local entity_pair_key = sorted_pair(entity1.unit_number, entity2.unit_number)
     if debug_log then
@@ -97,9 +97,9 @@ function OnSurfaceRemoved(event)
     local first_surface = '^' .. surfaceID .. '|'
     local second_surface = '|' .. surfaceID .. '$'
 
-    for surface_pair_key, _ in pairs(global.ConnectedSurfaces) do
+    for surface_pair_key, _ in pairs(storage.ConnectedSurfaces) do
         if string.find(surface_pair_key, first_surface) or string.find(surface_pair_key, second_surface) then
-            global.ConnectedSurfaces[surface_pair_key] = nil
+            storage.ConnectedSurfaces[surface_pair_key] = nil
         end
     end
 end

@@ -8,7 +8,7 @@
 -- update stop output when train enters stop
 function TrainArrives(train)
     local stopID = train.station.unit_number
-    local stop = global.LogisticTrainStops[stopID]
+    local stop = storage.LogisticTrainStops[stopID]
     if stop then
         local stop_name = stop.entity.backer_name
         -- assign main loco name and force
@@ -20,15 +20,15 @@ function TrainArrives(train)
             trainForce = loco.force
         end
 
-        -- add train to global.StoppedTrains
-        global.StoppedTrains[train.id] = {
+        -- add train to storage.StoppedTrains
+        storage.StoppedTrains[train.id] = {
             train = train,
             name = trainName,
             force = trainForce,
             stopID = stopID,
         }
 
-        -- add train to global.LogisticTrainStops
+        -- add train to storage.LogisticTrainStops
         stop.parked_train = train
         stop.parked_train_id = train.id
 
@@ -49,11 +49,11 @@ function TrainArrives(train)
 
         if stop.error_code == 0 then
             if stop.is_depot then
-                local delivery = global.Dispatcher.Deliveries[train.id]
+                local delivery = storage.Dispatcher.Deliveries[train.id]
                 if delivery then
                     -- delivery should have been removed when leaving requester. Handle like delivery timeout.
-                    local from_entity = global.LogisticTrainStops[delivery.from_id] and global.LogisticTrainStops[delivery.from_id].entity
-                    local to_entity = global.LogisticTrainStops[delivery.to_id] and global.LogisticTrainStops[delivery.to_id].entity
+                    local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
+                    local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
                     if message_level >= 1 then
                         printmsg({
                             'ltn-message.delivery-removed-depot',
@@ -100,7 +100,7 @@ function TrainArrives(train)
 
                 -- make train available for new deliveries
                 local capacity, fluid_capacity = GetTrainCapacity(train)
-                global.Dispatcher.availableTrains[train.id] = {
+                storage.Dispatcher.availableTrains[train.id] = {
                     train = train,
                     surface = loco.surface,
                     force = trainForce,
@@ -109,9 +109,9 @@ function TrainArrives(train)
                     capacity = capacity,
                     fluid_capacity = fluid_capacity
                 }
-                global.Dispatcher.availableTrains_total_capacity = global.Dispatcher.availableTrains_total_capacity + capacity
-                global.Dispatcher.availableTrains_total_fluid_capacity = global.Dispatcher.availableTrains_total_fluid_capacity + fluid_capacity
-                -- log("added available train "..train.id..", inventory: "..tostring(global.Dispatcher.availableTrains[train.id].capacity)..", fluid capacity: "..tostring(global.Dispatcher.availableTrains[train.id].fluid_capacity))
+                storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity + capacity
+                storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity + fluid_capacity
+                -- log("added available train "..train.id..", inventory: "..tostring(storage.Dispatcher.availableTrains[train.id].capacity)..", fluid capacity: "..tostring(storage.Dispatcher.availableTrains[train.id].fluid_capacity))
 
                 -- reset schedule
                 local schedule = { current = 1, records = {} }
@@ -140,7 +140,7 @@ function TrainArrives(train)
                 setLamp(stop, 'blue', 1)
             else -- stop is no Depot
                 -- check requester for incorrect shipment
-                local delivery = global.Dispatcher.Deliveries[train.id]
+                local delivery = storage.Dispatcher.Deliveries[train.id]
                 if delivery then
                     is_provider = delivery.from_id == stop.entity.unit_number
                     if delivery.to_id == stop.entity.unit_number then
@@ -187,18 +187,18 @@ end
 -- update stop output when train leaves stop
 -- when called from on_train_created stoppedTrain.train will be invalid
 function TrainLeaves(trainID)
-    local stoppedTrain = global.StoppedTrains[trainID] -- checked before every call of TrainLeaves
+    local stoppedTrain = storage.StoppedTrains[trainID] -- checked before every call of TrainLeaves
     local train = stoppedTrain.train
     local stopID = stoppedTrain.stopID
-    local stop = global.LogisticTrainStops[stopID]
+    local stop = storage.LogisticTrainStops[stopID]
     if not stop then
-        if debug_log then log(format('(TrainLeaves) Error: StopID [%d] not found in global.LogisticTrainStops', stopID)) end
-        global.StoppedTrains[trainID] = nil
+        if debug_log then log(format('(TrainLeaves) Error: StopID [%d] not found in storage.LogisticTrainStops', stopID)) end
+        storage.StoppedTrains[trainID] = nil
         return
     end
     if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
         if debug_log then log(format('(TrainLeaves) Error: StopID [%d] contains invalid entity. Processing skipped, train inventory not updated.', stopID)) end
-        global.StoppedTrains[trainID] = nil
+        storage.StoppedTrains[trainID] = nil
         -- don't call RemoveStop here as RemoveStop calls TrainLeaves again
         return
     end
@@ -206,12 +206,12 @@ function TrainLeaves(trainID)
 
     -- train was stopped at LTN depot
     if stop.is_depot then
-        if global.Dispatcher.availableTrains[trainID] then -- trains are normally removed when deliveries are created
-            global.Dispatcher.availableTrains_total_capacity = global.Dispatcher.availableTrains_total_capacity -
-            global.Dispatcher.availableTrains[trainID].capacity
-            global.Dispatcher.availableTrains_total_fluid_capacity = global.Dispatcher.availableTrains_total_fluid_capacity -
-            global.Dispatcher.availableTrains[trainID].fluid_capacity
-            global.Dispatcher.availableTrains[trainID] = nil
+        if storage.Dispatcher.availableTrains[trainID] then -- trains are normally removed when deliveries are created
+            storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity -
+            storage.Dispatcher.availableTrains[trainID].capacity
+            storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity -
+            storage.Dispatcher.availableTrains[trainID].fluid_capacity
+            storage.Dispatcher.availableTrains[trainID] = nil
         end
         if stop.error_code == 0 then
             setLamp(stop, 'green', 1)
@@ -227,7 +227,7 @@ function TrainLeaves(trainID)
             end
         end
 
-        local delivery = global.Dispatcher.Deliveries[trainID]
+        local delivery = storage.Dispatcher.Deliveries[trainID]
         if train.valid and delivery then
             if delivery.from_id == stop.entity.unit_number then
                 -- update delivery counts to train inventory
@@ -270,7 +270,7 @@ function TrainLeaves(trainID)
                 delivery.pickupDone = true -- remove reservations from this delivery
                 if debug_log then log(format('(TrainLeaves) Train [%d] \"%s\": left Provider [%d] \"%s\"; cargo: %s; unscheduled: %s ', trainID,
                         stoppedTrain.name, stopID, stop.entity.backer_name, serpent.line(actual_load), serpent.line(unscheduled_load))) end
-                global.StoppedTrains[trainID] = nil
+                storage.StoppedTrains[trainID] = nil
 
                 if provider_missing_cargo then
                     create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_missing_cargo', stoppedTrain.name, stop_name }, stoppedTrain.force)
@@ -361,7 +361,7 @@ function TrainLeaves(trainID)
             stoppedTrain.force, false) end
     UpdateStopOutput(stop)
 
-    global.StoppedTrains[trainID] = nil
+    storage.StoppedTrains[trainID] = nil
 end
 
 -- local reverse_defines = require('__flib__.reverse-defines')
@@ -371,17 +371,17 @@ function OnTrainStateChanged(event)
     local train = event.train
     if train.state == defines.train_state.wait_station and train.station ~= nil and ltn_stop_entity_names[train.station.name] then
         TrainArrives(train)
-    elseif event.old_state == defines.train_state.wait_station and global.StoppedTrains[train.id] then -- update to 0.16
+    elseif event.old_state == defines.train_state.wait_station and storage.StoppedTrains[train.id] then -- update to 0.16
         TrainLeaves(train.id)
     end
 end
 
 -- updates or removes delivery references
 function Update_Delivery(old_train_id, new_train)
-    local delivery = global.Dispatcher.Deliveries[old_train_id]
+    local delivery = storage.Dispatcher.Deliveries[old_train_id]
 
     -- expanded RemoveDelivery(old_train_id) to also update
-    for stopID, stop in pairs(global.LogisticTrainStops) do
+    for stopID, stop in pairs(storage.LogisticTrainStops) do
         if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
             RemoveStop(stopID)
         else
@@ -402,16 +402,16 @@ function Update_Delivery(old_train_id, new_train)
         end
     end
 
-    -- copy global.Dispatcher.Deliveries[old_train_id] to new_train.id and change attached train in delivery
+    -- copy storage.Dispatcher.Deliveries[old_train_id] to new_train.id and change attached train in delivery
     if delivery then
         delivery.train = new_train
-        global.Dispatcher.Deliveries[new_train.id] = delivery
+        storage.Dispatcher.Deliveries[new_train.id] = delivery
     end
 
-    if global.StoppedTrains[old_train_id] then
+    if storage.StoppedTrains[old_train_id] then
         TrainLeaves(old_train_id) -- removal only, new train is added when on_train_state_changed fires with wait_station afterwards
     end
-    global.Dispatcher.Deliveries[old_train_id] = nil
+    storage.Dispatcher.Deliveries[old_train_id] = nil
 
     return delivery
 end

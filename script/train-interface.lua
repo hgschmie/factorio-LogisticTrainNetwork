@@ -22,7 +22,7 @@ function GetNextLogisticStop(train, schedule_index)
         return
     end
 
-    local delivery = global.Dispatcher.Deliveries[train.id]
+    local delivery = storage.Dispatcher.Deliveries[train.id]
     if not delivery then
         if debug_log then log(format('(GetNextLogisticStop) train [%d] not found in deliveries.', train.id)) end
         return
@@ -83,7 +83,7 @@ function GetOrCreateNextTempStop(train, schedule_index)
     if not stop_schedule_index then return end
 
     --unlike ProcessDelivery we need to consider that the stop entity might be gone
-    local stop = global.LogisticTrainStops[stop_id]
+    local stop = storage.LogisticTrainStops[stop_id]
     if not stop or not stop.entity.valid then
         if debug_log then log(format('(UpdateSchedule) skipping stop [%d] for train [%d], stop-entity not valid', stop_id, train.id)) end
         return
@@ -125,7 +125,7 @@ end
 ---@return boolean reassigned true if the old train was executing a delivery, false otherwise
 function ReassignDelivery(old_train_id, new_train)
     -- check if delivery exists for given train id
-    if not (old_train_id and global.Dispatcher.Deliveries[old_train_id]) then
+    if not (old_train_id and storage.Dispatcher.Deliveries[old_train_id]) then
         if debug_log then log(format('(ReassignDelivery) train [%d] not found in deliveries.', old_train_id)) end
         return false
     end
