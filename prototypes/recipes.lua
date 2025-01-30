@@ -6,11 +6,9 @@
 
 local ltn_stop = flib.copy_prototype(data.raw['recipe']['train-stop'], 'logistic-train-stop')
 ltn_stop.ingredients = {
-    { 'train-stop',          1 },
-    { 'constant-combinator', 1 },
-    { 'small-lamp',          1 },
-    { 'green-wire',          2 },
-    { 'red-wire',            2 },
+    { type = 'item', name = 'train-stop',          amount = 1 },
+    { type = 'item', name = 'constant-combinator', amount = 1 },
+    { type = 'item', name = 'small-lamp',          amount = 1 },
 }
 ltn_stop.enabled = false
 
@@ -22,11 +20,9 @@ data:extend {
 if mods['cargo-ships'] then
     ltn_port = flib.copy_prototype(data.raw['recipe']['port'], 'ltn-port')
     ltn_port.ingredients = {
-        { 'port',                1 },
-        { 'constant-combinator', 1 },
-        { 'small-lamp',          1 },
-        { 'green-wire',          2 },
-        { 'red-wire',            2 },
+        { type = 'item', name = 'port',                amount = 1 },
+        { type = 'item', name = 'constant-combinator', amount = 1 },
+        { type = 'item', name = 'small-lamp',          amount = 1 },
     }
     ltn_port.enabled = false
 
