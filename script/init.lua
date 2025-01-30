@@ -75,8 +75,10 @@ local function initialize(oldVersion, newVersion)
         local locoID_to_trainID = {} -- id dictionary
         local new_availableTrains = {}
         local new_Deliveries = {}
+
+        local train_manager = game.train_manager
         for _, surface in pairs(game.surfaces) do
-            local trains = surface.get_trains()
+            local trains = train_manager.get_trains { surface = surface }
             for _, train in pairs(trains) do
                 -- build dictionary
                 local loco = Get_Main_Locomotive(train)
@@ -238,8 +240,9 @@ local function updateAllTrains()
     end
 
     -- add still valid trains back to stops
+    local train_manager = game.train_manager
     for force_name, force in pairs(game.forces) do
-        local trains = force.get_trains()
+        local trains = train_manager.get_trains { force = force }
         if trains then
             for _, train in pairs(trains) do
                 if train.station and ltn_stop_entity_names[train.station.name] then
@@ -299,8 +302,8 @@ end)
 
 script.on_init(function()
     -- format version string to "00.00.00"
-    local oldVersion, newVersion = nil
-    local newVersionString = game.active_mods[MOD_NAME]
+    local oldVersion, newVersion = nil, nil
+    local newVersionString = script.active_mods[MOD_NAME]
     if newVersionString then
         newVersion = format('%02d.%02d.%02d', match(newVersionString, '(%d+).(%d+).(%d+)'))
     end
@@ -315,7 +318,7 @@ end)
 script.on_configuration_changed(function(data)
     if data and data.mod_changes[MOD_NAME] then
         -- format version string to "00.00.00"
-        local oldVersion, newVersion = nil
+        local oldVersion, newVersion = nil, nil
         local oldVersionString = data.mod_changes[MOD_NAME].old_version
         if oldVersionString then
             oldVersion = format('%02d.%02d.%02d', match(oldVersionString, '(%d+).(%d+).(%d+)'))
@@ -339,5 +342,5 @@ script.on_configuration_changed(function(data)
     initializeTrainStops()
     updateAllTrains()
     registerEvents()
-    log('[LTN] ' .. MOD_NAME .. ' ' .. tostring(game.active_mods[MOD_NAME]) .. ' configuration updated.')
+    log('[LTN] ' .. MOD_NAME .. ' ' .. tostring(script.active_mods[MOD_NAME]) .. ' configuration updated.')
 end)

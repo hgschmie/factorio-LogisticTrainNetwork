@@ -543,7 +543,7 @@ function ProcessRequest(reqIndex, request)
 
     -- find providers for requested item
     local itype, iname = match(item, match_string)
-    if not (itype and iname and (game.item_prototypes[iname] or game.fluid_prototypes[iname])) then
+    if not (itype and iname and (prototypes.item[iname] or prototypes.fluid[iname])) then
         if message_level >= 1 then printmsg({ 'ltn-message.error-parse-item', item }, requestForce) end
         if debug_log then log('(ProcessRequests) could not parse ' .. item) end
         -- goto skipRequestItem
@@ -552,7 +552,7 @@ function ProcessRequest(reqIndex, request)
 
     local localname
     if itype == 'fluid' then
-        localname = game.fluid_prototypes[iname].localised_name
+        localname = prototypes.fluid[iname].localised_name
         -- skip if no trains are available
         if (storage.Dispatcher.availableTrains_total_fluid_capacity or 0) == 0 then
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-fluid' }, requestForce)
@@ -562,7 +562,7 @@ function ProcessRequest(reqIndex, request)
             return nil
         end
     else
-        localname = game.item_prototypes[iname].localised_name
+        localname = prototypes.item[iname].localised_name
         -- skip if no trains are available
         if (storage.Dispatcher.availableTrains_total_capacity or 0) == 0 then
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-item' }, requestForce)
@@ -604,7 +604,7 @@ function ProcessRequest(reqIndex, request)
 
     local stacks = deliverySize                                          -- for fluids stack = tanker capacity
     if itype ~= 'fluid' then
-        stacks = ceil(deliverySize / game.item_prototypes[iname].stack_size) -- calculate amount of stacks item count will occupy
+        stacks = ceil(deliverySize / prototypes.item[iname].stack_size) -- calculate amount of stacks item count will occupy
     end
 
     -- max_carriages = shortest set max-train-length
@@ -628,8 +628,8 @@ function ProcessRequest(reqIndex, request)
     if itype ~= 'fluid' then
         for merge_item, merge_count_req in pairs(storage.Dispatcher.Requests_by_Stop[toID]) do
             local merge_type, merge_name = match(merge_item, match_string)
-            if merge_type and merge_name and game.item_prototypes[merge_name] then
-                local merge_localname = game.item_prototypes[merge_name].localised_name
+            if merge_type and merge_name and prototypes.item[merge_name] then
+                local merge_localname = prototypes.item[merge_name].localised_name
                 -- get current provider for requested item
                 if storage.Dispatcher.Provided[merge_item] and storage.Dispatcher.Provided[merge_item][fromID] then
                     -- set delivery Size and stacks
@@ -638,7 +638,7 @@ function ProcessRequest(reqIndex, request)
                     if merge_count_req > merge_count_prov then
                         merge_deliverySize = merge_count_prov
                     end
-                    local merge_stacks = ceil(merge_deliverySize / game.item_prototypes[merge_name].stack_size) -- calculate amount of stacks item count will occupy
+                    local merge_stacks = ceil(merge_deliverySize / prototypes.item[merge_name].stack_size) -- calculate amount of stacks item count will occupy
 
                     -- add to loading list
                     loadingList[#loadingList + 1] = { type = merge_type, name = merge_name, localname = merge_localname, count = merge_deliverySize, stacks =
@@ -696,7 +696,7 @@ function ProcessRequest(reqIndex, request)
                     -- remove stacks until it fits in train
                     loadingList[i].stacks = loadingList[i].stacks - (totalStacks - trainInventorySize)
                     totalStacks = trainInventorySize
-                    local newcount = loadingList[i].stacks * game.item_prototypes[loadingList[i].name].stack_size
+                    local newcount = loadingList[i].stacks * prototypes.item[loadingList[i].name].stack_size
                     loadingList[i].count = min(newcount, loadingList[i].count)
                     break
                 else
@@ -756,8 +756,8 @@ function ProcessRequest(reqIndex, request)
         local new_provided_stacks = 0
         local useProvideStackThreshold = false
         if loadingList[i].type == 'item' then
-            if game.item_prototypes[loadingList[i].name] then
-                new_provided_stacks = new_provided / game.item_prototypes[loadingList[i].name].stack_size
+            if prototypes.item[loadingList[i].name] then
+                new_provided_stacks = new_provided / prototypes.item[loadingList[i].name].stack_size
             end
             useProvideStackThreshold = providerData.providing_threshold_stacks > 0
         end
