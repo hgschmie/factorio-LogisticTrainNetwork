@@ -10,17 +10,14 @@ data:extend {
         name = 'logistic-train-network',
         icon = '__LogisticTrainNetwork__/graphics/technology/ltn_technology.png',
         icon_size = 256,
-        icon_mipmaps = 4,
         prerequisites = { 'automated-rail-transportation', 'circuit-network' },
-        effects =
-        {
+        effects = {
             {
                 type = 'unlock-recipe',
                 recipe = 'logistic-train-stop'
             }
         },
-        unit =
-        {
+        unit = {
             count = 300,
             ingredients = {
                 { 'automation-science-pack', 1 },
@@ -40,17 +37,14 @@ if mods['cargo-ships'] then
             name = 'logistic-ship-network',
             icon = '__LogisticTrainNetwork__/graphics/technology/lsn_technology.png',
             icon_size = 128,
-            icon_mipmaps = 1,
             prerequisites = { 'circuit-network', 'automated_water_transport' },
-            effects =
-            {
+            effects = {
                 {
                     type = 'unlock-recipe',
                     recipe = 'ltn-port'
                 }
             },
-            unit =
-            {
+            unit = {
                 count = 300,
                 ingredients = {
                     { 'automation-science-pack', 1 },

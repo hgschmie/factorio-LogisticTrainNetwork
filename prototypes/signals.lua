@@ -153,8 +153,8 @@ data:extend {
         name = 'ltn-position-any-locomotive',
         -- localised_name = {"virtual-signal-name.ltn-position-any", {"entity-name.locomotive"}},
         icons = {
-            { icon = '__base__/graphics/icons/signal/signal_red.png', icon_size = 64, icon_mipmaps = 4 },
-            { icon = '__base__/graphics/icons/locomotive.png',        icon_size = 64, icon_mipmaps = 4, scale = 0.375 },
+            { icon = '__base__/graphics/icons/signal/signal_red.png', icon_size = 64, },
+            { icon = '__base__/graphics/icons/locomotive.png',        icon_size = 64, scale = 0.375 },
         },
         subgroup = 'ltn-position-signal',
         order = 'a0'
@@ -164,8 +164,8 @@ data:extend {
         name = 'ltn-position-any-cargo-wagon',
         -- localised_name = {"virtual-signal-name.ltn-position-any", {"entity-name.cargo-wagon"}},
         icons = {
-            { icon = '__base__/graphics/icons/signal/signal_red.png', icon_size = 64, icon_mipmaps = 4 },
-            { icon = '__base__/graphics/icons/cargo-wagon.png',       icon_size = 64, icon_mipmaps = 4, scale = 0.375 },
+            { icon = '__base__/graphics/icons/signal/signal_red.png', icon_size = 64, },
+            { icon = '__base__/graphics/icons/cargo-wagon.png',       icon_size = 64, scale = 0.375 },
         },
         subgroup = 'ltn-position-signal',
         order = 'b0'
@@ -175,8 +175,8 @@ data:extend {
         name = 'ltn-position-any-fluid-wagon',
         -- localised_name = {"virtual-signal-name.ltn-position-any", {"entity-name.fluid-wagon"}},
         icons = {
-            { icon = '__base__/graphics/icons/signal/signal_red.png', icon_size = 64, icon_mipmaps = 4 },
-            { icon = '__base__/graphics/icons/fluid-wagon.png',       icon_size = 64, icon_mipmaps = 4, scale = 0.375 },
+            { icon = '__base__/graphics/icons/signal/signal_red.png', icon_size = 64, },
+            { icon = '__base__/graphics/icons/fluid-wagon.png',       icon_size = 64, scale = 0.375 },
         },
         subgroup = 'ltn-position-signal',
         order = 'c0'
@@ -186,8 +186,8 @@ data:extend {
         name = 'ltn-position-any-artillery-wagon',
         -- localised_name = {"virtual-signal-name.ltn-position-any", {"entity-name.artillery-wagon"}},
         icons = {
-            { icon = '__base__/graphics/icons/signal/signal_red.png', icon_size = 64, icon_mipmaps = 4 },
-            { icon = '__base__/graphics/icons/artillery-wagon.png',   icon_size = 64, icon_mipmaps = 4, scale = 0.375 },
+            { icon = '__base__/graphics/icons/signal/signal_red.png', icon_size = 64, },
+            { icon = '__base__/graphics/icons/artillery-wagon.png',   icon_size = 64, scale = 0.375 },
         },
         subgroup = 'ltn-position-signal',
         order = 'd0'
@@ -198,7 +198,6 @@ data:extend {
         name = 'ltn-cargo-warning',
         icon = '__LogisticTrainNetwork__/graphics/icons/cargo-warning.png',
         icon_size = 64,
-        icon_mipmaps = 0,
         default_temperature = 15,
         max_temperature = 100,
         heat_capacity = '0.2KJ',
@@ -214,7 +213,6 @@ data:extend {
         name = 'ltn-cargo-alert',
         icon = '__LogisticTrainNetwork__/graphics/icons/cargo-alert.png',
         icon_size = 64,
-        icon_mipmaps = 0,
         default_temperature = 15,
         max_temperature = 100,
         heat_capacity = '0.2KJ',
@@ -230,7 +228,6 @@ data:extend {
         name = 'ltn-depot-warning',
         icon = '__LogisticTrainNetwork__/graphics/icons/depot-warning.png',
         icon_size = 64,
-        icon_mipmaps = 0,
         default_temperature = 15,
         max_temperature = 100,
         heat_capacity = '0.2KJ',
@@ -246,7 +243,6 @@ data:extend {
         name = 'ltn-depot-empty',
         icon = '__LogisticTrainNetwork__/graphics/icons/depot-empty.png',
         icon_size = 64,
-        icon_mipmaps = 0,
         default_temperature = 15,
         max_temperature = 100,
         heat_capacity = '0.2KJ',
