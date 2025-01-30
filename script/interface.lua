@@ -18,37 +18,37 @@ on_requester_unscheduled_cargo_alert = script.generate_event_name()
 on_requester_remaining_cargo_alert = script.generate_event_name()
 
 -- ltn_interface allows mods to register for update events
-remote.add_interface("logistic-train-network", {
-  -- updates for ltn_stops
-  on_stops_updated = function() return on_stops_updated_event end,
+remote.add_interface('logistic-train-network', {
+    -- updates for ltn_stops
+    on_stops_updated = function() return on_stops_updated_event end,
 
-  -- updates for dispatcher
-  on_dispatcher_updated = function() return on_dispatcher_updated_event end,
-  on_dispatcher_no_train_found = function() return on_dispatcher_no_train_found_event end,
-  on_delivery_created = function() return on_delivery_created_event end,
+    -- updates for dispatcher
+    on_dispatcher_updated = function() return on_dispatcher_updated_event end,
+    on_dispatcher_no_train_found = function() return on_dispatcher_no_train_found_event end,
+    on_delivery_created = function() return on_delivery_created_event end,
 
-  -- update for updated deliveries after leaving provider
-  on_delivery_pickup_complete = function() return on_delivery_pickup_complete_event end,
+    -- update for updated deliveries after leaving provider
+    on_delivery_pickup_complete = function() return on_delivery_pickup_complete_event end,
 
-  -- update for completing deliveries
-  on_delivery_completed = function() return on_delivery_completed_event end,
-  on_delivery_failed = function() return on_delivery_failed_event end,
+    -- update for completing deliveries
+    on_delivery_completed = function() return on_delivery_completed_event end,
+    on_delivery_failed = function() return on_delivery_failed_event end,
 
-  -- alerts
-  on_provider_missing_cargo = function() return on_provider_missing_cargo_alert end,
-  on_provider_unscheduled_cargo = function() return on_provider_unscheduled_cargo_alert end,
-  on_requester_unscheduled_cargo = function() return on_requester_unscheduled_cargo_alert end,
-  on_requester_remaining_cargo = function() return on_requester_remaining_cargo_alert end,
+    -- alerts
+    on_provider_missing_cargo = function() return on_provider_missing_cargo_alert end,
+    on_provider_unscheduled_cargo = function() return on_provider_unscheduled_cargo_alert end,
+    on_requester_unscheduled_cargo = function() return on_requester_unscheduled_cargo_alert end,
+    on_requester_remaining_cargo = function() return on_requester_remaining_cargo_alert end,
 
-  -- surface connections
-  connect_surfaces = ConnectSurfaces, -- function(entity1 :: LuaEntity, entity2 :: LuaEntity, network_id :: int32)
-  disconnect_surfaces = DisconnectSurfaces, -- function(entity1 :: LuaEntity, entity2 :: LuaEntity)
-  clear_all_surface_connections = ClearAllSurfaceConnections,
+    -- surface connections
+    connect_surfaces = ConnectSurfaces,     -- function(entity1 :: LuaEntity, entity2 :: LuaEntity, network_id :: int32)
+    disconnect_surfaces = DisconnectSurfaces, -- function(entity1 :: LuaEntity, entity2 :: LuaEntity)
+    clear_all_surface_connections = ClearAllSurfaceConnections,
 
-  -- Re-assigns a delivery to a different train.
-  reassign_delivery = ReassignDelivery, -- function(old_train_id :: uint, new_train :: LuaTrain) :: bool
-  get_or_create_next_temp_stop = GetOrCreateNextTempStop, -- function(train :: LuaTrain, schedule_index :: uint?) :: uint
-  get_next_logistic_stop = GetNextLogisticStop, -- function(train :: LuaTrain, schedule_index :: uint?) :: uint?, uint?, string?
+    -- Re-assigns a delivery to a different train.
+    reassign_delivery = ReassignDelivery,                 -- function(old_train_id :: uint, new_train :: LuaTrain) :: bool
+    get_or_create_next_temp_stop = GetOrCreateNextTempStop, -- function(train :: LuaTrain, schedule_index :: uint?) :: uint
+    get_next_logistic_stop = GetNextLogisticStop,         -- function(train :: LuaTrain, schedule_index :: uint?) :: uint?, uint?, string?
 })
 
 
@@ -57,7 +57,7 @@ if remote.interfaces["logistic-train-network"] then
   script.on_event(remote.call("logistic-train-network", "on_stops_updated"), on_stops_updated)
   script.on_event(remote.call("logistic-train-network", "on_dispatcher_updated"), on_dispatcher_updated)
 end
-]]--
+]] --
 
 
 --[[ EVENTS
@@ -258,7 +258,7 @@ get_or_create_next_temp_stop(train :: LuaTrain, schedule_index :: uint?) :: uint
   If no schedule_index is given, the search for the next logistic stop starts from train.schedule.current
   In case the train is currently stopping at that index, the search starts at the next higher index.
   The result will be the schedule index of the temp stop of the next logistic stop or nil if there is no further logistic stop.
-  
+
 get_next_logistic_stop(train :: LuaTrain, schedule_index :: uint?) :: uint?, uint?, string?
   Finds the next logistic stop in the schedule of the given train.
   If no schedule_index is given, the search starts from train.schedule.current.

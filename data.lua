@@ -5,10 +5,10 @@
 --]]
 
 flib = require('__flib__.data-util')
-require ("prototypes.technology")
-require ("prototypes.recipes")
-require ("prototypes.items")
-require ("prototypes.entities")
-require ("prototypes.signals")
-require ("prototypes.hotkeys")
+require('prototypes.technology')
+require('prototypes.recipes')
+require('prototypes.items')
+require('prototypes.entities')
+require('prototypes.signals')
+require('prototypes.hotkeys')
 flib = nil
