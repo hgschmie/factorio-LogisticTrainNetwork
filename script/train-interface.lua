@@ -52,7 +52,10 @@ function GetNextLogisticStop(train, schedule_index)
                 local condition = wait_condition.condition
                 if condition and condition.constant and (wait_condition.type == 'item_count' or wait_condition.type == 'fluid_count') then
                     local signal = condition.first_signal
-                    return signal and signal.type == itype and signal.name == iname and condition.comparator
+                    if signal then
+                        signal.type = signal.type or 'item'
+                        return signal.type == itype and signal.name == iname and condition.comparator
+                    end
                 end
             end
         end

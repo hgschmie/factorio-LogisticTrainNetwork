@@ -5,10 +5,10 @@
 --]]
 
 local icons = {
-    ['cargo-warning'] = { type = 'virtual-signal', name = 'ltn-cargo-warning' },
-    ['cargo-alert'] = { type = 'virtual-signal', name = 'ltn-cargo-alert' },
-    ['depot-warning'] = { type = 'virtual-signal', name = 'ltn-depot-warning' },
-    ['depot-empty'] = { type = 'virtual-signal', name = 'ltn-depot-empty' },
+    ['cargo-warning'] = { type = 'virtual', name = 'ltn-cargo-warning' },
+    ['cargo-alert'] = { type = 'virtual', name = 'ltn-cargo-alert' },
+    ['depot-warning'] = { type = 'virtual', name = 'ltn-depot-warning' },
+    ['depot-empty'] = { type = 'virtual', name = 'ltn-depot-empty' },
 }
 
 function create_alert(entity, icon, msg, force)

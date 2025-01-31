@@ -14,36 +14,32 @@ function CreateStop(entity)
         return
     end
     local stop_offset = ltn_stop_entity_names[entity.name]
-    local posIn, posOut, rotOut, search_area
+    local posIn, posOut, search_area
     --log("Stop created at "..entity.position.x.."/"..entity.position.y..", orientation "..entity.direction)
-    if entity.direction == 0 then --SN
+    if entity.direction == defines.direction.north then --SN
         posIn = { entity.position.x + stop_offset, entity.position.y - 1 }
         posOut = { entity.position.x - 1 + stop_offset, entity.position.y - 1 }
-        rotOut = 0
         search_area = {
             { entity.position.x + 0.001 - 1 + stop_offset, entity.position.y + 0.001 - 1 },
             { entity.position.x - 0.001 + 1 + stop_offset, entity.position.y - 0.001 }
         }
-    elseif entity.direction == 2 then --WE
+    elseif entity.direction == defines.direction.east then --WE
         posIn = { entity.position.x, entity.position.y + stop_offset }
         posOut = { entity.position.x, entity.position.y - 1 + stop_offset }
-        rotOut = 2
         search_area = {
             { entity.position.x + 0.001,     entity.position.y + 0.001 - 1 + stop_offset },
             { entity.position.x - 0.001 + 1, entity.position.y - 0.001 + 1 + stop_offset }
         }
-    elseif entity.direction == 4 then --NS
+    elseif entity.direction == defines.direction.south then --NS
         posIn = { entity.position.x - 1 - stop_offset, entity.position.y }
         posOut = { entity.position.x - stop_offset, entity.position.y }
-        rotOut = 4
         search_area = {
             { entity.position.x + 0.001 - 1 - stop_offset, entity.position.y + 0.001 },
             { entity.position.x - 0.001 + 1 - stop_offset, entity.position.y - 0.001 + 1 }
         }
-    elseif entity.direction == 6 then --EW
+    elseif entity.direction == defines.direction.west then --EW
         posIn = { entity.position.x - 1, entity.position.y - 1 - stop_offset }
         posOut = { entity.position.x - 1, entity.position.y - stop_offset }
-        rotOut = 6
         search_area = {
             { entity.position.x + 0.001 - 1, entity.position.y + 0.001 - 1 - stop_offset },
             { entity.position.x - 0.001,     entity.position.y - 0.001 + 1 - stop_offset }
@@ -94,9 +90,10 @@ function CreateStop(entity)
                 force = entity.force
             }
     end
-    input.operable = false   -- disable gui
+    input.operable = false     -- disable gui
     input.minable = false
     input.destructible = false -- don't bother checking if alive
+    input.always_on = true
 
     if lampctrl == nil then
         lampctrl = entity.surface.create_entity
@@ -107,33 +104,53 @@ function CreateStop(entity)
             }
         -- log("building lamp-control at "..lampctrl.position.x..", "..lampctrl.position.y)
     end
-    lampctrl.operable = false   -- disable gui
+    lampctrl.operable = false     -- disable gui
     lampctrl.minable = false
     lampctrl.destructible = false -- don't bother checking if alive
 
     -- connect lamp and control
-    lampctrl.get_control_behavior().parameters = { { index = 1, signal = { type = 'virtual', name = 'signal-white' }, count = 1 } }
-    input.connect_neighbour { target_entity = lampctrl, wire = defines.wire_type.green }
-    input.connect_neighbour { target_entity = lampctrl, wire = defines.wire_type.red }
-    input.get_or_create_control_behavior().use_colors = true
-    input.get_or_create_control_behavior().circuit_condition = { condition = { comparator = '>', first_signal = { type = 'virtual', name = 'signal-anything' } } }
+
+    local lampctrl_control = lampctrl.get_or_create_control_behavior()
+    assert(lampctrl_control)
+    assert(lampctrl_control.sections_count == 1)
+    lampctrl_control.sections[1].set_slot(1, {
+        value = {
+            type = 'virtual',
+            name = 'signal-white',
+            quality = 'normal',
+        },
+        min = 1,
+    })
+
+    local input_wire_connectors = input.get_wire_connectors(true)
+    local lampctrl_wire_connectors = lampctrl.get_wire_connectors(true)
+
+    input_wire_connectors[defines.wire_connector_id.circuit_red].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_red], false, defines.wire_origin.script)
+    input_wire_connectors[defines.wire_connector_id.circuit_green].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_green], false, defines.wire_origin.script)
+
+    local input_control = input.get_or_create_control_behavior()
+    assert(input_control)
+    input_control.use_colors = true
+    input_control.circuit_condition = { comparator = '>', first_signal = { type = 'virtual', name = 'signal-anything', quality = 'normal' }, constant = 0, }
 
     if output == nil then -- create new
         output = entity.surface.create_entity
             {
                 name = ltn_stop_output,
                 position = posOut,
-                direction = rotOut,
+                direction = entity.direction,
                 force = entity.force
             }
     end
-    output.operable = false   -- disable gui
+    output.operable = false     -- disable gui
     output.minable = false
     output.destructible = false -- don't bother checking if alive
 
     -- enable reading contents and sending signals to trains
-    entity.get_or_create_control_behavior().send_to_train = true
-    entity.get_or_create_control_behavior().read_from_train = true
+    local trainstop_control = entity.get_or_create_control_behavior()
+    assert(trainstop_control)
+    trainstop_control.send_to_train = true
+    trainstop_control.read_from_train = true
 
     storage.LogisticTrainStops[entity.unit_number] = {
         entity = entity,
@@ -143,7 +160,7 @@ function CreateStop(entity)
         parked_train = nil,
         parked_train_id = nil,
         active_deliveries = {}, --delivery IDs to/from stop
-        error_code = -1,    --key to error_codes table
+        error_code = -1,        --key to error_codes table
         is_depot = false,
         depot_priority = 0,
         network_id = default_network,
@@ -193,9 +210,9 @@ function RemoveStop(stopID, create_ghosts)
     -- remove available train
     if stop and stop.is_depot and stop.parked_train_id and storage.Dispatcher.availableTrains[stop.parked_train_id] then
         storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity -
-        storage.Dispatcher.availableTrains[stop.parked_train_id].capacity
+            storage.Dispatcher.availableTrains[stop.parked_train_id].capacity
         storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity -
-        storage.Dispatcher.availableTrains[stop.parked_train_id].fluid_capacity
+            storage.Dispatcher.availableTrains[stop.parked_train_id].fluid_capacity
         storage.Dispatcher.availableTrains[stop.parked_train_id] = nil
     end
 

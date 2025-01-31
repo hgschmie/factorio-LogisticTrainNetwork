@@ -809,9 +809,19 @@ function ProcessRequest(reqIndex, request)
         local stop = storage.LogisticTrainStops[stopID]
         if stop.entity.valid and (stop.entity.unit_number == fromID or stop.entity.unit_number == toID) then
             table.insert(stop.active_deliveries, selectedTrain.id)
+
+            local lamp_control = stop.lamp_control.get_control_behavior()
+            assert(lamp_control)
+            assert(lamp_control.sections_count == 1)
+
+            local section = lamp_control.sections[1]
+            assert(section)
+            assert(section.filters_count == 1)
+
+
             -- only update blue signal count; change to yellow if it wasn't blue
-            local current_signal = stop.lamp_control.get_control_behavior().get_signal(1)
-            if current_signal and current_signal.signal.name == 'signal-blue' then
+            local current_signal = section.filters[1]
+            if current_signal and current_signal.value.name == 'signal-blue' then
                 setLamp(stop, 'blue', #stop.active_deliveries)
             else
                 setLamp(stop, 'yellow', #stop.active_deliveries)
