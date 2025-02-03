@@ -15,7 +15,7 @@ of scheduling and dispatching with LTN.
 Forum: https://mods.factorio.com/mod/LogisticTrainNetwork/discussion (changed from pre-2.0!)
 Bug Reports: https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues
 Source Code: https://github.com/hgschmie/factorio-LogisticTrainNetwork
-Download: https://mods.factorio.com/mods/Optera/LogisticTrainNetwork
+Download: https://mods.factorio.com/mod/LogisticTrainNetwork/downloads
 
 
 ### How you can help
