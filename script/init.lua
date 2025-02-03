@@ -4,6 +4,9 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
+local Get_Main_Locomotive = require('__flib__.train').get_main_locomotivelocal
+Get_Train_Name = require('__flib__.train').get_backer_name
+
 ---- INITIALIZATION ----
 
 local function initialize(oldVersion, newVersion)
@@ -25,9 +28,9 @@ local function initialize(oldVersion, newVersion)
     storage.Dispatcher.availableTrains = storage.Dispatcher.availableTrains or {}
     storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity or 0
     storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity or 0
-    storage.Dispatcher.Provided = storage.Dispatcher.Provided or {}               -- dictionary [type,name] used to quickly find available items
+    storage.Dispatcher.Provided = storage.Dispatcher.Provided or {}                 -- dictionary [type,name] used to quickly find available items
     storage.Dispatcher.Provided_by_Stop = storage.Dispatcher.Provided_by_Stop or {} -- dictionary [stopID]; used only by interface
-    storage.Dispatcher.Requests = storage.Dispatcher.Requests or {}               -- array of requests sorted by priority and age; used to loop over all requests
+    storage.Dispatcher.Requests = storage.Dispatcher.Requests or {}                 -- array of requests sorted by priority and age; used to loop over all requests
     storage.Dispatcher.Requests_by_Stop = storage.Dispatcher.Requests_by_Stop or {} -- dictionary [stopID]; used to keep track of already handled requests
     storage.Dispatcher.RequestAge = storage.Dispatcher.RequestAge or {}
     storage.Dispatcher.Deliveries = storage.Dispatcher.Deliveries or {}
@@ -55,8 +58,8 @@ local function initialize(oldVersion, newVersion)
     -- update to 1.3.0
     if oldVersion and oldVersion < '01.03.00' then
         for stopID, stop in pairs(storage.LogisticTrainStops) do
-            stop.minDelivery = nil
-            stop.ignoreMinDeliverySize = nil
+            stop.minDelivery = nil ---@diagnostic disable-line: inject-field
+            stop.ignoreMinDeliverySize = nil ---@diagnostic disable-line: inject-field
         end
     end
 
@@ -64,7 +67,7 @@ local function initialize(oldVersion, newVersion)
     if oldVersion and oldVersion < '01.05.00' then
         for stopID, stop in pairs(storage.LogisticTrainStops) do
             stop.provider_priority = stop.priority or 0
-            stop.priority = nil
+            stop.priority = nil ---@diagnostic disable-line: inject-field
         end
         storage.Dispatcher.Requests = {}
         storage.Dispatcher.RequestAge = {}
@@ -103,8 +106,9 @@ local function initialize(oldVersion, newVersion)
     -- update to 1.8.0
     if oldVersion and oldVersion < '01.08.00' then
         for stopID, stop in pairs(storage.LogisticTrainStops) do
-            stop.entity.get_or_create_control_behavior().send_to_train = true
-            stop.entity.get_or_create_control_behavior().read_from_train = true
+            local control = stop.entity.get_or_create_control_behavior --[[@as LuaTrainStopControlBehavior]]
+            control.send_to_train = true
+            control.read_from_train = true
         end
     end
 
@@ -120,52 +124,56 @@ local function initialize(oldVersion, newVersion)
     if oldVersion and oldVersion < '01.13.01' and next(storage.LogisticTrainStops) then
         for stopID, stop in pairs(storage.LogisticTrainStops) do
             stop.lamp_control = stop.lamp_control or stop.lampControl
-            stop.lampControl = nil
+            stop.lampControl = nil ---@diagnostic disable-line: inject-field
             stop.error_code = stop.error_code or stop.errorCode or -1
-            stop.errorCode = nil
+            stop.errorCode = nil ---@diagnostic disable-line: inject-field
             stop.active_deliveries = stop.active_deliveries or stop.activeDeliveries or {}
-            stop.activeDeliveries = nil
+            stop.activeDeliveries = nil ---@diagnostic disable-line: inject-field
             -- control signals
             stop.is_depot = stop.is_depot or stop.isDepot or false
-            stop.isDepot = nil
+            stop.isDepot = nil ---@diagnostic disable-line: inject-field
             stop.depot_priority = stop.depot_priority or 0
             stop.max_carriages = stop.max_carriages or stop.maxTraincars or 0
-            stop.maxTraincars = nil
+            stop.maxTraincars = nil ---@diagnostic disable-line: inject-field
             stop.min_carriages = stop.min_carriages or stop.minTraincars or 0
-            stop.minTraincars = nil
+            stop.minTraincars = nil ---@diagnostic disable-line: inject-field
             stop.max_trains = stop.max_trains or stop.trainLimit or 0
-            stop.trainLimit = nil
+            stop.trainLimit = nil ---@diagnostic disable-line: inject-field
             stop.providing_threshold = stop.providing_threshold or stop.provideThreshold or min_provided
-            stop.provideThreshold = nil
+            stop.provideThreshold = nil ---@diagnostic disable-line: inject-field
             stop.providing_threshold_stacks = stop.providing_threshold_stacks or stop.provideStackThreshold or 0
-            stop.provideStackThreshold = nil
+            stop.provideStackThreshold = nil ---@diagnostic disable-line: inject-field
             stop.provider_priority = stop.provider_priority or stop.providePriority or 0
-            stop.providePriority = nil
+            stop.providePriority = nil ---@diagnostic disable-line: inject-field
             stop.requesting_threshold = stop.requesting_threshold or stop.requestThreshold or min_requested
-            stop.requestThreshold = nil
+            stop.requestThreshold = nil ---@diagnostic disable-line: inject-field
             stop.requesting_threshold_stacks = stop.requesting_threshold_stacks or stop.requestStackThreshold or 0
-            stop.requestStackThreshold = nil
+            stop.requestStackThreshold = nil ---@diagnostic disable-line: inject-field
             stop.requester_priority = stop.requester_priority or stop.requestPriority or 0
-            stop.requestPriority = nil
+            stop.requestPriority = nil ---@diagnostic disable-line: inject-field
             stop.locked_slots = stop.locked_slots or stop.lockedSlots or 0
-            stop.lockedSlots = nil
+            stop.lockedSlots = nil ---@diagnostic disable-line: inject-field
             stop.no_warnings = stop.no_warnings or stop.noWarnings or false
-            stop.noWarnings = nil
+            stop.noWarnings = nil ---@diagnostic disable-line: inject-field
             -- parked train data will be set during initializeTrainStops() and updateAllTrains()
-            stop.parkedTrain = nil
-            stop.parkedTrainID = nil
-            stop.parkedTrainFacesStop = nil
+            stop.parkedTrain = nil ---@diagnostic disable-line: inject-field
+            stop.parkedTrainID = nil ---@diagnostic disable-line: inject-field
+            stop.parkedTrainFacesStop = nil ---@diagnostic disable-line: inject-field
         end
     end
 
     -- update to 1.9.4
     if oldVersion and oldVersion < '01.09.04' then
         for stopID, stop in pairs(storage.LogisticTrainStops) do
-            stop.lamp_control.teleport { stop.input.position.x, stop.input.position.y }                -- move control under lamp
-            stop.input.disconnect_neighbour { target_entity = stop.lamp_control, wire = defines.wire_type.green } -- reconnect wires
-            stop.input.disconnect_neighbour { target_entity = stop.lamp_control, wire = defines.wire_type.red }
-            stop.input.connect_neighbour { target_entity = stop.lamp_control, wire = defines.wire_type.green }
-            stop.input.connect_neighbour { target_entity = stop.lamp_control, wire = defines.wire_type.red }
+            stop.lamp_control.teleport { stop.input.position.x, stop.input.position.y } -- move control under lamp
+
+            local input_connectors = stop.input.get_wire_connectors(true)
+            local control_connectors = stop.lamp_control.get_wire_connectors(true)
+
+            for connector_id, connector in pairs(input_connectors) do
+                connector.disconnect_all(defines.wire_origin.script)
+                connector.connect_to(control_connectors[connector_id], false, defines.wire_origin.script)
+            end
         end
     end
 end
@@ -173,6 +181,7 @@ end
 -- run every time the mod configuration is changed to catch stops from other mods
 -- ensures storage.LogisticTrainStops contains valid entities
 local function initializeTrainStops()
+    ---@type table<number, ltn.TrainStop>
     storage.LogisticTrainStops = storage.LogisticTrainStops or {}
     -- remove invalidated stops
     for stopID, stop in pairs(storage.LogisticTrainStops) do
@@ -225,7 +234,7 @@ local function updateAllTrains()
     -- reset global lookup tables
     storage.StoppedTrains = {} -- trains stopped at LTN stops
     storage.StopDistances = {} -- reset station distance lookup table
-    storage.WagonCapacity = { --preoccupy table with wagons to ignore at 0 capacity
+    storage.WagonCapacity = {  --preoccupy table with wagons to ignore at 0 capacity
         ['rail-tanker'] = 0
     }
     storage.Dispatcher.availableTrains_total_capacity = 0
@@ -331,7 +340,7 @@ script.on_configuration_changed(function(data)
         if oldVersion and oldVersion < '01.01.01' then
             log('[LTN] Migration failed. Migrating from ' .. tostring(oldVersionString) .. ' to ' .. tostring(newVersionString) .. 'not supported.')
             printmsg('[LTN] Error: Direct migration from ' ..
-            tostring(oldVersionString) .. ' to ' .. tostring(newVersionString) .. ' is not supported. Oldest supported version: 1.1.1')
+                tostring(oldVersionString) .. ' to ' .. tostring(newVersionString) .. ' is not supported. Oldest supported version: 1.1.1')
             return
         else
             initialize(oldVersion, newVersion)

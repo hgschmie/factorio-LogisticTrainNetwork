@@ -4,6 +4,8 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
+local Get_Distance = require('__flib__.position').distance
+local Get_Main_Locomotive = require('__flib__.train').get_main_locomotive
 
 -- update stop output when train enters stop
 function TrainArrives(train)

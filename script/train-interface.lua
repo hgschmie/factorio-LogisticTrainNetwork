@@ -108,6 +108,7 @@ function GetOrCreateNextTempStop(train, schedule_index)
 
     -- insert temp stop in schedule
     local schedule = train.schedule
+    assert(schedule)
     local previous_record = schedule.records[stop_schedule_index - 1]
     if previous_record and previous_record.temporary then return stop_schedule_index - 1 end -- schedule already up-to-date for stop_position
 

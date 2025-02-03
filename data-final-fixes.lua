@@ -45,21 +45,4 @@ for _, wagon in pairs(data.raw['artillery-wagon']) do
     create_signal(wagon, 'd' .. string.format('%02d', wagoncount_artillery))
 end
 
--- -- sum items, fluids and train composition signals for number of slots required in stop output
--- -- badly written mods may generate prototypes in final-fixes after this so additional safeguard in updating the output needs to be taken
--- -- turns out there are a lot of specialized types that act as items
--- local itemcount = 0
--- local fluidcount = 0
--- for type, type_data in pairs(data.raw) do
---     for item_name, item in pairs(type_data) do
---         if item.stack_size then
---             itemcount = itemcount + 1
---         end
---         if type == 'fluid' then
---             fluidcount = fluidcount + 1
---         end
---     end
--- end
-
--- data.raw['constant-combinator']['logistic-train-stop-output'].item_slot_count = 4 + lococount + wagoncount + wagoncount_fluid + wagoncount_artillery + itemcount + fluidcount
 log(string.format('[LTN] found %d locomotives, %d cargo wagons, %d fluid wagons, %d artillery wagons.', lococount, wagoncount, wagoncount_fluid, wagoncount_artillery))

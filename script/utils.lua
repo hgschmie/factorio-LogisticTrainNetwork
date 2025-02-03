@@ -5,6 +5,8 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
+local Get_Main_Locomotive = require('__flib__.train').get_main_locomotive
+
 --GetTrainCapacity(train)
 local function getCargoWagonCapacity(entity)
     local capacity = entity.prototype.get_inventory_size(defines.inventory.cargo_wagon)
