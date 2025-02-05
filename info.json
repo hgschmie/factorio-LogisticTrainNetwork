@@ -11,5 +11,9 @@
     "base >= 2.0.0",
     "flib >= 0.16.0",
     "(?)cargo-ships"
-  ]
+  ],
+  "package": {
+    "git_publish_branch": "master",
+    "sync_portal_details": false
+  }
 }
