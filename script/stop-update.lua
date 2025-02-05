@@ -434,7 +434,10 @@ function setLamp(trainStop, color, count)
     if trainStop and trainStop.lamp_control.valid and ColorLookup[color] then
         local lampctrl_control = trainStop.lamp_control.get_or_create_control_behavior()
         assert(lampctrl_control)
-        assert(lampctrl_control.sections_count == 1)
+        if lampctrl_control.sections_count == 0 then
+            assert(lampctrl_control.add_section())
+        end
+
         lampctrl_control.sections[1].set_slot(1, {
             value = {
                 type = 'virtual',
@@ -576,9 +579,12 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
     -- will reset if called with no parked train
     -- log("[LTN] "..tostring(trainStop.entity.backer_name).. " displaying "..#signals.."/"..tostring(trainStop.output.get_control_behavior().signals_count).." signals.")
 
-    local outputControl = trainStop.output.get_control_behavior()
+    local outputControl = trainStop.output.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
     assert(outputControl)
-    assert(outputControl.sections_count == 1)
+
+    if outputControl.sections_count == 0 then
+        assert(outputControl.add_section())
+    end
     local section = outputControl.sections[1]
     section.filters = {}
 

@@ -867,10 +867,11 @@ function ProcessRequest(reqIndex, request)
         if stop.entity.valid and (stop.entity.unit_number == fromID or stop.entity.unit_number == toID) then
             table.insert(stop.active_deliveries, selectedTrain.id)
 
-            local lamp_control = stop.lamp_control.get_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
+            local lamp_control = stop.lamp_control.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
             assert(lamp_control)
-            assert(lamp_control.sections_count == 1)
-
+            if lamp_control.sections_count == 0 then
+                assert(lamp_control.add_section())
+            end
             local section = lamp_control.sections[1]
             assert(section)
             assert(section.filters_count == 1)

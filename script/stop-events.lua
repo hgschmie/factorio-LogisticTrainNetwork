@@ -112,7 +112,10 @@ function CreateStop(entity)
 
     local lampctrl_control = lampctrl.get_or_create_control_behavior()
     assert(lampctrl_control)
-    assert(lampctrl_control.sections_count == 1)
+    if lampctrl_control.sections_count == 0 then
+        assert(lampctrl_control.add_section())
+    end
+
     lampctrl_control.sections[1].set_slot(1, {
         value = {
             type = 'virtual',
