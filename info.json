@@ -5,8 +5,6 @@
   "author": "Optera",
   "contact": "https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues",
   "homepage": "https://github.com/hgschmie/factorio-LogisticTrainNetwork",
-  "contact": "",
-  "homepage": "",
   "description": "Adds new train stops forming a highly configurable, fully automated logistic network.",
   "factorio_version": "2.0",
   "dependencies": [
