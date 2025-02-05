@@ -569,7 +569,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                 table.insert(signals, { value = { type = 'item', name = v.name, quality = v.quality, }, min = v.count, })
             end
             for k, v in pairs(fluidInventory) do
-                table.insert(signals, { value = { type = 'fluid', name = v.name, quality = 'normal', }, min = v.count, })
+                table.insert(signals, { value = { type = 'fluid', name = k, quality = 'normal', }, min = v, })
             end
         end -- not trainStop.is_depot
     end
