@@ -4,8 +4,10 @@ Date: 2025-02-04
   Bugfixes:
     - Fix fluid capacity calculation (change for factorio 2.0 API)
     - Fix crash with fluid deliveries (#2, reported by @disifere)
-    - Fix weird fractional stack reports for fluids
     - Fix crash with assertion failed (#1, reported by @Hoochie63)
+  Changes:
+    - Fix weird fractional stack reports for fluids
+    - Improve short-circuit logic
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.1
 Date: 2025-02-03

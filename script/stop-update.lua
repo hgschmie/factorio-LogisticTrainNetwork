@@ -7,30 +7,19 @@
 
 -- return true if stop, output, lamp are on same logic network
 local function detectShortCircuit(checkStop)
-    local scdetected = false
     local networks = {}
-    local entities = { checkStop.entity, checkStop.output, checkStop.input }
 
-    for k, entity in pairs(entities) do
-        local greenWire = entity.get_circuit_network(defines.wire_type.green)
-        if greenWire then
-            if networks[greenWire.network_id] then
-                scdetected = true
-            else
-                networks[greenWire.network_id] = entity.unit_number
-            end
-        end
-        local redWire = entity.get_circuit_network(defines.wire_type.red)
-        if redWire then
-            if networks[redWire.network_id] then
-                scdetected = true
-            else
-                networks[redWire.network_id] = entity.unit_number
+    for _, entity in pairs { checkStop.entity, checkStop.output, checkStop.input } do
+        local entity_wires = entity.get_wire_connectors()
+        for _, wire_connector in pairs(entity_wires) do
+            if wire_connector.connection_count > 0 then
+                if networks[wire_connector.network_id] then return true end
+                networks[wire_connector.network_id] = entity.unit_number
             end
         end
     end
 
-    return scdetected
+    return false
 end
 
 local function remove_available_train(trainID)
