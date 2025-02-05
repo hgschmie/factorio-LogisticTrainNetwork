@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.2
-Date: 2025-02-04
+Date: 2025-02-05
   Bugfixes:
     - Fix fluid capacity calculation (change for factorio 2.0 API)
     - Fix crash with fluid deliveries (#2, reported by @disifere)
