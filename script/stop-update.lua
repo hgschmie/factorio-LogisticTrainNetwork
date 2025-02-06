@@ -440,6 +440,8 @@ function setLamp(trainStop, color, count)
     return false
 end
 
+---@param trainStop ltn.TrainStop
+---@param ignore_existing_cargo boolean?
 function UpdateStopOutput(trainStop, ignore_existing_cargo)
     -- skip invalid stop outputs
     if not trainStop.output.valid then
@@ -456,7 +458,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
         local encoded_positions_by_type = {}
 
         local train_contents = {}
-        for _, item in pairs(trainStop.parked_train.get_contents() or {}) do
+        for _, item in pairs(trainStop.parked_train.get_contents()) do
             train_contents[item.name] = item
         end
         local inventory = not (ignore_existing_cargo) and train_contents or {}

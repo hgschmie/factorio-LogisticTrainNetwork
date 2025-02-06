@@ -148,12 +148,11 @@ function TrainArrives(train)
                     if delivery.to_id == stop.entity.unit_number then
                         local requester_unscheduled_cargo = false
                         local unscheduled_load = {}
-                        local train_items = train.get_contents()
-                        for name, count in pairs(train_items) do
-                            local typed_name = 'item,' .. name
+                        for _, item in pairs(train.get_contents()) do
+                            local typed_name = 'item,' .. item.name
                             if not delivery.shipment[typed_name] then
                                 requester_unscheduled_cargo = true
-                                unscheduled_load[typed_name] = count
+                                unscheduled_load[typed_name] = item.count
                             end
                         end
                         local train_fluids = train.get_fluid_contents()
@@ -237,19 +236,18 @@ function TrainLeaves(trainID)
                 local unscheduled_load = {}
                 local provider_unscheduled_cargo = false
                 local provider_missing_cargo = false
-                local train_items = train.get_contents()
-                for name, count in pairs(train_items) do
-                    local typed_name = 'item,' .. name
+                for _, item in pairs(train.get_contents()) do
+                    local typed_name = 'item,' .. item.name
                     local planned_count = delivery.shipment[typed_name]
                     if planned_count then
-                        actual_load[typed_name] = count -- update shipment to actual inventory
-                        if count < planned_count then
+                        actual_load[typed_name] = item.count -- update shipment to actual inventory
+                        if item.count < planned_count then
                             -- underloaded
                             provider_missing_cargo = true
                         end
                     else
                         -- loaded wrong items
-                        unscheduled_load[typed_name] = count
+                        unscheduled_load[typed_name] = item.count
                         provider_unscheduled_cargo = true
                     end
                 end
@@ -309,12 +307,11 @@ function TrainLeaves(trainID)
 
                 local remaining_load = {}
                 local requester_left_over_cargo = false
-                local train_items = train.get_contents()
-                for name, count in pairs(train_items) do
+                for _, item in pairs(train.get_contents()) do
                     -- not fully unloaded
-                    local typed_name = 'item,' .. name
+                    local typed_name = 'item,' .. item.name
                     requester_left_over_cargo = true
-                    remaining_load[typed_name] = count
+                    remaining_load[typed_name] = item.count
                 end
                 local train_fluids = train.get_fluid_contents()
                 for name, count in pairs(train_fluids) do
