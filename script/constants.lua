@@ -47,6 +47,7 @@ ltn_stop_input = 'logistic-train-stop-input'
 ltn_stop_output = 'logistic-train-stop-output'
 ltn_stop_output_controller = 'logistic-train-stop-lamp-control'
 
+---@enum ltn.ErrorCodes
 ErrorCodes = {
     [-1] = 'white', -- not initialized
     [1] = 'red',  -- short circuit / disabled

@@ -200,6 +200,8 @@ function OnEntityCreated(event)
 end
 
 -- stop removed
+---@param stopID number
+---@param create_ghosts boolean?
 function RemoveStop(stopID, create_ghosts)
     local stop = storage.LogisticTrainStops[stopID]
 
@@ -270,7 +272,12 @@ function OnEntityRemoved(event, create_ghosts)
         -- otherwise I'd have to handle splitting and merging a delivery across train parts
         local delivery = storage.Dispatcher.Deliveries[trainID]
         if delivery then
-            script.raise_event(on_delivery_failed_event, { train_id = trainID, shipment = delivery.shipment })
+            ---@type ltn.EventData.on_delivery_failed
+            local data = {
+                train_id = trainID,
+                shipment = delivery.shipment
+            }
+            script.raise_event(on_delivery_failed_event, data)
             RemoveDelivery(trainID)
         end
     elseif ltn_stop_entity_names[entity.name] then

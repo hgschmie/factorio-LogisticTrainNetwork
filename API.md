@@ -1,0 +1,147 @@
+# LTN API
+
+LTN offers a large API for other mods to interact.
+
+All methods can be accessed through the LTN remote interface:
+
+```lua
+-- Test for LTN API availability
+local ltn_present = remote.interfaces["logistic-train-network"] and true or false
+```
+
+The documentation refers to LTN data types, which are defined [in the types.lua](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/types.lua) metadata file.
+
+## Events
+
+All LTN events are available through the remote API:
+
+The `remote.class("logistic-train-network", <event-name>)` call returns an event id that can be used with the `script.on_event` function to receive a callback:
+
+```lua
+-- receive a callback when stops are updated
+script.on_event(remote.call("logistic-train-network", "on_stops_updated"), <code to be called>)
+```
+
+### on_stops_updated
+
+Raised whenever the dispatcher has finished scheduling. Sends out a `ltn.EventData.on_stops_updated` payload.
+
+### on_dispatcher_updated
+
+Raised whenever the dispatcher has finished scheduling. Sends out a `ltn.EventData.on_dispatcher_updated` payload.
+
+### on_dispatcher_no_train_found
+
+Raised whenever the dispatcher can not schedule a train for a delivery. Sends out a `ltn.EventData.no_train_found` payload, which is a union of two different payloads:
+
+If no train capacity at all is available to create a shipment, the dispatcher sends this event with a `ltn.EventData.no_train_found_item` payload.
+
+If capacity is available but not train could be found that matches the criterias to create a delivery, this event is raised with a `ltn.EventData.no_train_found_shipment` payload.
+
+The two payloads can be differentiated by the presence of the `item` field.
+
+### on_delivery_pickup_complete
+
+Raised whenever a pickup is complete and a train leaves a stop. Sends out a `ltn.EventData.delivery_pickup_complete` payload.
+
+### on_delivery_completed
+
+Raised when a dropoff is complete and a train leaves a stop. Sends out a `ltn.EventData.delivery_complete` payload.
+
+### on_delivery_failed
+
+Raised when a delivery has failed (e.g. through timeout or because the train was destroyed). Sends out a `ltn.EventData.on_delivery_failed` payload.
+
+## Alerts
+
+Each of the alert events is sent in addition to the normal delivery events.
+
+### on_provider_missing_cargo
+
+Raised when a train leaves a pickup station with missing cargo. Sends out a `ltn.EventData.provider_missing_cargo` payload.
+
+### on_provider_unscheduled_cargo
+
+Raised when a train leaves a pickup station with additional cargo. Sends out a `ltn.EventData.unscheduled_cargo` payload.
+
+### on_requester_unscheduled_cargo
+
+Raised when a train arrives at a dropoff with additionalt cargo. Sends out a `ltn.EventData.unscheduled_cargo` payload.
+
+### on_requester_remaining_cargo
+
+Raised when a train leaves a dropoff with remaining cargo. Sends out a `ltn.EventData.requester_remaining_cargo` payload.
+
+## Cross-Surface operations
+
+### reassign_delivery API
+
+Re-assigns a delivery to a different train. Should be called after creating a train based on another train, for example after moving a train to a different surface.
+
+Calls with an old_train_id without delivery have no effect. Don't call this function when coupling trains via script, LTN already handles that through Factorio events. This function does not add missing temp stops. See `get_or_create_next_temp_stop` for that.
+
+```lua
+remote.call('logistic-train-network', 'reassign_delivery', 
+    old_train,  -- LuaTrain
+    new_train   -- LuaTrain
+)
+```
+
+### get_or_create_next_temp_stop
+
+Finds or, if necessary, creates a new temporary stop before the next logistic stop.
+
+Ensures the next logistic stop in the schedule has a temporary stop if it is on the same surface as the train. If no schedule_index is given, the search for the next logistic stop starts from `train.schedule.current`. In case the train is currently stopping at that index, the search starts at the next higher index.
+
+The result is the schedule index of the temp stop of the next logistic stop or `nil` if there is no further logistic stop.
+
+```lua
+local schedule_index = remote.call('logistic-train-network', 'get_or_create_next_temp_stop', 
+    train
+    )
+```
+
+### get_next_logistic_stop
+
+Finds the next logistic stop in the schedule of the given train. If no schedule_index is given, the search starts from `train.schedule.current`. In case the train is currently stopping at that index, the search starts at the next higher index.
+
+The result will be three values:
+
+- stop_schedule_index        - number?
+- stop_id                    - number?
+- 'provider'|'requester'|nil - string?
+
+If there is no further logistic stop in the schedule, the result will be all `nil`.
+
+### connect_surfaces
+
+Adds a surface connection between the given entities; the network_id will be used in delivery processing to discard providers that don't match the surface connection's network_id.
+
+```lua
+remote.call('logistic-train-network', 'connect_surfaces', 
+    entity1,
+    entity2,
+    network_id
+    )
+```
+
+### disconnect_surfaces
+
+Removes a surface connection formed by the two given entities. Active deliveries will not be affected. It is not necessary to call this function when deleting one or both entities.
+
+```lua
+remote.call('logistic-train-network', 'disconnect_surfaces', 
+    entity1,
+    entity2
+    )
+```
+
+### clear_all_surface_connections
+
+Clears all surface connections. Active deliveries will not be affected.
+
+(This function exists for debugging purposes, no event is raised to notify connection owners.)
+
+```lua
+remote.call('logistic-train-network', 'clear_all_surface_connections')
+```

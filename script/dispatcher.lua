@@ -71,7 +71,14 @@ function OnTick(event)
                 end
                 if debug_log then log('(OnTick) Delivery from ' .. delivery.from .. ' to ' .. delivery.to .. ' removed. Train no longer valid.') end
 
-                script.raise_event(on_delivery_failed_event, { train_id = trainID, shipment = delivery.shipment })
+
+                ---@type ltn.EventData.on_delivery_failed
+                local data = {
+                    train_id = trainID,
+                    shipment = delivery.shipment
+                }
+                script.raise_event(on_delivery_failed_event, data)
+
                 RemoveDelivery(trainID)
             elseif tick - delivery.started > delivery_timeout then
                 local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
@@ -89,7 +96,12 @@ function OnTick(event)
                         delivery.from .. ' to ' .. delivery.to .. ' removed. Timed out after ' .. tick - delivery.started .. '/' .. delivery_timeout .. ' ticks.')
                 end
 
-                script.raise_event(on_delivery_failed_event, { train_id = trainID, shipment = delivery.shipment })
+                ---@type ltn.EventData.on_delivery_failed
+                local data = {
+                    train_id = trainID,
+                    shipment = delivery.shipment
+                }
+                script.raise_event(on_delivery_failed_event, data)
                 RemoveDelivery(trainID)
             else
                 activeDeliveryTrains = activeDeliveryTrains .. ' ' .. trainID
@@ -155,19 +167,25 @@ function OnTick(event)
     elseif storage.tick_state == 4 then -- raise API events
         storage.tick_state = 0
         -- raise events for mod API
-        script.raise_event(on_stops_updated_event,
-            {
-                logistic_train_stops = storage.LogisticTrainStops,
-            })
-        script.raise_event(on_dispatcher_updated_event,
-            {
-                update_interval = tick - storage.tick_interval_start,
-                provided_by_stop = storage.Dispatcher.Provided_by_Stop,
-                requests_by_stop = storage.Dispatcher.Requests_by_Stop,
-                new_deliveries = storage.Dispatcher.new_Deliveries,
-                deliveries = storage.Dispatcher.Deliveries,
-                available_trains = storage.Dispatcher.availableTrains,
-            })
+
+        ---@type ltn.EventData.on_stops_updated
+        local stops_data = {
+            logistic_train_stops = storage.LogisticTrainStops,
+        }
+
+        script.raise_event(on_stops_updated_event, stops_data)
+
+        ---@type ltn.EventData.on_dispatcher_updated
+        local dispatcher_data = {
+            update_interval = tick - storage.tick_interval_start,
+            provided_by_stop = storage.Dispatcher.Provided_by_Stop,
+            requests_by_stop = storage.Dispatcher.Requests_by_Stop,
+            new_deliveries = storage.Dispatcher.new_Deliveries,
+            deliveries = storage.Dispatcher.Deliveries,
+            available_trains = storage.Dispatcher.availableTrains,
+        }
+
+        script.raise_event(on_dispatcher_updated_event, dispatcher_data)
     else -- reset
         storage.tick_stop_index = nil
         storage.tick_request_index = nil
@@ -186,6 +204,8 @@ end
 ---------------------------------- DISPATCHER FUNCTIONS ----------------------------------
 
 -- ensures removal of trainID from storage.Dispatcher.Deliveries and stop.active_deliveries
+
+---@param trainID number
 function RemoveDelivery(trainID)
     for stopID, stop in pairs(storage.LogisticTrainStops) do
         if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
@@ -581,7 +601,15 @@ function ProcessRequest(reqIndex, request)
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-fluid' }, requestForce)
             if message_level >= 1 then printmsg({ 'ltn-message.empty-depot-fluid' }, requestForce, true) end
             if debug_log then log('Skipping request ' .. to .. ' {' .. to_network_id_string .. '}: ' .. item .. '. No trains available.') end
-            script.raise_event(on_dispatcher_no_train_found_event, { to = to, to_id = toID, network_id = requestStation.network_id, item = item })
+
+            ---@type ltn.EventData.no_train_found_item
+            local data = {
+                to = to,
+                to_id = toID,
+                network_id = requestStation.network_id,
+                item = item
+            }
+            script.raise_event(on_dispatcher_no_train_found_event, data)
             return nil
         end
     else
@@ -591,7 +619,16 @@ function ProcessRequest(reqIndex, request)
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-item' }, requestForce)
             if message_level >= 1 then printmsg({ 'ltn-message.empty-depot-item' }, requestForce, true) end
             if debug_log then log('Skipping request ' .. to .. ' {' .. to_network_id_string .. '}: ' .. item .. '. No trains available.') end
-            script.raise_event(on_dispatcher_no_train_found_event, { to = to, to_id = toID, network_id = requestStation.network_id, item = item })
+            ---@type ltn.EventData.no_train_found_item
+            local data = {
+                to = to,
+                to_id = toID,
+                network_id = requestStation.network_id,
+                item = item
+            }
+
+            script.raise_event(on_dispatcher_no_train_found_event, data)
+
             return nil
         end
     end
@@ -710,18 +747,20 @@ function ProcessRequest(reqIndex, request)
                 ' to transport ' .. tostring(totalStacks) .. ' stacks from ' .. from .. ' to ' .. to .. ' in network ' ..
                 matched_network_id_string .. ' found in Depot.')
         end
-        script.raise_event(on_dispatcher_no_train_found_event,
-            {
-                to = to,
-                to_id = toID,
-                from = from,
-                from_id = fromID,
-                network_id = requestStation.network_id,
-                min_carriages = min_carriages,
-                max_carriages =
-                    max_carriages,
-                shipment = loadingList,
-            })
+
+        ---@type ltn.EventData.no_train_found_shipment
+        local data = {
+            to = to,
+            to_id = toID,
+            from = from,
+            from_id = fromID,
+            network_id = requestStation.network_id,
+            min_carriages = min_carriages,
+            max_carriages = max_carriages,
+            shipment = loadingList,
+        }
+
+        script.raise_event(on_dispatcher_no_train_found_event, data)
         storage.Dispatcher.Requests_by_Stop[toID][item] = count -- add removed item back to list of requested items.
         return nil
     end

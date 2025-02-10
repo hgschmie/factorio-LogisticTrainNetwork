@@ -8,6 +8,7 @@ local Get_Distance = require('__flib__.position').distance
 local Get_Main_Locomotive = require('__flib__.train').get_main_locomotive
 
 -- update stop output when train enters stop
+---@param train LuaTrain
 function TrainArrives(train)
     local stopID = train.station.unit_number
     local stop = storage.LogisticTrainStops[stopID]
@@ -44,10 +45,12 @@ function TrainArrives(train)
         local is_provider = false
 
         -- if message_level >= 3 then printmsg({"ltn-message.train-arrived", tostring(trainName), stop_name}, trainForce, false) end
-        if message_level >= 3 then printmsg({ 'ltn-message.train-arrived', Make_Train_RichText(train, nil), format('[train-stop=%d]', stopID) }, trainForce,
-                false) end
-        if debug_log then log(format('(TrainArrives) Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID,
-                stop_name, stop.parked_train_faces_stop)) end
+        if message_level >= 3 then
+            printmsg({ 'ltn-message.train-arrived', Make_Train_RichText(train, nil), format('[train-stop=%d]', stopID) }, trainForce, false)
+        end
+        if debug_log then
+            log(format('(TrainArrives) Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop))
+        end
 
         if stop.error_code == 0 then
             if stop.is_depot then
@@ -63,9 +66,16 @@ function TrainArrives(train)
                             Make_Stop_RichText(to_entity) or delivery.to
                         }, delivery.force, false)
                     end
-                    if debug_log then log(format('(TrainArrives) Train [%d] \"%s\": Entered Depot with active Delivery. Failing Delivery and reseting train.',
-                            train.id, trainName)) end
-                    script.raise_event(on_delivery_failed_event, { train_id = train.id, shipment = delivery.shipment })
+                    if debug_log then
+                        log(format('(TrainArrives) Train [%d] \"%s\": Entered Depot with active Delivery. Failing Delivery and reseting train.',
+                            train.id, trainName))
+                    end
+                    ---@type ltn.EventData.on_delivery_failed
+                    local data = {
+                        train_id = train.id,
+                        shipment = delivery.shipment
+                    }
+                    script.raise_event(on_delivery_failed_event, data)
                     RemoveDelivery(train.id)
                 end
 
@@ -147,6 +157,8 @@ function TrainArrives(train)
                     is_provider = delivery.from_id == stop.entity.unit_number
                     if delivery.to_id == stop.entity.unit_number then
                         local requester_unscheduled_cargo = false
+
+                        ---@type ltn.Shipment
                         local unscheduled_load = {}
                         for _, item in pairs(train.get_contents()) do
                             local typed_name = 'item,' .. item.name
@@ -165,8 +177,15 @@ function TrainArrives(train)
                         end
                         if requester_unscheduled_cargo then
                             create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_unscheduled_cargo', trainName, stop_name }, trainForce)
-                            script.raise_event(on_requester_unscheduled_cargo_alert,
-                                { train = train, station = stop.entity, planned_shipment = delivery.shipment, unscheduled_load = unscheduled_load })
+
+                            ---@type ltn.EventData.unscheduled_cargo
+                            local data = {
+                                train = train,
+                                station = stop.entity,
+                                planned_shipment = delivery.shipment,
+                                unscheduled_load = unscheduled_load
+                            }
+                            script.raise_event(on_requester_unscheduled_cargo_alert, data)
                         end
                     end
                 end
@@ -209,9 +228,9 @@ function TrainLeaves(trainID)
     if stop.is_depot then
         if storage.Dispatcher.availableTrains[trainID] then -- trains are normally removed when deliveries are created
             storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity -
-            storage.Dispatcher.availableTrains[trainID].capacity
+                storage.Dispatcher.availableTrains[trainID].capacity
             storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity -
-            storage.Dispatcher.availableTrains[trainID].fluid_capacity
+                storage.Dispatcher.availableTrains[trainID].fluid_capacity
             storage.Dispatcher.availableTrains[trainID] = nil
         end
         if stop.error_code == 0 then
@@ -256,7 +275,7 @@ function TrainLeaves(trainID)
                     local typed_name = 'fluid,' .. name
                     local planned_count = delivery.shipment[typed_name]
                     if planned_count then
-                        actual_load[typed_name] = count -- update shipment actual inventory
+                        actual_load[typed_name] = count     -- update shipment actual inventory
                         if planned_count - count > 0.1 then -- prevent lsb errors
                             -- underloaded
                             provider_missing_cargo = true
@@ -268,34 +287,47 @@ function TrainLeaves(trainID)
                     end
                 end
                 delivery.pickupDone = true -- remove reservations from this delivery
-                if debug_log then log(format('(TrainLeaves) Train [%d] \"%s\": left Provider [%d] \"%s\"; cargo: %s; unscheduled: %s ', trainID,
-                        stoppedTrain.name, stopID, stop.entity.backer_name, serpent.line(actual_load), serpent.line(unscheduled_load))) end
+                if debug_log then
+                    log(format('(TrainLeaves) Train [%d] \"%s\": left Provider [%d] \"%s\"; cargo: %s; unscheduled: %s ', trainID,
+                        stoppedTrain.name, stopID, stop.entity.backer_name, serpent.line(actual_load), serpent.line(unscheduled_load)))
+                end
                 storage.StoppedTrains[trainID] = nil
 
                 if provider_missing_cargo then
                     create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_missing_cargo', stoppedTrain.name, stop_name }, stoppedTrain.force)
-                    script.raise_event(on_provider_missing_cargo_alert, {
+
+                    ---@type ltn.EventData.provider_missing_cargo
+                    local data = {
                         train = train,
                         station = stop.entity,
                         planned_shipment = delivery.shipment,
                         actual_shipment = actual_load
-                    })
+                    }
+
+                    script.raise_event(on_provider_missing_cargo_alert, data)
                 end
                 if provider_unscheduled_cargo then
                     create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_unscheduled_cargo', stoppedTrain.name, stop_name }, stoppedTrain.force)
-                    script.raise_event(on_provider_unscheduled_cargo_alert, {
+
+                    ---@type ltn.EventData.unscheduled_cargo
+                    local data = {
                         train = train,
                         station = stop.entity,
                         planned_shipment = delivery.shipment,
                         unscheduled_load = unscheduled_load
-                    })
+                    }
+                    script.raise_event(on_provider_unscheduled_cargo_alert, data)
                 end
-                script.raise_event(on_delivery_pickup_complete_event, {
+
+                ---@type ltn.EventData.delivery_pickup_complete
+                local data = {
                     train_id = trainID,
                     train = train,
                     planned_shipment = delivery.shipment,
                     actual_shipment = actual_load
-                })
+                }
+                script.raise_event(on_delivery_pickup_complete_event, data)
+
                 delivery.shipment = actual_load
             elseif delivery.to_id == stop.entity.unit_number then
                 -- reset schedule before API events
@@ -321,26 +353,36 @@ function TrainLeaves(trainID)
                     remaining_load[typed_name] = count
                 end
 
-                if debug_log then log(format('(TrainLeaves) Train [%d] \"%s\": left Requester [%d] \"%s\" with left over cargo: %s', trainID, stoppedTrain.name,
-                        stopID, stop.entity.backer_name, serpent.line(remaining_load))) end
+                if debug_log then
+                    log(format('(TrainLeaves) Train [%d] \"%s\": left Requester [%d] \"%s\" with left over cargo: %s', trainID, stoppedTrain.name,
+                        stopID, stop.entity.backer_name, serpent.line(remaining_load)))
+                end
                 -- signal completed delivery and remove it
                 if requester_left_over_cargo then
                     create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_left_over_cargo', stoppedTrain.name, stop_name }, stoppedTrain.force)
-                    script.raise_event(on_requester_remaining_cargo_alert, {
+
+                    ---@type ltn.EventData.requester_remaining_cargo
+                    local data = {
                         train = train,
                         station = stop.entity,
                         remaining_load = remaining_load
-                    })
+                    }
+                    script.raise_event(on_requester_remaining_cargo_alert, data)
                 end
-                script.raise_event(on_delivery_completed_event, {
+
+                ---@type ltn.EventData.delivery_complete
+                local data = {
                     train_id = trainID,
                     train = train,
                     shipment = delivery.shipment
-                })
+                }
+                script.raise_event(on_delivery_completed_event, data)
                 RemoveDelivery(trainID)
             else
-                if debug_log then log(format('(TrainLeaves) Train [%d] \"%s\": left LTN-stop [%d] \"%s\".', trainID, stoppedTrain.name, stopID,
-                        stop.entity.backer_name)) end
+                if debug_log then
+                    log(format('(TrainLeaves) Train [%d] \"%s\": left LTN-stop [%d] \"%s\".', trainID, stoppedTrain.name, stopID,
+                        stop.entity.backer_name))
+                end
             end
         end
         if stop.error_code == 0 then
@@ -356,8 +398,10 @@ function TrainLeaves(trainID)
     stop.parked_train = nil
     stop.parked_train_id = nil
     -- if message_level >= 3 then printmsg({"ltn-message.train-left", tostring(stoppedTrain.name), stop.entity.backer_name}, stoppedTrain.force) end
-    if message_level >= 3 then printmsg({ 'ltn-message.train-left', Make_Train_RichText(train, stoppedTrain.name), format('[train-stop=%d]', stopID) },
-            stoppedTrain.force, false) end
+    if message_level >= 3 then
+        printmsg({ 'ltn-message.train-left', Make_Train_RichText(train, stoppedTrain.name), format('[train-stop=%d]', stopID) },
+            stoppedTrain.force, false)
+    end
     UpdateStopOutput(stop)
 
     storage.StoppedTrains[trainID] = nil
@@ -389,7 +433,7 @@ function Update_Delivery(old_train_id, new_train)
                     if delivery then
                         stop.active_deliveries[i] = new_train.id -- update train id if delivery exists
                     else
-                        table.remove(stop.active_deliveries, i) -- otherwise remove entry
+                        table.remove(stop.active_deliveries, i)  -- otherwise remove entry
                         if #stop.active_deliveries > 0 then
                             setLamp(stop, 'yellow', #stop.active_deliveries)
                         else

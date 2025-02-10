@@ -4,17 +4,28 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
+---@type defines.events
 on_stops_updated_event = script.generate_event_name()
+---@type defines.events
 on_dispatcher_updated_event = script.generate_event_name()
+---@type defines.events
 on_dispatcher_no_train_found_event = script.generate_event_name()
+---@type defines.events
 on_delivery_created_event = script.generate_event_name()
+---@type defines.events
 on_delivery_pickup_complete_event = script.generate_event_name()
+---@type defines.events
 on_delivery_completed_event = script.generate_event_name()
+---@type defines.events
 on_delivery_failed_event = script.generate_event_name()
 
+---@type defines.events
 on_provider_missing_cargo_alert = script.generate_event_name()
+---@type defines.events
 on_provider_unscheduled_cargo_alert = script.generate_event_name()
+---@type defines.events
 on_requester_unscheduled_cargo_alert = script.generate_event_name()
+---@type defines.events
 on_requester_remaining_cargo_alert = script.generate_event_name()
 
 -- ltn_interface allows mods to register for update events
@@ -59,14 +70,13 @@ if remote.interfaces["logistic-train-network"] then
 end
 ]] --
 
-
 --[[ EVENTS
 on_stops_updated
 Raised every UpdateInterval, after delivery generation
 -> Contains:
 logistic_train_stops = { [stop_id :: uint], {
     -- stop data
-    active_deliveries :: int,
+    active_deliveries :: int[],
     entity :: LuaEntity,
     input :: LuaEntity,
     output :: LuaEntity,

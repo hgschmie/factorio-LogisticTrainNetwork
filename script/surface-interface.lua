@@ -30,19 +30,22 @@ function DisconnectSurfaces(entity1, entity2)
     end
 end
 
--- adds a surface connection between the given entities; the network_id will be used in delivery processing to discard providers that don't match the surface connection's network_id
+--- adds a surface connection between the given entities; the network_id will be used in delivery processing to discard providers that don't match the surface connection's network_id
+---@param entity1 LuaEntity
+---@param entity2 LuaEntity
+---@param network_id string|number
 function ConnectSurfaces(entity1, entity2, network_id)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
-        if debug_log then log('(ConnectSurfaces) Recieved entity1 was invalid.') end
+        if debug_log then log('(ConnectSurfaces) Received entity1 was invalid.') end
         return
     end
     if not (entity2 and entity2.valid and entity2.surface and entity2.surface.index and game.surfaces[entity2.surface.index]) then
-        if debug_log then log('(ConnectSurfaces) Recieved entity2 was invalid.') end
+        if debug_log then log('(ConnectSurfaces) Received entity2 was invalid.') end
         return
     end
     if not (network_id and tonumber(network_id, 10)) then
-        if debug_log then log('(ConnectSurfaces) Recieved network_id was no valid integer.') end
+        if debug_log then log('(ConnectSurfaces) Received network_id was no valid integer.') end
         return
     end
 
