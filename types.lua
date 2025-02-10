@@ -8,14 +8,14 @@
 ---@class ltn.Storage
 ---@field tick_state number
 ---@field tick_interval_start number
----@field tick_stop_index number
----@field messageBuffer any -- TODO
+---@field tick_stop_index number?
 ---@field Dispatcher ltn.Dispatcher
 ---@field LogisticTrainStops table<number, ltn.TrainStop>
 ---@field ConnectedSurfaces any -- TODO
 ---@field StoppedTrains table<number, ltn.Train>
 ---@field StopDistances any -- TODO
 ---@field WagonCapacity table<string, number>
+---@field messageBuffer any -- TODO
 
 
 ---------------------------------------------------------
@@ -24,6 +24,9 @@
 
 --- A shipment, consisting of comma-separated description strings and an amount.
 ---@alias ltn.Shipment table<string, number>
+
+--- typed string for the item identifiers
+---@alias ltn.ItemIdentifier string
 
 ---@alias ltn.LoadingList ltn.LoadingElement[]
 
@@ -100,6 +103,7 @@
 ---@field started number
 ---@field surface_connections ltn.SurfaceConnection[]
 ---@field shipment ltn.Shipment
+---@field pickupDone boolean?
 
 ---@class ltn.SurfaceConnection
 
@@ -119,11 +123,11 @@
 ---@field available_trains table<number, ltn.Train>
 
 ---@class ltn.LoadingElement
----@field type string comma string?
----@field name string ItemName
----@field localname string ??
----@field count number
----@field stacks number
+---@field type string      The type for the loading (item, fluid)
+---@field name string      The name of the loading
+---@field localname string Localized name
+---@field count number     number of elements
+---@field stacks number    stack size for items
 
 ---@class ltn.EventData.no_train_found_item
 ---@field to            string? Target stop

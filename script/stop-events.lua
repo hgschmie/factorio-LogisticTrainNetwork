@@ -4,15 +4,17 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
-
+local tools = require('script.tools')
 
 --create stop
+---@param entity LuaEntity
 function CreateStop(entity)
     if storage.LogisticTrainStops[entity.unit_number] then
         if message_level >= 1 then printmsg({ 'ltn-message.error-duplicated-unit_number', entity.unit_number }, entity.force) end
         if debug_log then log('(CreateStop) duplicate stop unit number ' .. entity.unit_number) end
         return
     end
+
     local stop_offset = ltn_stop_entity_names[entity.name]
     local posIn, posOut, search_area
     --log("Stop created at "..entity.position.x.."/"..entity.position.y..", orientation "..entity.direction)
@@ -46,7 +48,7 @@ function CreateStop(entity)
         }
     else --invalid orientation
         if message_level >= 1 then printmsg({ 'ltn-message.error-stop-orientation', tostring(entity.direction) }, entity.force) end
-        if debug_log then log('(CreateStop) invalid train stop orientation ' .. tostring(entity.direction)) end
+        if debug_log then log(string.format('(CreateStop) invalid train stop orientation %d', entity.direction)) end
         entity.destroy()
         return
     end
@@ -82,35 +84,37 @@ function CreateStop(entity)
     end
 
     if input == nil then -- create new
-        input = entity.surface.create_entity
-            {
-                name = ltn_stop_input,
+        input = entity.surface.create_entity {
+            name = ltn_stop_input,
 
-                position = posIn,
-                force = entity.force
-            }
+            position = posIn,
+            force = entity.force
+        }
     end
+
+    assert(input)
     input.operable = false     -- disable gui
     input.minable = false
     input.destructible = false -- don't bother checking if alive
     input.always_on = true
 
     if lampctrl == nil then
-        lampctrl = entity.surface.create_entity
-            {
-                name = ltn_stop_output_controller,
-                position = { input.position.x + 0.45, input.position.y + 0.45 }, -- slight offset so adjacent lamps won't connect
-                force = entity.force
-            }
+        lampctrl = entity.surface.create_entity {
+            name = ltn_stop_output_controller,
+            position = { input.position.x + 0.45, input.position.y + 0.45 }, -- slight offset so adjacent lamps won't connect
+            force = entity.force
+        }
         -- log("building lamp-control at "..lampctrl.position.x..", "..lampctrl.position.y)
     end
+
+    assert(lampctrl)
     lampctrl.operable = false     -- disable gui
     lampctrl.minable = false
     lampctrl.destructible = false -- don't bother checking if alive
 
     -- connect lamp and control
 
-    local lampctrl_control = lampctrl.get_or_create_control_behavior()
+    local lampctrl_control = lampctrl.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
     assert(lampctrl_control)
     if lampctrl_control.sections_count == 0 then
         assert(lampctrl_control.add_section())
@@ -128,30 +132,40 @@ function CreateStop(entity)
     local input_wire_connectors = input.get_wire_connectors(true)
     local lampctrl_wire_connectors = lampctrl.get_wire_connectors(true)
 
-    input_wire_connectors[defines.wire_connector_id.circuit_red].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_red], false, defines.wire_origin.script)
-    input_wire_connectors[defines.wire_connector_id.circuit_green].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_green], false, defines.wire_origin.script)
+    input_wire_connectors[defines.wire_connector_id.circuit_red].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_red], false,
+        defines.wire_origin.script)
+    input_wire_connectors[defines.wire_connector_id.circuit_green].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_green], false,
+        defines.wire_origin.script)
 
-    local input_control = input.get_or_create_control_behavior()
+    local input_control = input.get_or_create_control_behavior() --[[@as LuaLampControlBehavior ]]
     assert(input_control)
     input_control.use_colors = true
-    input_control.circuit_condition = { comparator = '>', first_signal = { type = 'virtual', name = 'signal-anything', quality = 'normal' }, constant = 0, }
+    ---@diagnostic disable: missing-fields
+    input_control.circuit_condition = {
+        comparator = '>',
+        first_signal = { type = 'virtual', name = 'signal-anything', quality = 'normal' },
+        constant = 0,
+    }
+    ---@diagnostic enable: missing-fields
 
     if output == nil then -- create new
-        output = entity.surface.create_entity
-            {
-                name = ltn_stop_output,
-                position = posOut,
-                direction = entity.direction,
-                force = entity.force
-            }
+        output = entity.surface.create_entity {
+            name = ltn_stop_output,
+            position = posOut,
+            direction = entity.direction,
+            force = entity.force
+        }
     end
+    assert(output)
+
     output.operable = false     -- disable gui
     output.minable = false
     output.destructible = false -- don't bother checking if alive
 
     -- enable reading contents and sending signals to trains
-    local trainstop_control = entity.get_or_create_control_behavior()
+    local trainstop_control = entity.get_or_create_control_behavior() --[[@as LuaTrainStopControlBehavior]]
     assert(trainstop_control)
+    
     trainstop_control.send_to_train = true
     trainstop_control.read_from_train = true
 
@@ -179,6 +193,7 @@ function CreateStop(entity)
         provider_priority = 0,
         locked_slots = 0,
     }
+
     UpdateStopOutput(storage.LogisticTrainStops[entity.unit_number])
 
     -- register events
@@ -203,6 +218,8 @@ end
 ---@param stopID number
 ---@param create_ghosts boolean?
 function RemoveStop(stopID, create_ghosts)
+    local dispatcher = tools.getDispatcher()
+
     local stop = storage.LogisticTrainStops[stopID]
 
     -- clean lookup tables
@@ -213,12 +230,11 @@ function RemoveStop(stopID, create_ghosts)
     end
 
     -- remove available train
-    if stop and stop.is_depot and stop.parked_train_id and storage.Dispatcher.availableTrains[stop.parked_train_id] then
-        storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity -
-            storage.Dispatcher.availableTrains[stop.parked_train_id].capacity
-        storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity -
-            storage.Dispatcher.availableTrains[stop.parked_train_id].fluid_capacity
-        storage.Dispatcher.availableTrains[stop.parked_train_id] = nil
+    if stop and stop.is_depot and stop.parked_train_id and dispatcher.availableTrains[stop.parked_train_id] then
+        dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[stop.parked_train_id].capacity
+        dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity -
+            dispatcher.availableTrains[stop.parked_train_id].fluid_capacity
+        dispatcher.availableTrains[stop.parked_train_id] = nil
     end
 
     -- destroy IO entities, broken IO entities should be sufficiently handled in initializeTrainStops()
@@ -259,6 +275,8 @@ function RemoveStop(stopID, create_ghosts)
 end
 
 function OnEntityRemoved(event, create_ghosts)
+    local dispatcher = tools.getDispatcher()
+
     local entity = event.entity
     if not entity or not entity.valid then return end
 
@@ -270,7 +288,7 @@ function OnEntityRemoved(event, create_ghosts)
         end
         -- removing any carriage fails a delivery
         -- otherwise I'd have to handle splitting and merging a delivery across train parts
-        local delivery = storage.Dispatcher.Deliveries[trainID]
+        local delivery = dispatcher.Deliveries[trainID]
         if delivery then
             ---@type ltn.EventData.on_delivery_failed
             local data = {
@@ -287,6 +305,8 @@ end
 
 --rename stop
 local function renamedStop(targetID, old_name, new_name)
+    local dispatcher = tools.getDispatcher()
+
     -- find identical stop names
     local duplicateName = false
     local renameDeliveries = true
@@ -300,7 +320,7 @@ local function renamedStop(targetID, old_name, new_name)
     -- rename deliveries only if no other LTN stop old_name exists
     if renameDeliveries then
         if debug_log then log('(OnEntityRenamed) last LTN stop ' .. old_name .. ' renamed, updating deliveries to ' .. new_name .. '.') end
-        for trainID, delivery in pairs(storage.Dispatcher.Deliveries) do
+        for trainID, delivery in pairs(dispatcher.Deliveries) do
             if delivery.to == old_name then
                 delivery.to = new_name
             end

@@ -4,13 +4,14 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
+local tools = require('script.tools')
 
 -- return true if stop, output, lamp are on same logic network
 local function detectShortCircuit(checkStop)
     local networks = {}
 
     for _, entity in pairs { checkStop.entity, checkStop.output, checkStop.input } do
-        local entity_wires = entity.get_wire_connectors()
+        local entity_wires = entity.get_wire_connectors(false)
         for _, wire_connector in pairs(entity_wires) do
             if wire_connector.connection_count > 0 then
                 if networks[wire_connector.network_id] then return true end
@@ -22,17 +23,23 @@ local function detectShortCircuit(checkStop)
     return false
 end
 
+---@param trainID number
 local function remove_available_train(trainID)
-    if debug_log then log('(UpdateStop) removing available train ' .. tostring(trainID) .. ' from depot.') end
-    storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity - storage.Dispatcher.availableTrains[trainID].capacity
-    storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity -
-        storage.Dispatcher.availableTrains[trainID].fluid_capacity
-    storage.Dispatcher.availableTrains[trainID] = nil
+    local dispatcher = tools.getDispatcher()
+
+    if debug_log then log(string.format('(UpdateStop) removing available train %d from depot.', trainID)) end
+    dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[trainID].capacity
+    dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainID].fluid_capacity
+    dispatcher.availableTrains[trainID] = nil
 end
 
 -- update stop input signals
+---@param stopID integer
+---@param stop ltn.TrainStop
 function UpdateStop(stopID, stop)
-    storage.Dispatcher.Requests_by_Stop[stopID] = nil
+    local dispatcher = tools.getDispatcher()
+
+    dispatcher.Requests_by_Stop[stopID] = nil
 
     -- remove invalid stops
     if not stop or not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
@@ -50,12 +57,11 @@ function UpdateStop(stopID, stop)
 
     -- remove invalid active_deliveries -- shouldn't be necessary
     for i = #stop.active_deliveries, 1, -1 do
-        if not storage.Dispatcher.Deliveries[stop.active_deliveries[i]] then
+        if not dispatcher.Deliveries[stop.active_deliveries[i]] then
             table.remove(stop.active_deliveries, i)
             if message_level >= 1 then printmsg { 'ltn-message.error-invalid-delivery', stop.entity.backer_name } end
             if debug_log then
-                log("(UpdateStop) Removing invalid delivery from stop '" ..
-                    tostring(stop.entity.backer_name) .. "': " .. tostring(stop.active_deliveries[i]))
+                log(string.format("(UpdateStop) Removing invalid delivery from stop '%s': %s", stop.entity.backer_name, tostring(stop.active_deliveries[i])))
             end
         end
     end
@@ -75,23 +81,23 @@ function UpdateStop(stopID, stop)
     -- skip short circuited stops
     if detectShortCircuit(stop) then
         stop.error_code = 1
-        if stop.parked_train_id and storage.Dispatcher.availableTrains[stop.parked_train_id] then
+        if stop.parked_train_id and dispatcher.availableTrains[stop.parked_train_id] then
             remove_available_train(stop.parked_train_id)
         end
         setLamp(stop, ErrorCodes[stop.error_code], 1)
-        if debug_log then log('(UpdateStop) Short circuit error: ' .. stop.entity.backer_name) end
+        if debug_log then log(string.format('(UpdateStop) Short circuit error: %s', stop.entity.backer_name)) end
         return
     end
 
     -- skip deactivated stops
-    local stopCB = stop.entity.get_control_behavior()
+    local stopCB = stop.entity.get_control_behavior() --[[@as LuaTrainStopControlBehavior ]]
     if stopCB and stopCB.disabled then
         stop.error_code = 1
-        if stop.parked_train_id and storage.Dispatcher.availableTrains[stop.parked_train_id] then
+        if stop.parked_train_id and dispatcher.availableTrains[stop.parked_train_id] then
             remove_available_train(stop.parked_train_id)
         end
         setLamp(stop, ErrorCodes[stop.error_code], 2)
-        if debug_log then log('(UpdateStop) Circuit deactivated stop: ' .. stop.entity.backer_name) end
+        if debug_log then log(string.format('(UpdateStop) Circuit deactivated stop: %s', stop.entity.backer_name)) end
         return
     end
 
@@ -115,15 +121,14 @@ function UpdateStop(stopID, stop)
     local signals = stop.input.get_signals(defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
     if not signals then return end -- either lamp and lampctrl are not connected or lampctrl has no output signal
 
+    ---@type table<SignalID, number>
     local signals_filtered = {}
-    local signal_type_virtual = 'virtual'
-    local abs = math.abs
 
     for _, v in pairs(signals) do
         local signal = v.signal
         signal.type = signal.type or 'item'
         if signal.name and signal.type then
-            if signal.type ~= signal_type_virtual then
+            if signal.type ~= 'virtual' then
                 -- add item and fluid signals to new array
                 signals_filtered[signal] = v.count
             elseif ControlSignals[signal.name] then
@@ -141,17 +146,17 @@ function UpdateStop(stopID, stop)
                 elseif signal.name == MAXTRAINS and v.count > 0 then
                     max_trains = v.count
                 elseif signal.name == REQUESTED_THRESHOLD then
-                    requesting_threshold = abs(v.count)
+                    requesting_threshold = math.abs(v.count)
                 elseif signal.name == REQUESTED_STACK_THRESHOLD then
-                    requesting_threshold_stacks = abs(v.count)
+                    requesting_threshold_stacks = math.abs(v.count)
                 elseif signal.name == REQUESTED_PRIORITY then
                     requester_priority = v.count
                 elseif signal.name == NOWARN and v.count > 0 then
                     no_warnings = true
                 elseif signal.name == PROVIDED_THRESHOLD then
-                    providing_threshold = abs(v.count)
+                    providing_threshold = math.abs(v.count)
                 elseif signal.name == PROVIDED_STACK_THRESHOLD then
-                    providing_threshold_stacks = abs(v.count)
+                    providing_threshold_stacks = math.abs(v.count)
                 elseif signal.name == PROVIDED_PRIORITY then
                     provider_priority = v.count
                 elseif signal.name == LOCKEDSLOTS and v.count > 0 then
@@ -167,7 +172,7 @@ function UpdateStop(stopID, stop)
         stop.error_code = 0 -- we are error free here
         if is_depot then
             if stop.parked_train_id and stop.parked_train.valid then
-                if storage.Dispatcher.Deliveries[stop.parked_train_id] then
+                if dispatcher.Deliveries[stop.parked_train_id] then
                     setLamp(stop, 'yellow', 1)
                 else
                     setLamp(stop, 'blue', 1)
@@ -196,48 +201,44 @@ function UpdateStop(stopID, stop)
 
         -- add parked train to available trains
         if stop.parked_train_id and stop.parked_train.valid then
-            if storage.Dispatcher.Deliveries[stop.parked_train_id] then
+            if dispatcher.Deliveries[stop.parked_train_id] then
                 if debug_log then
-                    log('(UpdateStop) ' .. stop.entity.backer_name .. ' {' .. network_id_string .. '}' ..
-                        ', depot priority: ' .. depot_priority ..
-                        ', assigned train.id: ' .. stop.parked_train_id)
+                    log(string.format('(UpdateStop) %s {%s}, depot priority: %d, assigned train.id: %d', stop.entity.backer_name, network_id_string,
+                        depot_priority, stop.parked_train_id))
                 end
             else
-                if not storage.Dispatcher.availableTrains[stop.parked_train_id] then
+                if not dispatcher.availableTrains[stop.parked_train_id] then
                     -- full arrival handling in case ltn-depot signal was turned on with an already parked train
                     TrainArrives(stop.parked_train)
                 else
                     -- update properties from depot
-                    storage.Dispatcher.availableTrains[stop.parked_train_id].network_id = network_id
-                    storage.Dispatcher.availableTrains[stop.parked_train_id].depot_priority = depot_priority
+                    dispatcher.availableTrains[stop.parked_train_id].network_id = network_id
+                    dispatcher.availableTrains[stop.parked_train_id].depot_priority = depot_priority
                 end
                 if debug_log then
-                    log('(UpdateStop) ' .. stop.entity.backer_name .. ' {' .. network_id_string .. '}' ..
-                        ', depot priority: ' .. depot_priority ..
-                        ', available train.id: ' .. stop.parked_train_id)
+                    log(string.format('(UpdateStop) %s {%s}, depot priority: %d, available train.id: %d', stop.entity.backer_name, network_id_string,
+                        depot_priority, stop.parked_train_id))
                 end
             end
         else
             if debug_log then
-                log('(UpdateStop) ' .. stop.entity.backer_name .. ' {' .. network_id_string .. '}' ..
-                    ', depot priority: ' .. depot_priority ..
-                    ', no available train')
+                log(string.format('(UpdateStop) %s {%s}, depot priority: %d, no available train', stop.entity.backer_name, network_id_string, depot_priority))
             end
         end
 
         -- not a depot > check if the name is unique
     else
         stop.is_depot = false
-        if stop.parked_train_id and storage.Dispatcher.availableTrains[stop.parked_train_id] then
+        if stop.parked_train_id and dispatcher.availableTrains[stop.parked_train_id] then
             remove_available_train(stop.parked_train_id)
         end
 
         for signal, count in pairs(signals_filtered) do
             local signal_type = signal.type
             local signal_name = signal.name
-            local item = signal_type .. ',' .. signal_name
+            local item = tools.createItemIdentifier(signal)
 
-            for trainID, delivery in pairs(storage.Dispatcher.Deliveries) do
+            for trainID, delivery in pairs(dispatcher.Deliveries) do
                 local deliverycount = delivery.shipment[item]
                 if deliverycount then
                     if stop.parked_train and stop.parked_train_id == trainID then
@@ -253,12 +254,14 @@ function UpdateStop(stopID, stop)
                             local newcount = count + traincount
                             if newcount > 0 then newcount = 0 end --make sure we don't turn it into a provider
                             if debug_log then
-                                log('(UpdateStop) ' ..
-                                    stop.entity.backer_name ..
-                                    ' {' ..
-                                    network_id_string ..
-                                    '} updating requested count with train ' .. trainID .. ' inventory: ' .. item .. ' ' .. count .. '+' .. traincount ..
-                                    '=' .. newcount)
+                                log(string.format('(UpdateStop) %s {%s} updating requested count with train %d inventory: %s %d+%d=%d',
+                                    stop.entity.backer_name,
+                                    network_id_string,
+                                    trainID,
+                                    item,
+                                    count,
+                                    traincount,
+                                    newcount))
                             end
                             count = newcount
                         elseif delivery.from_id == stop.entity.unit_number then
@@ -266,23 +269,27 @@ function UpdateStop(stopID, stop)
                                 local newcount = count - (deliverycount - traincount)
                                 if newcount < 0 then newcount = 0 end --make sure we don't turn it into a request
                                 if debug_log then
-                                    log('(UpdateStop) ' ..
-                                        stop.entity.backer_name ..
-                                        ' {' ..
-                                        network_id_string ..
-                                        '} updating provided count with train ' ..
-                                        trainID .. ' inventory: ' .. item .. ' ' .. count .. '-' .. deliverycount - traincount .. '=' .. newcount)
+                                    log(string.format('(UpdateStop) %s {%s} updating provided count with train %d inventory: %s %d-%d=%d',
+                                        stop.entity.backer_name,
+                                        network_id_string,
+                                        trainID,
+                                        item,
+                                        count,
+                                        deliverycount - traincount,
+                                        newcount))
                                 end
                                 count = newcount
                             else --train loaded more than delivery
                                 if debug_log then
-                                    log('(UpdateStop) ' ..
-                                        stop.entity.backer_name ..
-                                        ' {' .. network_id_string ..
-                                        '} updating delivery count with overloaded train ' .. trainID .. ' inventory: ' .. item .. ' ' .. traincount)
+                                    log(string.format('(UpdateStop) %s {%s} updating delivery count with overloaded train %d inventory: %s %d',
+                                        stop.entity.backer_name,
+                                        network_id_string,
+                                        trainID,
+                                        item,
+                                        traincount))
                                 end
                                 -- update delivery to new size
-                                storage.Dispatcher.Deliveries[trainID].shipment[item] = traincount
+                                dispatcher.Deliveries[trainID].shipment[item] = traincount
                             end
                         end
                     else
@@ -291,20 +298,26 @@ function UpdateStop(stopID, stop)
                             local newcount = count + deliverycount
                             if newcount > 0 then newcount = 0 end --make sure we don't turn it into a provider
                             if debug_log then
-                                log('(UpdateStop) ' ..
-                                    stop.entity.backer_name ..
-                                    ' {' .. network_id_string .. '} updating requested count with delivery: ' .. item ..
-                                    ' ' .. count .. '+' .. deliverycount .. '=' .. newcount)
+                                log(string.format('(UpdateStop) %s {%s} updating requested count with delivery: %s %d+%d=%d',
+                                    stop.entity.backer_name,
+                                    network_id_string,
+                                    item,
+                                    count,
+                                    deliverycount,
+                                    newcount))
                             end
                             count = newcount
                         elseif delivery.from_id == stop.entity.unit_number and not delivery.pickupDone then
                             local newcount = count - deliverycount
                             if newcount < 0 then newcount = 0 end --make sure we don't turn it into a request
                             if debug_log then
-                                log('(UpdateStop) ' ..
-                                    stop.entity.backer_name ..
-                                    ' {' .. network_id_string .. '} updating provided count with delivery: ' .. item .. ' ' ..
-                                    count .. '-' .. deliverycount .. '=' .. newcount)
+                                log(string.format('(UpdateStop) %s {%s} updating provided count with delivery: %s %d-%d=%d',
+                                    stop.entity.backer_name,
+                                    network_id_string,
+                                    item,
+                                    count,
+                                    deliverycount,
+                                    newcount))
                             end
                             count = newcount
                         end
@@ -329,76 +342,61 @@ function UpdateStop(stopID, stop)
             -- Requests are handled when above Requester Threshold
             if (useProvideStackThreshold and stack_count >= providing_threshold_stacks) or
                 (not useProvideStackThreshold and count >= providing_threshold) then
-                storage.Dispatcher.Provided[item] = storage.Dispatcher.Provided[item] or {}
-                storage.Dispatcher.Provided[item][stopID] = count
-                storage.Dispatcher.Provided_by_Stop[stopID] = storage.Dispatcher.Provided_by_Stop[stopID] or {}
-                storage.Dispatcher.Provided_by_Stop[stopID][item] = count
+                dispatcher.Provided[item] = dispatcher.Provided[item] or {}
+                dispatcher.Provided[item][stopID] = count
+                dispatcher.Provided_by_Stop[stopID] = dispatcher.Provided_by_Stop[stopID] or {}
+                dispatcher.Provided_by_Stop[stopID][item] = count
                 if debug_log then
                     local trainsEnRoute = '';
                     for k, v in pairs(stop.active_deliveries) do
                         trainsEnRoute = trainsEnRoute .. ' ' .. v
                     end
-                    log('(UpdateStop) ' ..
-                        stop.entity.backer_name ..
-                        ' {' ..
-                        network_id_string ..
-                        '} provides ' ..
-                        item ..
-                        ' ' ..
-                        count ..
-                        '(' ..
-                        providing_threshold ..
-                        ')' ..
-                        ' stacks: ' ..
-                        stack_count ..
-                        '(' ..
-                        providing_threshold_stacks ..
-                        ')' ..
-                        ', priority: ' .. provider_priority .. ', min length: ' ..
-                        min_carriages .. ', max length: ' .. max_carriages .. ', trains en route: ' .. trainsEnRoute)
+                    log(string.format('(UpdateStop) %s {%s} provides %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, trains en route: %s',
+                        stop.entity.backer_name,
+                        network_id_string,
+                        item,
+                        count,
+                        providing_threshold,
+                        stack_count,
+                        providing_threshold_stacks,
+                        provider_priority,
+                        min_carriages,
+                        max_carriages,
+                        trainsEnRoute))
                 end
             elseif (useRequestStackThreshold and stack_count * -1 >= requesting_threshold_stacks) or
                 (not useRequestStackThreshold and count * -1 >= requesting_threshold) then
                 count = count * -1
                 local ageIndex = item .. ',' .. stopID
-                storage.Dispatcher.RequestAge[ageIndex] = storage.Dispatcher.RequestAge[ageIndex] or game.tick
-                storage.Dispatcher.Requests[#storage.Dispatcher.Requests + 1] = {
-                    age = storage.Dispatcher.RequestAge[ageIndex],
+                dispatcher.RequestAge[ageIndex] = dispatcher.RequestAge[ageIndex] or game.tick
+                dispatcher.Requests[#dispatcher.Requests + 1] = {
+                    age = dispatcher.RequestAge[ageIndex],
                     stopID = stopID,
-                    priority =
-                        requester_priority,
+                    priority = requester_priority,
                     item = item,
                     count = count
                 }
-                storage.Dispatcher.Requests_by_Stop[stopID] = storage.Dispatcher.Requests_by_Stop[stopID] or {}
-                storage.Dispatcher.Requests_by_Stop[stopID][item] = count
+                dispatcher.Requests_by_Stop[stopID] = dispatcher.Requests_by_Stop[stopID] or {}
+                dispatcher.Requests_by_Stop[stopID][item] = count
                 if debug_log then
                     local trainsEnRoute = '';
                     for k, v in pairs(stop.active_deliveries) do
                         trainsEnRoute = trainsEnRoute .. ' ' .. v
                     end
-                    log('(UpdateStop) ' ..
-                        stop.entity.backer_name ..
-                        ' {' ..
-                        network_id_string ..
-                        '} requests ' ..
-                        item ..
-                        ' ' ..
-                        count ..
-                        '(' ..
-                        requesting_threshold ..
-                        ')' ..
-                        ' stacks: ' ..
-                        tostring(stack_count * -1) ..
-                        '(' ..
-                        requesting_threshold_stacks ..
-                        ')' ..
-                        ', priority: ' ..
-                        requester_priority ..
-                        ', min length: ' ..
-                        min_carriages ..
-                        ', max length: ' .. max_carriages .. ', age: ' ..
-                        storage.Dispatcher.RequestAge[ageIndex] .. '/' .. game.tick .. ', trains en route: ' .. trainsEnRoute)
+                    log(string.format('(UpdateStop) %s {%s} requests %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, age: %d/%d, trains en route: %s',
+                        stop.entity.backer_name,
+                        network_id_string,
+                        item,
+                        count,
+                        requesting_threshold,
+                        stack_count * -1,
+                        requesting_threshold_stacks,
+                        requester_priority,
+                        min_carriages,
+                        max_carriages,
+                        dispatcher.RequestAge[ageIndex],
+                        game.tick,
+                        trainsEnRoute))
                 end
             end
         end -- for circuitValues

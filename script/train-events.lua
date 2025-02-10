@@ -49,7 +49,8 @@ function TrainArrives(train)
             printmsg({ 'ltn-message.train-arrived', Make_Train_RichText(train, nil), format('[train-stop=%d]', stopID) }, trainForce, false)
         end
         if debug_log then
-            log(format('(TrainArrives) Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop))
+            log(format('(TrainArrives) Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name,
+                stop.parked_train_faces_stop))
         end
 
         if stop.error_code == 0 then
@@ -126,8 +127,19 @@ function TrainArrives(train)
                 -- log("added available train "..train.id..", inventory: "..tostring(storage.Dispatcher.availableTrains[train.id].capacity)..", fluid capacity: "..tostring(storage.Dispatcher.availableTrains[train.id].fluid_capacity))
 
                 -- reset schedule
-                local schedule = { current = 1, records = {} }
-                schedule.records[1] = NewScheduleRecord(stop_name, 'inactivity', depot_inactivity)
+                ---@type TrainSchedule
+                local schedule = {
+                    current = 1,
+
+                    records = {
+                        NewScheduleRecord {
+                            stationName = stop_name,
+                            condType = 'inactivity',
+                            ticks = depot_inactivity
+                        }
+                    }
+                }
+
                 train.schedule = schedule
 
                 -- reset filters and bars
@@ -330,10 +342,22 @@ function TrainLeaves(trainID)
 
                 delivery.shipment = actual_load
             elseif delivery.to_id == stop.entity.unit_number then
+
                 -- reset schedule before API events
                 if requester_delivery_reset and train.schedule then
-                    local schedule = { current = 1, records = {} }
-                    schedule.records[1] = NewScheduleRecord(train.schedule.records[1].station, 'inactivity', depot_inactivity)
+                    ---@type TrainSchedule
+                    local schedule = {
+                        current = 1,
+
+                        records = {
+                            NewScheduleRecord {
+                                stationName = train.schedule.records[1].station,
+                                condType = 'inactivity',
+                                ticks = depot_inactivity
+                            }
+                        }
+                    }
+
                     train.schedule = schedule
                 end
 

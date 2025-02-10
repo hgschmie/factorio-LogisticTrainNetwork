@@ -21,23 +21,25 @@ PROVIDED_STACK_THRESHOLD = 'ltn-provider-stack-threshold'
 PROVIDED_PRIORITY = 'ltn-provider-priority'
 LOCKEDSLOTS = 'ltn-locked-slots'
 
+---@type table<string, SignalID>
 ControlSignals = {
-    [ISDEPOT] = { type = 'virtual', name = ISDEPOT },
-    [DEPOT_PRIORITY] = { type = 'virtual', name = DEPOT_PRIORITY },
-    [NETWORKID] = { type = 'virtual', name = NETWORKID },
-    [MINTRAINLENGTH] = { type = 'virtual', name = MINTRAINLENGTH },
-    [MAXTRAINLENGTH] = { type = 'virtual', name = MAXTRAINLENGTH },
-    [MAXTRAINS] = { type = 'virtual', name = MAXTRAINS },
-    [REQUESTED_THRESHOLD] = { type = 'virtual', name = REQUESTED_THRESHOLD },
-    [REQUESTED_STACK_THRESHOLD] = { type = 'virtual', name = REQUESTED_STACK_THRESHOLD },
-    [REQUESTED_PRIORITY] = { type = 'virtual', name = REQUESTED_PRIORITY },
-    [NOWARN] = { type = 'virtual', name = NOWARN },
-    [PROVIDED_THRESHOLD] = { type = 'virtual', name = PROVIDED_THRESHOLD },
-    [PROVIDED_STACK_THRESHOLD] = { type = 'virtual', name = PROVIDED_STACK_THRESHOLD },
-    [PROVIDED_PRIORITY] = { type = 'virtual', name = PROVIDED_PRIORITY },
-    [LOCKEDSLOTS] = { type = 'virtual', name = LOCKEDSLOTS },
+    [ISDEPOT] = { type = 'virtual', name = ISDEPOT, quality = 'normal', },
+    [DEPOT_PRIORITY] = { type = 'virtual', name = DEPOT_PRIORITY, quality = 'normal', },
+    [NETWORKID] = { type = 'virtual', name = NETWORKID, quality = 'normal', },
+    [MINTRAINLENGTH] = { type = 'virtual', name = MINTRAINLENGTH, quality = 'normal', },
+    [MAXTRAINLENGTH] = { type = 'virtual', name = MAXTRAINLENGTH, quality = 'normal', },
+    [MAXTRAINS] = { type = 'virtual', name = MAXTRAINS, quality = 'normal', },
+    [REQUESTED_THRESHOLD] = { type = 'virtual', name = REQUESTED_THRESHOLD, quality = 'normal', },
+    [REQUESTED_STACK_THRESHOLD] = { type = 'virtual', name = REQUESTED_STACK_THRESHOLD, quality = 'normal', },
+    [REQUESTED_PRIORITY] = { type = 'virtual', name = REQUESTED_PRIORITY, quality = 'normal', },
+    [NOWARN] = { type = 'virtual', name = NOWARN, quality = 'normal', },
+    [PROVIDED_THRESHOLD] = { type = 'virtual', name = PROVIDED_THRESHOLD, quality = 'normal', },
+    [PROVIDED_STACK_THRESHOLD] = { type = 'virtual', name = PROVIDED_STACK_THRESHOLD, quality = 'normal', },
+    [PROVIDED_PRIORITY] = { type = 'virtual', name = PROVIDED_PRIORITY, quality = 'normal', },
+    [LOCKEDSLOTS] = { type = 'virtual', name = LOCKEDSLOTS, quality = 'normal', },
 }
 
+---@type table<string, number>
 ltn_stop_entity_names = { -- ltn stop entity.name with I/O entity offset away from tracks in tiles
     ['logistic-train-stop'] = 0,
     ['ltn-port'] = 1,

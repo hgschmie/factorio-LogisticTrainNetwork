@@ -7,7 +7,7 @@ indent_style = space
 # if indent_style is space, this is valid
 indent_size = 4
 # if indent_style is tab, this is valid
-tab_width = 2
+tab_width = 4
 # none/single/double
 quote_style = single
 # keep/remove/remove_table_only/remove_string_only/unambiguous_remove_string_only
@@ -79,7 +79,7 @@ keep_line_after_expression_statement = keepLine
 # the following is code diagnostic options
 enable_check_codestyle = true
 # this mean utf8 length , if this is 'unset' then the line width is no longer checked
-max_line_length = 160
+max_line_length = 300
 # this will check text end with new line(format always end with new line)
 insert_final_newline = true
 

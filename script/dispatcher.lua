@@ -7,19 +7,25 @@
 local Get_Distance = require('__flib__.position').distance
 local Get_Train_Name = require('__flib__.train').get_backer_name
 
--- update storage.Dispatcher.Deliveries.force when forces are removed/merged
+local tools = require('script.tools')
+
+-- update dispatcher Deliveries.force when forces are removed/merged
 script.on_event(defines.events.on_forces_merging, function(event)
-    for _, delivery in pairs(storage.Dispatcher.Deliveries) do
+    local dispatcher = tools.getDispatcher()
+
+    for _, delivery in pairs(dispatcher.Deliveries) do
         if delivery.force == event.source then
             delivery.force = event.destination
         end
     end
 end)
 
-
 ---------------------------------- MAIN LOOP ----------------------------------
 
+---@param event EventData.on_tick
 function OnTick(event)
+    local dispatcher = tools.getDispatcher()
+
     local tick = event.tick
     -- log("DEBUG: (OnTick) "..tick.." storage.tick_state: "..tostring(storage.tick_state).." storage.tick_stop_index: "..tostring(storage.tick_stop_index).." storage.tick_request_index: "..tostring(storage.tick_request_index) )
 
@@ -28,17 +34,21 @@ function OnTick(event)
             -- reset on invalid index
             if storage.tick_stop_index and not storage.LogisticTrainStops[storage.tick_stop_index] then
                 storage.tick_state = 0
+
                 if message_level >= 2 then printmsg({ 'ltn-message.error-invalid-stop-index', storage.tick_stop_index }, nil, false) end
-                log('(OnTick) Invalid storage.tick_stop_index ' ..
-                    tostring(storage.tick_stop_index) .. ' in storage.LogisticTrainStops. Removing stop and starting over.')
+                log(string.format('(OnTick) Invalid storage.tick_stop_index %d in storage.LogisticTrainStops. Removing stop and starting over.', storage.tick_stop_index))
+
                 RemoveStop(storage.tick_stop_index)
                 return
             end
 
+            ---@type number, ltn.TrainStop
             local stopID, stop = next(storage.LogisticTrainStops, storage.tick_stop_index)
             if stopID then
                 storage.tick_stop_index = stopID
-                if debug_log then log('(OnTick) ' .. tick .. ' updating stopID ' .. tostring(stopID)) end
+
+                if debug_log then log(string.format('(OnTick) %d updating stopID %d', tick, stopID)) end
+
                 UpdateStop(stopID, stop)
             else -- stop updates complete, moving on
                 storage.tick_stop_index = nil
@@ -56,9 +66,10 @@ function OnTick(event)
             end
         end
 
-        --clean up deliveries in case train was destroyed or removed
+        -- clean up deliveries in case train was destroyed or removed
+
         local activeDeliveryTrains = ''
-        for trainID, delivery in pairs(storage.Dispatcher.Deliveries) do
+        for trainID, delivery in pairs(dispatcher.Deliveries) do
             if not (delivery.train and delivery.train.valid) then
                 local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
                 local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
@@ -69,7 +80,7 @@ function OnTick(event)
                         Make_Stop_RichText(to_entity) or delivery.to
                     }, delivery.force, false)
                 end
-                if debug_log then log('(OnTick) Delivery from ' .. delivery.from .. ' to ' .. delivery.to .. ' removed. Train no longer valid.') end
+                if debug_log then log(string.format('(OnTick) Delivery from %s to %s removed. Train no longer valid.', delivery.from, delivery.to)) end
 
 
                 ---@type ltn.EventData.on_delivery_failed
@@ -92,8 +103,8 @@ function OnTick(event)
                     }, delivery.force, false)
                 end
                 if debug_log then
-                    log('(OnTick) Delivery from ' ..
-                        delivery.from .. ' to ' .. delivery.to .. ' removed. Timed out after ' .. tick - delivery.started .. '/' .. delivery_timeout .. ' ticks.')
+                    log(string.format('(OnTick) Delivery from %s to %s removed. Timed out after %d/%d ticks.', delivery.from, delivery.to,
+                        tick - delivery.started, delivery_timeout))
                 end
 
                 ---@type ltn.EventData.on_delivery_failed
@@ -107,22 +118,22 @@ function OnTick(event)
                 activeDeliveryTrains = activeDeliveryTrains .. ' ' .. trainID
             end
         end
-        if debug_log then log('(OnTick) Trains on deliveries' .. activeDeliveryTrains) end
+        if debug_log then log(string.format('(OnTick) Trains on deliveries: %s', activeDeliveryTrains)) end
 
 
-        -- remove no longer active requests from storage.Dispatcher.RequestAge[stopID]
+        -- remove no longer active requests from dispatcher RequestAge[stopID]
         local newRequestAge = {}
-        for _, request in pairs(storage.Dispatcher.Requests) do
+        for _, request in pairs(dispatcher.Requests) do
             local ageIndex = request.item .. ',' .. request.stopID
-            local age = storage.Dispatcher.RequestAge[ageIndex]
+            local age = dispatcher.RequestAge[ageIndex]
             if age then
                 newRequestAge[ageIndex] = age
             end
         end
-        storage.Dispatcher.RequestAge = newRequestAge
+        dispatcher.RequestAge = newRequestAge
 
         -- sort requests by priority and age
-        sort(storage.Dispatcher.Requests, function(a, b)
+        sort(dispatcher.Requests, function(a, b)
             if a.priority ~= b.priority then
                 return a.priority > b.priority
             else
@@ -132,24 +143,23 @@ function OnTick(event)
     elseif storage.tick_state == 3 then -- parse requests and dispatch trains
         if dispatcher_enabled then
             if debug_log then
-                log('(OnTick) Available train capacity: ' ..
-                    storage.Dispatcher.availableTrains_total_capacity .. ' item stacks, ' ..
-                    storage.Dispatcher.availableTrains_total_fluid_capacity .. ' fluid capacity.')
+                log(string.format('(OnTick) Available train capacity: %d item stacks, %d fluid capacity.',
+                    dispatcher.availableTrains_total_capacity, dispatcher.availableTrains_total_fluid_capacity))
             end
             for i = 1, dispatcher_updates_per_tick, 1 do
                 -- reset on invalid index
-                if storage.tick_request_index and not storage.Dispatcher.Requests[storage.tick_request_index] then
+                if storage.tick_request_index and not dispatcher.Requests[storage.tick_request_index] then
                     storage.tick_state = 0
                     if message_level >= 1 then printmsg({ 'ltn-message.error-invalid-request-index', storage.tick_request_index }, nil, false) end
-                    log('(OnTick) Invalid storage.tick_request_index ' ..
-                        tostring(storage.tick_request_index) .. ' in storage.Dispatcher.Requests. Starting over.')
+                    log(string.format('(OnTick) Invalid storage.tick_request_index %s in dispatcher Requests. Starting over.',
+                        tostring(storage.tick_request_index)))
                     return
                 end
 
-                local request_index, request = next(storage.Dispatcher.Requests, storage.tick_request_index)
+                local request_index, request = next(dispatcher.Requests, storage.tick_request_index)
                 if request_index and request then
                     storage.tick_request_index = request_index
-                    if debug_log then log('(OnTick) ' .. tick .. ' parsing request ' .. tostring(request_index) .. '/' .. tostring(#storage.Dispatcher.Requests)) end
+                    if debug_log then log(string.format('(OnTick) %d parsing request %d/%d', tick, request_index, #dispatcher.Requests)) end
                     ProcessRequest(request_index, request)
                 else -- request updates complete, moving on
                     storage.tick_request_index = nil
@@ -178,11 +188,11 @@ function OnTick(event)
         ---@type ltn.EventData.on_dispatcher_updated
         local dispatcher_data = {
             update_interval = tick - storage.tick_interval_start,
-            provided_by_stop = storage.Dispatcher.Provided_by_Stop,
-            requests_by_stop = storage.Dispatcher.Requests_by_Stop,
-            new_deliveries = storage.Dispatcher.new_Deliveries,
-            deliveries = storage.Dispatcher.Deliveries,
-            available_trains = storage.Dispatcher.availableTrains,
+            provided_by_stop = dispatcher.Provided_by_Stop,
+            requests_by_stop = dispatcher.Requests_by_Stop,
+            new_deliveries = dispatcher.new_Deliveries,
+            deliveries = dispatcher.Deliveries,
+            available_trains = dispatcher.availableTrains,
         }
 
         script.raise_event(on_dispatcher_updated_event, dispatcher_data)
@@ -193,20 +203,22 @@ function OnTick(event)
         storage.tick_state = 1
         storage.tick_interval_start = tick
         -- clear Dispatcher.Storage
-        storage.Dispatcher.Provided = {}
-        storage.Dispatcher.Requests = {}
-        storage.Dispatcher.Provided_by_Stop = {}
-        storage.Dispatcher.Requests_by_Stop = {}
-        storage.Dispatcher.new_Deliveries = {}
+        dispatcher.Provided = {}
+        dispatcher.Requests = {}
+        dispatcher.Provided_by_Stop = {}
+        dispatcher.Requests_by_Stop = {}
+        dispatcher.new_Deliveries = {}
     end
 end
 
 ---------------------------------- DISPATCHER FUNCTIONS ----------------------------------
 
--- ensures removal of trainID from storage.Dispatcher.Deliveries and stop.active_deliveries
+-- ensures removal of trainID from dispatcher Deliveries and stop.active_deliveries
 
 ---@param trainID number
 function RemoveDelivery(trainID)
+    local dispatcher = tools.getDispatcher()
+
     for stopID, stop in pairs(storage.LogisticTrainStops) do
         if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
             RemoveStop(stopID)
@@ -223,7 +235,7 @@ function RemoveDelivery(trainID)
             end
         end
     end
-    storage.Dispatcher.Deliveries[trainID] = nil
+    dispatcher.Deliveries[trainID] = nil
 end
 
 -- NewScheduleRecord: returns new schedule_record
@@ -241,38 +253,50 @@ local condition_wait_empty = { type = 'empty', compare_type = 'and' }
 local condition_finish_loading = { type = 'inactivity', compare_type = 'and', ticks = 120 }
 -- local condition_stop_timeout -- set in settings.lua to capture changes
 
-function NewScheduleRecord(stationName, condType, condComp, itemlist, countOverride)
-    ---@type ScheduleRecord
-    local record = { station = stationName, wait_conditions = {} }
+---@class ltn.NewScheduleRecordParameters
+---@field stationName string
+---@field condType WaitConditionType
+---@field condComp ComparatorString?
+---@field itemList ltn.LoadingElement[]?
+---@field countOverride number?
+---@field ticks number?
 
-    if condType == 'time' then
-        record.wait_conditions[#record.wait_conditions + 1] = { type = condType, compare_type = 'and', ticks = condComp }
-    elseif condType == 'item_count' then
+---@param map ltn.NewScheduleRecordParameters
+function NewScheduleRecord(map)
+    ---@type ScheduleRecord
+    local record = { station = map.stationName, wait_conditions = {} }
+    local countOverride = map.countOverride and map.countOverride
+
+    if map.condType == 'time' then
+        assert(map.ticks)
+        record.wait_conditions[#record.wait_conditions + 1] = { type = map.condType, compare_type = 'and', ticks = map.ticks }
+    elseif map.condType == 'item_count' then
+        assert(map.itemList)
+
         local waitEmpty = false
         -- write itemlist to conditions
-        for i = 1, #itemlist do
+        for i = 1, #map.itemList do
             local condFluid = nil
-            if itemlist[i].type == 'fluid' then
+            if map.itemList[i].type == 'fluid' then
                 condFluid = 'fluid_count'
                 -- workaround for leaving with fluid residue due to Factorio rounding down to 0
-                if condComp == '=' and countOverride == 0 then
+                if map.condComp == '=' and countOverride == 0 then
                     waitEmpty = true
                 end
             end
 
             -- make > into >=
-            if condComp == '>' then
-                countOverride = itemlist[i].count - 1
+            if map.condComp == '>' then
+                countOverride = map.itemList[i].count - 1
             end
 
-            -- itemlist = {first_signal.type, first_signal.name, constant}
+            ---@type CircuitCondition
             local cond = {
-                comparator = condComp,
-                first_signal = { type = itemlist[i].type, name = itemlist[i].name },
-                constant = countOverride or
-                    itemlist[i].count
+                comparator = map.condComp,
+                first_signal = { type = map.itemList[i].type, name = map.itemList[i].name },
+                constant = countOverride or map.itemList[i].count
             }
-            record.wait_conditions[#record.wait_conditions + 1] = { type = condFluid or condType, compare_type = 'and', condition = cond }
+            record.wait_conditions[#record.wait_conditions + 1] = { type = condFluid or map.condType, compare_type = 'and', condition = cond }
         end
 
         if waitEmpty then
@@ -294,8 +318,9 @@ function NewScheduleRecord(stationName, condType, condComp, itemlist, countOverr
                 record.wait_conditions[#record.wait_conditions + 1] = condition_circuit_red
             end
         end
-    elseif condType == 'inactivity' then
-        record.wait_conditions[#record.wait_conditions + 1] = { type = condType, compare_type = 'and', ticks = condComp }
+    elseif map.condType == 'inactivity' then
+        assert(map.ticks)
+        record.wait_conditions[#record.wait_conditions + 1] = { type = map.condType, compare_type = 'and', ticks = map.ticks }
         -- with circuit control enabled keep trains waiting until red = 0 and force them out with green ≥ 1
         if schedule_cc then
             record.wait_conditions[#record.wait_conditions + 1] = condition_circuit_red
@@ -357,8 +382,10 @@ end
 ---@param min_length number
 ---@param max_length number
 local function getProviders(requestStation, item, req_count, min_length, max_length)
+    local dispatcher = tools.getDispatcher()
+
     local stations = {}
-    local providers = storage.Dispatcher.Provided[item] --[[@as table<number, number>? ]]
+    local providers = dispatcher.Provided[item] --[[@as table<number, number>? ]]
     if not providers then
         return nil
     end
@@ -437,6 +464,8 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
     return stations
 end
 
+---@param stationA LuaEntity
+---@param stationB LuaEntity
 local function getStationDistance(stationA, stationB)
     local stationPair = stationA.unit_number .. ',' .. stationB.unit_number
     if storage.StopDistances[stationPair] then
@@ -454,8 +483,10 @@ end
 --          filtered by NetworkID, carriages and surface
 --          sorted by priority, capacity - locked slots and distance to provider
 local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
+    local dispatcher = tools.getDispatcher()
+
     local filtered_trains = {}
-    for trainID, trainData in pairs(storage.Dispatcher.availableTrains) do
+    for trainID, trainData in pairs(dispatcher.availableTrains) do
         if trainData.train.valid and trainData.train.station and trainData.train.station.valid then
             local depot_network_id_string -- filled only when debug_log is enabled
             local dest_network_id_string  -- filled only when debug_log is enabled
@@ -494,12 +525,12 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                 }
             end
         else
-            -- remove invalid train from storage.Dispatcher.availableTrains
-            storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity -
-                storage.Dispatcher.availableTrains[trainID].capacity
-            storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity -
-                storage.Dispatcher.availableTrains[trainID].fluid_capacity
-            storage.Dispatcher.availableTrains[trainID] = nil
+            -- remove invalid train from dispatcher availableTrains
+            dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity -
+                dispatcher.availableTrains[trainID].capacity
+            dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity -
+                dispatcher.availableTrains[trainID].fluid_capacity
+            dispatcher.availableTrains[trainID] = nil
         end
     end
 
@@ -529,11 +560,13 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
     return filtered_trains
 end
 
--- parse single request from storage.Dispatcher.Request={stopID, item, age, count}
+-- parse single request from dispatcher Request={stopID, item, age, count}
 -- returns created delivery ID or nil
 ---@param reqIndex number
 ---@param request ltn.Request
 function ProcessRequest(reqIndex, request)
+    local dispatcher = tools.getDispatcher()
+
     -- ensure validity of request stop
     local toID = request.stopID
     local requestStation = storage.LogisticTrainStops[toID]
@@ -558,7 +591,7 @@ function ProcessRequest(reqIndex, request)
     if debug_log then
         log(('request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d'):format(
             reqIndex,
-            #storage.Dispatcher.Requests,
+            #dispatcher.Requests,
             count,
             requestStation.requesting_threshold,
             item,
@@ -569,7 +602,7 @@ function ProcessRequest(reqIndex, request)
             max_carriages))
     end
 
-    if not (storage.Dispatcher.Requests_by_Stop[toID] and storage.Dispatcher.Requests_by_Stop[toID][item]) then
+    if not (dispatcher.Requests_by_Stop[toID] and dispatcher.Requests_by_Stop[toID][item]) then
         if debug_log then log('Skipping request ' .. requestStation.entity.backer_name .. ': ' .. item .. '. Item has already been processed.') end
         -- goto skipRequestItem -- item has been processed already
         return nil
@@ -597,7 +630,7 @@ function ProcessRequest(reqIndex, request)
     if itype == 'fluid' then
         localname = prototypes.fluid[iname].localised_name
         -- skip if no trains are available
-        if (storage.Dispatcher.availableTrains_total_fluid_capacity or 0) == 0 then
+        if (dispatcher.availableTrains_total_fluid_capacity or 0) == 0 then
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-fluid' }, requestForce)
             if message_level >= 1 then printmsg({ 'ltn-message.empty-depot-fluid' }, requestForce, true) end
             if debug_log then log('Skipping request ' .. to .. ' {' .. to_network_id_string .. '}: ' .. item .. '. No trains available.') end
@@ -615,7 +648,7 @@ function ProcessRequest(reqIndex, request)
     else
         localname = prototypes.item[iname].localised_name
         -- skip if no trains are available
-        if (storage.Dispatcher.availableTrains_total_capacity or 0) == 0 then
+        if (dispatcher.availableTrains_total_capacity or 0) == 0 then
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-item' }, requestForce)
             if message_level >= 1 then printmsg({ 'ltn-message.empty-depot-item' }, requestForce, true) end
             if debug_log then log('Skipping request ' .. to .. ' {' .. to_network_id_string .. '}: ' .. item .. '. No trains available.') end
@@ -657,9 +690,7 @@ function ProcessRequest(reqIndex, request)
     local matched_network_id_string = format('0x%x', band(providerData.network_id))
 
     if message_level >= 3 then
-        printmsg(
-            { 'ltn-message.provider-found', from_gps, tostring(providerData.priority), tostring(providerData.activeDeliveryCount), providerData.count, '[' ..
-            itype .. '=' .. iname .. ']' }, requestForce, true)
+        printmsg({ 'ltn-message.provider-found', from_gps, tostring(providerData.priority), tostring(providerData.activeDeliveryCount), providerData.count, '[' .. itype .. '=' .. iname .. ']' }, requestForce, true)
     end
 
     -- limit deliverySize to count at provider
@@ -682,26 +713,35 @@ function ProcessRequest(reqIndex, request)
         min_carriages = providerData.min_carriages
     end
 
-    storage.Dispatcher.Requests_by_Stop[toID][item] = nil -- remove before merge so it's not added twice
-    local loadingList = { { type = itype, name = iname, localname = localname, count = deliverySize, stacks = stacks } }
+    dispatcher.Requests_by_Stop[toID][item] = nil -- remove before merge so it's not added twice
+
+    ---@type ltn.LoadingElement[]
+    local loadingList = {
+        {
+            type = itype,
+            name = iname,
+            localname = localname,
+            count = deliverySize,
+            stacks = stacks
+        }
+    }
+
     local totalStacks = stacks
     if debug_log then
-        log('created new order ' ..
-            from ..
-            ' >> ' .. to .. ': ' .. deliverySize ..
-            ' ' .. item .. ' in ' .. stacks .. '/' .. totalStacks .. ' stacks, min length: ' .. min_carriages .. ' max length: ' .. max_carriages)
+        log(string.format('created new order %s >> %s: %d %s in %d/%d stacks, min length: %d max length: %d',
+            from, to, deliverySize, item, stacks, totalStacks, min_carriages, max_carriages))
     end
 
     -- find possible mergeable items, fluids can't be merged in a sane way
     if itype ~= 'fluid' then
-        for merge_item, merge_count_req in pairs(storage.Dispatcher.Requests_by_Stop[toID]) do
+        for merge_item, merge_count_req in pairs(dispatcher.Requests_by_Stop[toID]) do
             local merge_type, merge_name = match(merge_item, match_string)
             if merge_type and merge_name and prototypes.item[merge_name] then
                 local merge_localname = prototypes.item[merge_name].localised_name
                 -- get current provider for requested item
-                if storage.Dispatcher.Provided[merge_item] and storage.Dispatcher.Provided[merge_item][fromID] then
+                if dispatcher.Provided[merge_item] and dispatcher.Provided[merge_item][fromID] then
                     -- set delivery Size and stacks
-                    local merge_count_prov = storage.Dispatcher.Provided[merge_item][fromID]
+                    local merge_count_prov = dispatcher.Provided[merge_item][fromID]
                     local merge_deliverySize = merge_count_req
                     if merge_count_req > merge_count_prov then
                         merge_deliverySize = merge_count_prov
@@ -709,20 +749,19 @@ function ProcessRequest(reqIndex, request)
                     local merge_stacks = ceil(merge_deliverySize / prototypes.item[merge_name].stack_size) -- calculate amount of stacks item count will occupy
 
                     -- add to loading list
-                    loadingList[#loadingList + 1] = {
+                    table.insert(loadingList, {
                         type = merge_type,
                         name = merge_name,
                         localname = merge_localname,
                         count = merge_deliverySize,
-                        stacks =
-                            merge_stacks
-                    }
+                        stacks = merge_stacks
+                    })
+
                     totalStacks = totalStacks + merge_stacks
                     -- order.totalStacks = order.totalStacks + merge_stacks
                     -- order.loadingList[#order.loadingList+1] = loadingList
                     if debug_log then
-                        log('inserted into order ' ..
-                            from .. ' >> ' .. to .. ': ' .. merge_deliverySize .. ' ' .. merge_item .. ' in ' .. merge_stacks .. '/' .. totalStacks .. ' stacks.')
+                        log(string.format('inserted into order %s >> %s: %d %s in %d/%d stacks.', from, to, merge_deliverySize, merge_item, merge_stacks, totalStacks))
                     end
                 end
             end
@@ -735,17 +774,10 @@ function ProcessRequest(reqIndex, request)
         create_alert(requestStation.entity, 'depot-empty',
             { 'ltn-message.no-train-found', from, to, matched_network_id_string, tostring(min_carriages), tostring(max_carriages) }, requestForce)
         if message_level >= 1 then
-            printmsg(
-                { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_string, tostring(min_carriages), tostring(max_carriages) }, requestForce,
-                true)
+            printmsg({ 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_string, tostring(min_carriages), tostring(max_carriages) }, requestForce, true)
         end
         if debug_log then
-            log('No train with ' ..
-                tostring(min_carriages) ..
-                ' <= length <= ' ..
-                tostring(max_carriages) ..
-                ' to transport ' .. tostring(totalStacks) .. ' stacks from ' .. from .. ' to ' .. to .. ' in network ' ..
-                matched_network_id_string .. ' found in Depot.')
+            log(string.format('No train with %d <= length <= %d to transport %d stacks from %s to %s in network %s found in Depot.', min_carriages, max_carriages, totalStacks, from, to, matched_network_id_string))
         end
 
         ---@type ltn.EventData.no_train_found_shipment
@@ -761,7 +793,7 @@ function ProcessRequest(reqIndex, request)
         }
 
         script.raise_event(on_dispatcher_no_train_found_event, data)
-        storage.Dispatcher.Requests_by_Stop[toID][item] = count -- add removed item back to list of requested items.
+        dispatcher.Requests_by_Stop[toID][item] = count -- add removed item back to list of requested items.
         return nil
     end
 
@@ -769,13 +801,10 @@ function ProcessRequest(reqIndex, request)
     local trainInventorySize = free_trains[1].inventory_size
 
     if message_level >= 3 then
-        printmsg(
-            { 'ltn-message.train-found', from_gps, to_gps, matched_network_id_string, tostring(trainInventorySize), tostring(totalStacks) }, requestForce)
+        printmsg({ 'ltn-message.train-found', from_gps, to_gps, matched_network_id_string, tostring(trainInventorySize), tostring(totalStacks) }, requestForce)
     end
     if debug_log then
-        log('Train to transport ' ..
-            tostring(trainInventorySize) ..
-            '/' .. tostring(totalStacks) .. ' stacks from ' .. from .. ' to ' .. to .. ' in network ' .. matched_network_id_string .. ' found in Depot.')
+        log(string.format('Train to transport %d/%d stacks from %s to %s in network %s found in Depot.', trainInventorySize, totalStacks, from, to, matched_network_id_string))
     end
 
     -- recalculate delivery amount to fit in train
@@ -806,49 +835,61 @@ function ProcessRequest(reqIndex, request)
     -- create delivery
     if message_level >= 2 then
         if #loadingList == 1 then
-            printmsg(
-                { 'ltn-message.creating-delivery', from_gps, to_gps, loadingList[1].count, '[' .. loadingList[1].type .. '=' .. loadingList[1].name .. ']' },
-                requestForce)
+            printmsg({ 'ltn-message.creating-delivery', from_gps, to_gps, loadingList[1].count, '[' .. loadingList[1].type .. '=' .. loadingList[1].name .. ']' }, requestForce)
         else
             printmsg({ 'ltn-message.creating-delivery-merged', from_gps, to_gps, totalStacks }, requestForce)
         end
     end
 
     -- create schedule
-    -- local selectedTrain = storage.Dispatcher.availableTrains[trainID].train
+    -- local selectedTrain = dispatcher availableTrains[trainID].train
     local depot = storage.LogisticTrainStops[selectedTrain.station.unit_number]
     local schedule = { current = 1, records = {} }
-    schedule.records[#schedule.records + 1] = NewScheduleRecord(depot.entity.backer_name, 'inactivity', depot_inactivity)
+    schedule.records[#schedule.records + 1] = NewScheduleRecord {
+        stationName = depot.entity.backer_name,
+        condType = 'inactivity',
+        ticks = depot_inactivity,
+    }
 
     -- make train go to specific stations by setting a temporary waypoint on the rail the station is connected to
     -- schedules cannot have temporary stops on a different surface, those need to be added when the delivery is updated with a train on a different surface
-    if from_rail and from_rail_direction
-        and depot.entity.surface == from_rail.surface then
+    if from_rail and from_rail_direction and depot.entity.surface == from_rail.surface then
         schedule.records[#schedule.records + 1] = NewTempScheduleRecord(from_rail, from_rail_direction)
     else
         if debug_log then log('(ProcessRequest) Warning: creating schedule without temporary stop for provider.') end
     end
-    schedule.records[#schedule.records + 1] = NewScheduleRecord(from, 'item_count', '≥', loadingList)
 
-    if to_rail and to_rail_direction
-        and depot.entity.surface == to_rail.surface
-        and (from_rail and to_rail.surface == from_rail.surface) then
+    schedule.records[#schedule.records + 1] = NewScheduleRecord {
+        stationName = from,
+        condType = 'item_count',
+        condComp = '≥',
+        itemList = loadingList
+    }
+
+    if to_rail and to_rail_direction and depot.entity.surface == to_rail.surface and (from_rail and to_rail.surface == from_rail.surface) then
         schedule.records[#schedule.records + 1] = NewTempScheduleRecord(to_rail, to_rail_direction)
     else
         if debug_log then log('(ProcessRequest) Warning: creating schedule without temporary stop for requester.') end
     end
-    schedule.records[#schedule.records + 1] = NewScheduleRecord(to, 'item_count', '=', loadingList, 0)
+
+    schedule.records[#schedule.records + 1] = NewScheduleRecord {
+        stationName = to,
+        condType = 'item_count',
+        condComp = '=',
+        itemList = loadingList,
+        countOverride = 0
+    }
 
     local shipment = {}
-    if debug_log then log('Creating Delivery: ' .. totalStacks .. ' stacks, ' .. from .. ' >> ' .. to) end
+    if debug_log then log(string.format('Creating Delivery: %d stacks, %s >> %s', totalStacks, from, to)) end
     for i = 1, #loadingList do
         local loadingListItem = loadingList[i].type .. ',' .. loadingList[i].name
         -- store Delivery
         shipment[loadingListItem] = loadingList[i].count
 
         -- subtract Delivery from Provided items and check thresholds
-        storage.Dispatcher.Provided[loadingListItem][fromID] = storage.Dispatcher.Provided[loadingListItem][fromID] - loadingList[i].count
-        local new_provided = storage.Dispatcher.Provided[loadingListItem][fromID]
+        dispatcher.Provided[loadingListItem][fromID] = dispatcher.Provided[loadingListItem][fromID] - loadingList[i].count
+        local new_provided = dispatcher.Provided[loadingListItem][fromID]
         local new_provided_stacks = 0
         local useProvideStackThreshold = false
         if loadingList[i].type == 'item' then
@@ -860,21 +901,21 @@ function ProcessRequest(reqIndex, request)
 
         if (useProvideStackThreshold and new_provided_stacks >= providerData.providing_threshold_stacks) or
             (not useProvideStackThreshold and new_provided >= providerData.providing_threshold) then
-            storage.Dispatcher.Provided[loadingListItem][fromID] = new_provided
-            storage.Dispatcher.Provided_by_Stop[fromID][loadingListItem] = new_provided
+            dispatcher.Provided[loadingListItem][fromID] = new_provided
+            dispatcher.Provided_by_Stop[fromID][loadingListItem] = new_provided
         else
-            storage.Dispatcher.Provided[loadingListItem][fromID] = nil
-            storage.Dispatcher.Provided_by_Stop[fromID][loadingListItem] = nil
+            dispatcher.Provided[loadingListItem][fromID] = nil
+            dispatcher.Provided_by_Stop[fromID][loadingListItem] = nil
         end
 
         -- remove Request and reset age
-        storage.Dispatcher.Requests_by_Stop[toID][loadingListItem] = nil
-        storage.Dispatcher.RequestAge[loadingListItem .. ',' .. toID] = nil
+        dispatcher.Requests_by_Stop[toID][loadingListItem] = nil
+        dispatcher.RequestAge[loadingListItem .. ',' .. toID] = nil
 
         if debug_log then log('  ' .. loadingListItem .. ', ' .. loadingList[i].count .. ' in ' .. loadingList[i].stacks .. ' stacks ') end
     end
-    storage.Dispatcher.new_Deliveries[#storage.Dispatcher.new_Deliveries + 1] = selectedTrain.id
-    storage.Dispatcher.Deliveries[selectedTrain.id] = {
+    dispatcher.new_Deliveries[#dispatcher.new_Deliveries + 1] = selectedTrain.id
+    dispatcher.Deliveries[selectedTrain.id] = {
         force = requestForce,
         train = selectedTrain,
         started = game.tick,
@@ -886,16 +927,14 @@ function ProcessRequest(reqIndex, request)
         surface_connections = providerData.surface_connections,
         shipment = shipment
     }
-    storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity -
-        storage.Dispatcher.availableTrains[selectedTrain.id].capacity
-    storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity -
-        storage.Dispatcher.availableTrains[selectedTrain.id].fluid_capacity
-    storage.Dispatcher.availableTrains[selectedTrain.id] = nil
+    dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[selectedTrain.id].capacity
+    dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[selectedTrain.id].fluid_capacity
+    dispatcher.availableTrains[selectedTrain.id] = nil
 
     -- raises on_train_schedule_changed instantly
-    -- GetNextLogisticStop relies on storage.Dispatcher.Deliveries[train.id].train to be set
+    -- GetNextLogisticStop relies on dispatcher Deliveries[train.id].train to be set
     selectedTrain.schedule = schedule
-    -- storage.Dispatcher.Deliveries[selectedTrain.id].train = selectedTrain -- not required, train object is stored as reference
+    -- dispatcher Deliveries[selectedTrain.id].train = selectedTrain -- not required, train object is stored as reference
 
     -- train is no longer available => set depot to yellow
     setLamp(depot, 'yellow', 1)
