@@ -7,14 +7,17 @@
 
 local Get_Main_Locomotive = require('__flib__.train').get_main_locomotive
 
---GetTrainCapacity(train)
+---@param entity LuaEntity
+---@return number
 local function getCargoWagonCapacity(entity)
-    local capacity = entity.prototype.get_inventory_size(defines.inventory.cargo_wagon)
+    local capacity = entity.prototype.get_inventory_size(defines.inventory.cargo_wagon) or 0
     -- log("(getCargoWagonCapacity) capacity for "..entity.name.." = "..capacity)
     storage.WagonCapacity[entity.name] = capacity
     return capacity
 end
 
+---@param entity LuaEntity
+---@return number
 local function getFluidWagonCapacity(entity)
     local capacity = entity.prototype.fluid_capacity
     -- log("(getFluidWagonCapacity) capacity for "..entity.name.." = "..capacity)
@@ -23,6 +26,7 @@ local function getFluidWagonCapacity(entity)
 end
 
 -- returns inventory and fluid capacity of a given train
+---@param train LuaTrain
 function GetTrainCapacity(train)
     local inventorySize = 0
     local fluidCapacity = 0
@@ -40,34 +44,25 @@ function GetTrainCapacity(train)
 end
 
 -- returns rich text string for train stops, or nil if entity is invalid
+---@param entity LuaEntity
+---@return string?
 function Make_Stop_RichText(entity)
-    if entity and entity.valid then
-        if message_include_gps then
-            return format('[train-stop=%d] [gps=%s,%s,%s]', entity.unit_number, entity.position['x'], entity.position['y'], entity.surface.name)
-        else
-            return format('[train-stop=%d]', entity.unit_number)
-        end
+    if not (entity and entity.valid) then return nil end
+
+    if message_include_gps then
+        return string.format('[train-stop=%d] [gps=%s,%s,%s]', entity.unit_number, entity.position['x'], entity.position['y'], entity.surface.name)
     else
-        return nil
+        return string.format('[train-stop=%d]', entity.unit_number)
     end
 end
 
--- returns rich text string for trains, or nil if entity is invalid
+---@param train LuaTrain
+---@param train_name string
 function Make_Train_RichText(train, train_name)
     local loco = Get_Main_Locomotive(train)
     if loco and loco.valid then
-        return format('[train=%d] %s', loco.unit_number, train_name or loco.backer_name)
+        return string.format('[train=%d] %s', loco.unit_number, train_name or loco.backer_name)
     else
-        return format('[train=] %s', train_name)
+        return string.format('[train=%d] %s', train.id, train_name)
     end
-end
-
--- same as flib.get_or_insert(a_table, key, {}) but avoids the garbage collector overhead of passing an empty table that isn't used when the key exists
-function Get_Or_Create(a_table, key)
-    local subtable = a_table[key]
-    if not subtable then
-        subtable = {}
-        a_table[key] = subtable
-    end
-    return subtable
 end

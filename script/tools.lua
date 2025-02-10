@@ -12,6 +12,13 @@ function Tools.getDispatcher()
     return storage.Dispatcher
 end
 
+--- Typed access to the stopped trains from storage.
+---
+---@return table<number, ltn.StoppedTrain>
+function Tools.getStoppedTrains()
+    return storage.StoppedTrains
+end
+
 --- Convert a Signal into a typed item string
 ---@param signal SignalID
 ---@return ltn.ItemIdentifier

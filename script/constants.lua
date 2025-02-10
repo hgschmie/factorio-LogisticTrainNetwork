@@ -52,10 +52,11 @@ ltn_stop_output_controller = 'logistic-train-stop-lamp-control'
 ---@enum ltn.ErrorCodes
 ErrorCodes = {
     [-1] = 'white', -- not initialized
-    [1] = 'red',  -- short circuit / disabled
-    [2] = 'pink', -- duplicate stop name
+    [1] = 'red',    -- short circuit / disabled
+    [2] = 'pink',   -- duplicate stop name
 }
 
+---@enum ltn.Colors
 ColorLookup = {
     red = 'signal-red',
     green = 'signal-green',
@@ -68,12 +69,5 @@ ColorLookup = {
     black = 'signal-black'
 }
 
--- cache often used strings and functions
-format = string.format
-match = string.match
-match_string = '([^,]+),([^,]+)'
-btest = bit32.btest
-band = bit32.band
-min = math.min
-ceil = math.ceil
-sort = table.sort
+-- often used strings and functions
+MATCH_STRING = '([^,]+),([^,]+)'

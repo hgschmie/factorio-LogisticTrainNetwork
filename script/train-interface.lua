@@ -18,27 +18,27 @@ function GetNextLogisticStop(train, schedule_index)
     end
 
     if not train.schedule then
-        if debug_log then log(format('(GetNextLogisticStop) train [%d] has no schedule.', train.id)) end
+        if debug_log then log(string.format('(GetNextLogisticStop) train [%d] has no schedule.', train.id)) end
         return
     end
 
     local delivery = storage.Dispatcher.Deliveries[train.id]
     if not delivery then
-        if debug_log then log(format('(GetNextLogisticStop) train [%d] not found in deliveries.', train.id)) end
+        if debug_log then log(string.format('(GetNextLogisticStop) train [%d] not found in deliveries.', train.id)) end
         return
     end
 
     local item = next(delivery.shipment)
     if not item then
         -- this can happen when the train was unable to load anything at the provider
-        if debug_log then log(format('(GetNextLogisticStop) train [%d] no longer has a shipment list.', train.id)) end
+        if debug_log then log(string.format('(GetNextLogisticStop) train [%d] no longer has a shipment list.', train.id)) end
         return
     end
 
     -- Comparing stop names is not enough to find the provider and the requester,
     -- they might share names with each other or another stop in the schedule.
     -- So use a heuristic that also looks at the wait conditions
-    local itype, iname = match(item, match_string)
+    local itype, iname = string.match(item, MATCH_STRING)
     local records = train.schedule.records
 
     local record_index = schedule_index or train.schedule.current or 2 -- defaulting to 1 is pointless because that's the depot
@@ -46,6 +46,8 @@ function GetNextLogisticStop(train, schedule_index)
         record_index = record_index + 1
     end
 
+    ---@param record ScheduleRecord
+    ---@return ComparatorString?
     local function get_wait_count_comparator(record)
         if record.wait_conditions then
             for _, wait_condition in pairs(record.wait_conditions) do
@@ -88,21 +90,21 @@ function GetOrCreateNextTempStop(train, schedule_index)
     --unlike ProcessDelivery we need to consider that the stop entity might be gone
     local stop = storage.LogisticTrainStops[stop_id]
     if not stop or not stop.entity.valid then
-        if debug_log then log(format('(UpdateSchedule) skipping stop [%d] for train [%d], stop-entity not valid', stop_id, train.id)) end
+        if debug_log then log(string.format('(UpdateSchedule) skipping stop [%d] for train [%d], stop-entity not valid', stop_id, train.id)) end
         return
     end
 
     local rail = stop.entity.connected_rail
     local rail_direction = stop.entity.connected_rail_direction
     if not rail or not rail_direction then
-        if debug_log then log(format('(UpdateSchedule) skipping stop [%d] for train [%d], not connected to a rail', stop_id, train.id)) end
+        if debug_log then log(string.format('(UpdateSchedule) skipping stop [%d] for train [%d], not connected to a rail', stop_id, train.id)) end
         return
     end
 
     -- the engine does not allow temp_stops on different surfaces
     -- locomotive might not work here, a new train on another surface could still be incomplete
     if train.carriages[1].surface ~= stop.entity.surface then
-        if debug_log then log(format('(UpdateSchedule) stop [%d] is on a different surface than train [%d]', stop_id, train.id)) end
+        if debug_log then log(string.format('(UpdateSchedule) stop [%d] is on a different surface than train [%d]', stop_id, train.id)) end
         return
     end
 
@@ -112,7 +114,7 @@ function GetOrCreateNextTempStop(train, schedule_index)
     local previous_record = schedule.records[stop_schedule_index - 1]
     if previous_record and previous_record.temporary then return stop_schedule_index - 1 end -- schedule already up-to-date for stop_position
 
-    if debug_log then log(format('(UpdateSchedule) adding new temp-stop before stop [%d] at rail [%d] to train [%d] ', stop_id, rail.unit_number, train.id)) end
+    if debug_log then log(string.format('(UpdateSchedule) adding new temp-stop before stop [%d] at rail [%d] to train [%d] ', stop_id, rail.unit_number, train.id)) end
     table.insert(schedule.records, stop_schedule_index, {
         wait_conditions = temp_wait_condition,
         rail = rail,
@@ -130,7 +132,7 @@ end
 function ReassignDelivery(old_train_id, new_train)
     -- check if delivery exists for given train id
     if not (old_train_id and storage.Dispatcher.Deliveries[old_train_id]) then
-        if debug_log then log(format('(ReassignDelivery) train [%d] not found in deliveries.', old_train_id)) end
+        if debug_log then log(string.format('(ReassignDelivery) train [%d] not found in deliveries.', old_train_id)) end
         return false
     end
     -- check if new train is valid
@@ -140,5 +142,5 @@ function ReassignDelivery(old_train_id, new_train)
     end
 
     local delivery = Update_Delivery(old_train_id, new_train)
-    return delivery and true
+    return delivery and true or false
 end

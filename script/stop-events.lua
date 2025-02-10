@@ -11,7 +11,8 @@ local tools = require('script.tools')
 function CreateStop(entity)
     if storage.LogisticTrainStops[entity.unit_number] then
         if message_level >= 1 then printmsg({ 'ltn-message.error-duplicated-unit_number', entity.unit_number }, entity.force) end
-        if debug_log then log('(CreateStop) duplicate stop unit number ' .. entity.unit_number) end
+        if debug_log then log(string.format('(CreateStop) duplicate stop unit number %d', entity.unit_number)) end
+
         return
     end
 
@@ -132,14 +133,13 @@ function CreateStop(entity)
     local input_wire_connectors = input.get_wire_connectors(true)
     local lampctrl_wire_connectors = lampctrl.get_wire_connectors(true)
 
-    input_wire_connectors[defines.wire_connector_id.circuit_red].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_red], false,
-        defines.wire_origin.script)
-    input_wire_connectors[defines.wire_connector_id.circuit_green].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_green], false,
-        defines.wire_origin.script)
+    input_wire_connectors[defines.wire_connector_id.circuit_red].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_red], false, defines.wire_origin.script)
+    input_wire_connectors[defines.wire_connector_id.circuit_green].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_green], false, defines.wire_origin.script)
 
     local input_control = input.get_or_create_control_behavior() --[[@as LuaLampControlBehavior ]]
     assert(input_control)
     input_control.use_colors = true
+
     ---@diagnostic disable: missing-fields
     input_control.circuit_condition = {
         comparator = '>',
@@ -165,7 +165,7 @@ function CreateStop(entity)
     -- enable reading contents and sending signals to trains
     local trainstop_control = entity.get_or_create_control_behavior() --[[@as LuaTrainStopControlBehavior]]
     assert(trainstop_control)
-    
+
     trainstop_control.send_to_train = true
     trainstop_control.read_from_train = true
 
@@ -197,16 +197,17 @@ function CreateStop(entity)
     UpdateStopOutput(storage.LogisticTrainStops[entity.unit_number])
 
     -- register events
-    -- script.on_event(defines.events.on_tick, OnTick)
     script.on_nth_tick(nil)
     script.on_nth_tick(dispatcher_nth_tick, OnTick)
     script.on_event(defines.events.on_train_changed_state, OnTrainStateChanged)
     script.on_event(defines.events.on_train_created, OnTrainCreated)
-    if debug_log then log('(OnEntityCreated) on_nth_tick(' .. dispatcher_nth_tick .. '), on_train_changed_state, on_train_created registered') end
+
+    if debug_log then log(string.format('(OnEntityCreated) on_nth_tick(%d), on_train_changed_state, on_train_created registered', dispatcher_nth_tick)) end
 end
 
+---@param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.on_entity_cloned
 function OnEntityCreated(event)
-    local entity = event.created_entity or event.entity or event.destination
+    local entity = event.entity or event.destination
     if not entity or not entity.valid then return end
 
     if ltn_stop_entity_names[entity.name] then
@@ -232,8 +233,7 @@ function RemoveStop(stopID, create_ghosts)
     -- remove available train
     if stop and stop.is_depot and stop.parked_train_id and dispatcher.availableTrains[stop.parked_train_id] then
         dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[stop.parked_train_id].capacity
-        dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity -
-            dispatcher.availableTrains[stop.parked_train_id].fluid_capacity
+        dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[stop.parked_train_id].fluid_capacity
         dispatcher.availableTrains[stop.parked_train_id] = nil
     end
 
@@ -274,8 +274,11 @@ function RemoveStop(stopID, create_ghosts)
     end
 end
 
+---@param event EventData.on_pre_player_mined_item | EventData.on_robot_pre_mined | EventData.on_entity_died | EventData.script_raised_destroy
+---@param create_ghosts boolean?
 function OnEntityRemoved(event, create_ghosts)
     local dispatcher = tools.getDispatcher()
+    local stopped_trains = tools.getStoppedTrains()
 
     local entity = event.entity
     if not entity or not entity.valid then return end
@@ -283,7 +286,7 @@ function OnEntityRemoved(event, create_ghosts)
     if entity.train then
         local trainID = entity.train.id
         -- remove from stop if parked
-        if storage.StoppedTrains[trainID] then
+        if stopped_trains[trainID] then
             TrainLeaves(trainID)
         end
         -- removing any carriage fails a delivery
@@ -304,6 +307,9 @@ function OnEntityRemoved(event, create_ghosts)
 end
 
 --rename stop
+---@param targetID number
+---@param old_name string
+---@param new_name string
 local function renamedStop(targetID, old_name, new_name)
     local dispatcher = tools.getDispatcher()
 
@@ -313,20 +319,23 @@ local function renamedStop(targetID, old_name, new_name)
     for stopID, stop in pairs(storage.LogisticTrainStops) do
         if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
             RemoveStop(stopID)
-        elseif stop.entity.backer_name == old_name then
+        elseif stop.entity.unit_number ~= targetID and stop.entity.backer_name == old_name then
+            -- another stop exists with the same name as the renamed stop
+            -- deliveries can go to that stop, no need to rename
             renameDeliveries = false
         end
     end
     -- rename deliveries only if no other LTN stop old_name exists
-    if renameDeliveries then
-        if debug_log then log('(OnEntityRenamed) last LTN stop ' .. old_name .. ' renamed, updating deliveries to ' .. new_name .. '.') end
-        for trainID, delivery in pairs(dispatcher.Deliveries) do
-            if delivery.to == old_name then
-                delivery.to = new_name
-            end
-            if delivery.from == old_name then
-                delivery.from = new_name
-            end
+    if not renameDeliveries then return end
+
+    if debug_log then log(string.format('(OnEntityRenamed) last LTN stop %s renamed, updating deliveries to %s.', old_name, new_name)) end
+
+    for _, delivery in pairs(dispatcher.Deliveries) do
+        if delivery.to == old_name then
+            delivery.to = new_name
+        end
+        if delivery.from == old_name then
+            delivery.from = new_name
         end
     end
 end
@@ -335,6 +344,8 @@ script.on_event(defines.events.on_entity_renamed, function(event)
     local uid = event.entity.unit_number
     local oldName = event.old_name
     local newName = event.entity.backer_name
+    assert(newName)
+
     if ltn_stop_entity_names[event.entity.name] then
         renamedStop(uid, oldName, newName)
     end

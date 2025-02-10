@@ -11,11 +11,11 @@
 ---@field tick_stop_index number?
 ---@field Dispatcher ltn.Dispatcher
 ---@field LogisticTrainStops table<number, ltn.TrainStop>
----@field ConnectedSurfaces any -- TODO
----@field StoppedTrains table<number, ltn.Train>
----@field StopDistances any -- TODO
+---@field ConnectedSurfaces table<ltn.SurfaceConnectionKey, ltn.SurfaceConnection>
+---@field StoppedTrains table<number, ltn.StoppedTrain>
+---@field StopDistances table<string, number>
 ---@field WagonCapacity table<string, number>
----@field messageBuffer any -- TODO
+---@field messageBuffer table<string, ltn.MessageTick>
 
 
 ---------------------------------------------------------
@@ -28,7 +28,12 @@
 --- typed string for the item identifiers
 ---@alias ltn.ItemIdentifier string
 
+--- typed string for surface connection identifier
+---@alias ltn.SurfaceConnectionKey string
+
 ---@alias ltn.LoadingList ltn.LoadingElement[]
+
+---@alias ltn.AlertType ('cargo-warning'|'cargo-alert'|'deport-warning'|'depot-empty')
 
 ---------------------------------------------------------
 --- Main types
@@ -39,13 +44,13 @@
 ---@field availableTrains table<number, ltn.Train>
 ---@field availableTrains_total_capacity number
 ---@field availableTrains_total_fluid_capacity number
----@field Provided table<string, table<number, number>> -- request-type -> stop id -> count
+---@field Provided table<ltn.ItemIdentifier, table<number, number>> -- request-type -> stop id -> count
 ---@field Provided_by_Stop table<number, ltn.Shipment> -- stop id -> request-type -> count
 ---@field Requests ltn.Request[]
 ---@field Requests_by_Stop table<number, ltn.Shipment>
 ---@field RequestAge table<string, number>
 ---@field Deliveries table<number, ltn.Delivery>
----@field new_Deliveries table<number, ltn.Delivery>
+---@field new_Deliveries number[]
 
 --- LTN stop information
 ---@class ltn.TrainStop
@@ -75,13 +80,20 @@
 
 --- LTN Train information
 ---@class ltn.Train
+---@field train          LuaTrain
+---@field force          LuaForce
 ---@field capacity       number
 ---@field fluid_capacity number
----@field force          LuaForce
 ---@field surface        LuaSurface
 ---@field depot_priority number
 ---@field network_id     number
+
+--- LTN Train information
+---@class ltn.StoppedTrain
 ---@field train          LuaTrain
+---@field name           string?
+---@field force          LuaForce?
+---@field stopID         number
 
 --- A request for a shipment.
 ---@class ltn.Request
@@ -108,6 +120,41 @@
 ---@class ltn.SurfaceConnection
 
 ---------------------------------------------------------
+--- Internal types used in various methods
+---------------------------------------------------------
+
+---@class ltn.Provider
+---@field entity LuaEntity
+---@field network_id number
+---@field priority number
+---@field activeDeliveryCount number
+---@field item ltn.ItemIdentifier
+---@field count number
+---@field providing_threshold number
+---@field providing_threshold_stacks number
+---@field min_carriages number
+---@field max_carriages number
+---@field locked_slots number
+---@field surface_connections ltn.SurfaceConnection[]
+---@field surface_connections_count number
+
+---@class ltn.FreeTrain
+---@field train LuaTrain
+---@field inventory_size number
+---@field depot_priority number
+---@field provider_distance number
+
+---@class ltn.LoadingElement
+---@field type string      The type for the loading (item, fluid)
+---@field name string      The name of the loading
+---@field localname string Localized name
+---@field count number     number of elements
+---@field stacks number    stack size for items
+
+---@class ltn.MessageTick
+---@field tick number
+
+---------------------------------------------------------
 --- Event payloads
 ---------------------------------------------------------
 
@@ -122,18 +169,11 @@
 ---@field deliveries       table<number, ltn.Delivery>
 ---@field available_trains table<number, ltn.Train>
 
----@class ltn.LoadingElement
----@field type string      The type for the loading (item, fluid)
----@field name string      The name of the loading
----@field localname string Localized name
----@field count number     number of elements
----@field stacks number    stack size for items
-
 ---@class ltn.EventData.no_train_found_item
 ---@field to            string? Target stop
 ---@field to_id         number  Target stop id
 ---@field network_id    number  Network id
----@field item          string? The item to deliver
+---@field item          ltn.ItemIdentifier? The item to deliver
 
 ---@class ltn.EventData.no_train_found_shipment
 ---@field from          string? Source stop

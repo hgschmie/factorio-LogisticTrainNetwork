@@ -22,19 +22,19 @@ The `remote.class("logistic-train-network", <event-name>)` call returns an event
 script.on_event(remote.call("logistic-train-network", "on_stops_updated"), <code to be called>)
 ```
 
-### on_stops_updated
-
-Raised whenever the dispatcher has finished scheduling. Sends out a `ltn.EventData.on_stops_updated` payload.
-
 ### on_dispatcher_updated
 
-Raised whenever the dispatcher has finished scheduling. Sends out a `ltn.EventData.on_dispatcher_updated` payload.
+Raised whenever the dispatcher has finished scheduling, after all deliveries have been generated. Sends out a `ltn.EventData.on_dispatcher_updated` payload.
+
+### on_stops_updated
+
+Raised whenever the dispatcher has finished scheduling, after all deliveries have been generated. Sends out a `ltn.EventData.on_stops_updated` payload.
 
 ### on_dispatcher_no_train_found
 
 Raised whenever the dispatcher can not schedule a train for a delivery. Sends out a `ltn.EventData.no_train_found` payload, which is a union of two different payloads:
 
-If no train capacity at all is available to create a shipment, the dispatcher sends this event with a `ltn.EventData.no_train_found_item` payload.
+If no train capacity at all is available to create a shipment (because all the depots are empty), the dispatcher sends this event with a `ltn.EventData.no_train_found_item` payload.
 
 If capacity is available but not train could be found that matches the criterias to create a delivery, this event is raised with a `ltn.EventData.no_train_found_shipment` payload.
 
@@ -42,15 +42,15 @@ The two payloads can be differentiated by the presence of the `item` field.
 
 ### on_delivery_pickup_complete
 
-Raised whenever a pickup is complete and a train leaves a stop. Sends out a `ltn.EventData.delivery_pickup_complete` payload.
+Raised whenever a pickup is complete and a train leaves the provider stop. Sends out a `ltn.EventData.delivery_pickup_complete` payload.
 
 ### on_delivery_completed
 
-Raised when a dropoff is complete and a train leaves a stop. Sends out a `ltn.EventData.delivery_complete` payload.
+Raised when a dropoff is complete and a train leaves the requester stop. Sends out a `ltn.EventData.delivery_complete` payload.
 
 ### on_delivery_failed
 
-Raised when a delivery has failed (e.g. through timeout or because the train was destroyed). Sends out a `ltn.EventData.on_delivery_failed` payload.
+Raised when a delivery has failed (e.g. train gets removed, the delivery timed out, train enters depot stop with active delivery). Sends out a `ltn.EventData.on_delivery_failed` payload.
 
 ## Alerts
 
@@ -81,10 +81,7 @@ Re-assigns a delivery to a different train. Should be called after creating a tr
 Calls with an old_train_id without delivery have no effect. Don't call this function when coupling trains via script, LTN already handles that through Factorio events. This function does not add missing temp stops. See `get_or_create_next_temp_stop` for that.
 
 ```lua
-remote.call('logistic-train-network', 'reassign_delivery', 
-    old_train,  -- LuaTrain
-    new_train   -- LuaTrain
-)
+remote.call('logistic-train-network', 'reassign_delivery', old_train, new_train)
 ```
 
 ### get_or_create_next_temp_stop
@@ -96,9 +93,7 @@ Ensures the next logistic stop in the schedule has a temporary stop if it is on 
 The result is the schedule index of the temp stop of the next logistic stop or `nil` if there is no further logistic stop.
 
 ```lua
-local schedule_index = remote.call('logistic-train-network', 'get_or_create_next_temp_stop', 
-    train
-    )
+local schedule_index = remote.call('logistic-train-network', 'get_or_create_next_temp_stop', train)
 ```
 
 ### get_next_logistic_stop
@@ -118,11 +113,7 @@ If there is no further logistic stop in the schedule, the result will be all `ni
 Adds a surface connection between the given entities; the network_id will be used in delivery processing to discard providers that don't match the surface connection's network_id.
 
 ```lua
-remote.call('logistic-train-network', 'connect_surfaces', 
-    entity1,
-    entity2,
-    network_id
-    )
+remote.call('logistic-train-network', 'connect_surfaces', entity1, entity2, network_id)
 ```
 
 ### disconnect_surfaces
@@ -130,10 +121,7 @@ remote.call('logistic-train-network', 'connect_surfaces',
 Removes a surface connection formed by the two given entities. Active deliveries will not be affected. It is not necessary to call this function when deleting one or both entities.
 
 ```lua
-remote.call('logistic-train-network', 'disconnect_surfaces', 
-    entity1,
-    entity2
-    )
+remote.call('logistic-train-network', 'disconnect_surfaces', entity1, entity2)
 ```
 
 ### clear_all_surface_connections

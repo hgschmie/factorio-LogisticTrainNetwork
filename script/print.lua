@@ -4,8 +4,11 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
--- write msg to console for all member of force
--- skips over any duplicate messages (clearing filter is done in on_tick)
+--- write msg to console for all member of force
+--- skips over any duplicate messages (clearing filter is done in on_tick)
+---@param msg LocalisedString
+---@param force LuaForce?
+---@param useFilter boolean?
 function printmsg(msg, force, useFilter)
     local msgKey = ''
     if force and force.valid then
@@ -24,6 +27,8 @@ function printmsg(msg, force, useFilter)
     else
         msgKey = msg
     end
+
+    assert(msgKey)
 
     -- print message
     if storage.messageBuffer[msgKey] == nil or not useFilter then

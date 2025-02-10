@@ -314,7 +314,7 @@ script.on_init(function()
     local oldVersion, newVersion = nil, nil
     local newVersionString = script.active_mods[MOD_NAME]
     if newVersionString then
-        newVersion = format('%02d.%02d.%02d', match(newVersionString, '(%d+).(%d+).(%d+)'))
+        newVersion = string.format('%02d.%02d.%02d', string.match(newVersionString, '(%d+).(%d+).(%d+)'))
     end
     initialize(oldVersion, newVersion)
     initializeTrainStops()
@@ -330,11 +330,11 @@ script.on_configuration_changed(function(data)
         local oldVersion, newVersion = nil, nil
         local oldVersionString = data.mod_changes[MOD_NAME].old_version
         if oldVersionString then
-            oldVersion = format('%02d.%02d.%02d', match(oldVersionString, '(%d+).(%d+).(%d+)'))
+            oldVersion = string.format('%02d.%02d.%02d', string.match(oldVersionString, '(%d+).(%d+).(%d+)'))
         end
         local newVersionString = data.mod_changes[MOD_NAME].new_version
         if newVersionString then
-            newVersion = format('%02d.%02d.%02d', match(newVersionString, '(%d+).(%d+).(%d+)'))
+            newVersion = string.format('%02d.%02d.%02d', string.match(newVersionString, '(%d+).(%d+).(%d+)'))
         end
 
         if oldVersion and oldVersion < '01.01.01' then
