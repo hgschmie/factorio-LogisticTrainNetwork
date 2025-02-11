@@ -4,7 +4,7 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
-local flib = require('__flib__.data-util')
+local data_util = require('prototypes.data-util')
 
 local icon_encoded_position = { { icon = '__LogisticTrainNetwork__/graphics/icons/encoded-position.png', icon_size = 64, tint = { r = 1, g = 1, b = 1, a = 1 } } }
 
@@ -12,7 +12,7 @@ local function create_signal(prototype, order)
     local signal = {
         type = 'virtual-signal',
         name = 'ltn-position-' .. prototype.name,
-        icons = flib.create_icons(prototype, icon_encoded_position) or icon_encoded_position,
+        icons = data_util.create_icons(prototype, icon_encoded_position) or icon_encoded_position,
         icon_size = nil,
         subgroup = 'ltn-position-signal',
         order = order,

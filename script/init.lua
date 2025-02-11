@@ -4,10 +4,9 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
-local Get_Main_Locomotive = require('__flib__.train').get_main_locomotivelocal
-Get_Train_Name = require('__flib__.train').get_backer_name
-
 ---- INITIALIZATION ----
+
+local tools = require('script.tools')
 
 local function initialize(oldVersion, newVersion)
     --log("oldVersion: "..tostring(oldVersion)..", newVersion: "..tostring(newVersion))
@@ -84,7 +83,7 @@ local function initialize(oldVersion, newVersion)
             local trains = train_manager.get_trains { surface = surface }
             for _, train in pairs(trains) do
                 -- build dictionary
-                local loco = Get_Main_Locomotive(train)
+                local loco = tools.getMainLocomotive(train)
                 if loco then
                     locoID_to_trainID[loco.unit_number] = train.id
                 end

@@ -9,7 +9,6 @@
   "factorio_version": "2.0",
   "dependencies": [
     "base >= 2.0.0",
-    "flib >= 0.16.0",
     "(?)cargo-ships"
   ],
   "package": {

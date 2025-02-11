@@ -4,22 +4,24 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
-local ltn_stop = flib.copy_prototype(data.raw['item']['train-stop'], 'logistic-train-stop')
+local data_util = require('prototypes.data-util')
+
+local ltn_stop = data_util.copy_prototype(data.raw['item']['train-stop'], 'logistic-train-stop')
 ltn_stop.icon = '__LogisticTrainNetwork__/graphics/icons/train-stop.png'
 ltn_stop.icon_size = 64
 ltn_stop.order = ltn_stop.order .. '-c'
 
-local ltn_stop_in = flib.copy_prototype(data.raw['item']['small-lamp'], 'logistic-train-stop-input')
+local ltn_stop_in = data_util.copy_prototype(data.raw['item']['small-lamp'], 'logistic-train-stop-input')
 ltn_stop_in.hidden = true
 ltn_stop_in.hidden_in_factoriopedia = true
 
-local ltn_stop_out = flib.copy_prototype(data.raw['item']['constant-combinator'], 'logistic-train-stop-output')
+local ltn_stop_out = data_util.copy_prototype(data.raw['item']['constant-combinator'], 'logistic-train-stop-output')
 ltn_stop_out.icon = '__LogisticTrainNetwork__/graphics/icons/output.png'
 ltn_stop_out.hidden = true
 ltn_stop_out.hidden_in_factoriopedia = true
 ltn_stop_out.icon_size = 64
 
-local ltn_lamp_control = flib.copy_prototype(data.raw['item']['constant-combinator'], 'logistic-train-stop-lamp-control')
+local ltn_lamp_control = data_util.copy_prototype(data.raw['item']['constant-combinator'], 'logistic-train-stop-lamp-control')
 ltn_lamp_control.hidden = true
 ltn_lamp_control.hidden_in_factoriopedia = true
 ltn_lamp_control.icon = '__LogisticTrainNetwork__/graphics/icons/empty.png'
@@ -34,7 +36,7 @@ data:extend {
 
 -- support for cargo ship ports
 if mods['cargo-ships'] then
-    ltn_port = flib.copy_prototype(data.raw['item']['port'], 'ltn-port')
+    ltn_port = data_util.copy_prototype(data.raw['item']['port'], 'ltn-port')
     ltn_port.icon = '__LogisticTrainNetwork__/graphics/icons/port.png'
     ltn_port.icon_size = 64
     ltn_port.order = ltn_port.order .. '-c'

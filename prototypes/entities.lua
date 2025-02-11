@@ -5,19 +5,20 @@
 --]]
 
 local collision_mask_util = require('collision-mask-util')
+local data_util = require('prototypes.data-util')
 
 local train_stop = data.raw['train-stop']['train-stop']
 train_stop.fast_replaceable_group = train_stop.fast_replaceable_group or 'train-stop'
 train_stop.next_upgrade = 'logistic-train-stop'
 
-local ltn_stop = flib.copy_prototype(train_stop, 'logistic-train-stop')
+local ltn_stop = data_util.copy_prototype(train_stop, 'logistic-train-stop')
 ltn_stop.icon = '__LogisticTrainNetwork__/graphics/icons/train-stop.png'
 ltn_stop.icon_size = 64
 ltn_stop.next_upgrade = nil
 ltn_stop.selection_box = { { -0.6, -0.6 }, { 0.6, 0.6 } }
 -- ltn_stop.collision_box = {{-0.5, -0.1}, {0.5, 0.4}}
 
-local ltn_stop_in = flib.copy_prototype(data.raw['lamp']['small-lamp'], 'logistic-train-stop-input')
+local ltn_stop_in = data_util.copy_prototype(data.raw['lamp']['small-lamp'], 'logistic-train-stop-input')
 ltn_stop_in.icon = '__LogisticTrainNetwork__/graphics/icons/train-stop.png'
 ltn_stop_in.icon_size = 64
 ltn_stop_in.next_upgrade = nil
@@ -30,7 +31,7 @@ ltn_stop_in.energy_usage_per_tick = '10W'
 ltn_stop_in.light = { intensity = 1, size = 6 }
 ltn_stop_in.energy_source = { type = 'void' }
 
-local ltn_stop_out = flib.copy_prototype(data.raw['constant-combinator']['constant-combinator'], 'logistic-train-stop-output')
+local ltn_stop_out = data_util.copy_prototype(data.raw['constant-combinator']['constant-combinator'], 'logistic-train-stop-output')
 ltn_stop_out.icon = '__LogisticTrainNetwork__/graphics/icons/output.png'
 ltn_stop_out.icon_size = 64
 ltn_stop_out.next_upgrade = nil
@@ -68,7 +69,7 @@ local control_connection_points = {
     green = util.by_pixel(-1, 0)
 }
 
-local ltn_lamp_control = flib.copy_prototype(data.raw['constant-combinator']['constant-combinator'], 'logistic-train-stop-lamp-control')
+local ltn_lamp_control = data_util.copy_prototype(data.raw['constant-combinator']['constant-combinator'], 'logistic-train-stop-lamp-control')
 ltn_lamp_control.icon = '__LogisticTrainNetwork__/graphics/icons/empty.png'
 ltn_lamp_control.icon_size = 32
 ltn_lamp_control.next_upgrade = nil
@@ -195,7 +196,7 @@ if mods['cargo-ships'] then
     port.fast_replaceable_group = port.fast_replaceable_group or 'port'
     port.next_upgrade = 'ltn-port'
 
-    ltn_port = flib.copy_prototype(port, 'ltn-port')
+    ltn_port = data_util.copy_prototype(port, 'ltn-port')
     ltn_port.icon = '__LogisticTrainNetwork__/graphics/icons/port.png'
     ltn_port.icon_size = 64
     ltn_port.next_upgrade = nil

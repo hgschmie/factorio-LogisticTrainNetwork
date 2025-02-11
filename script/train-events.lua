@@ -4,9 +4,6 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
-local Get_Distance = require('__flib__.position').distance
-local Get_Main_Locomotive = require('__flib__.train').get_main_locomotive
-
 local tools = require('script.tools')
 
 -- update stop output when train enters stop
@@ -22,7 +19,7 @@ function TrainArrives(train)
         -- assign main loco name and force
 
         ---@type LuaEntity?
-        local loco = Get_Main_Locomotive(train)
+        local loco = tools.getMainLocomotive(train)
         ---@type LuaForce?
         local trainForce = nil
         ---@type string?
@@ -45,8 +42,8 @@ function TrainArrives(train)
         stop.parked_train = train
         stop.parked_train_id = train.id
 
-        local frontDistance = Get_Distance(train.front_stock.position, train.station.position)
-        local backDistance = Get_Distance(train.back_stock.position, train.station.position)
+        local frontDistance = tools.getDistance(train.front_stock.position, train.station.position)
+        local backDistance = tools.getDistance(train.back_stock.position, train.station.position)
         if frontDistance > backDistance then
             stop.parked_train_faces_stop = false
         else
@@ -55,7 +52,7 @@ function TrainArrives(train)
         local is_provider = false
 
         -- if message_level >= 3 then printmsg({"ltn-message.train-arrived", tostring(trainName), stop_name}, trainForce, false) end
-        if message_level >= 3 then printmsg({ 'ltn-message.train-arrived', Make_Train_RichText(train, nil), string.format('[train-stop=%d]', stopID) }, trainForce, false) end
+        if message_level >= 3 then printmsg({ 'ltn-message.train-arrived', tools.richTextForTrain(train), string.format('[train-stop=%d]', stopID) }, trainForce, false) end
         if debug_log then log(string.format('(TrainArrives) Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop)) end
 
         if stop.error_code == 0 then
@@ -66,7 +63,7 @@ function TrainArrives(train)
                     local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
                     local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
 
-                    if message_level >= 1 then printmsg({ 'ltn-message.delivery-removed-depot', Make_Stop_RichText(from_entity) or delivery.from, Make_Stop_RichText(to_entity) or delivery.to }, delivery.force, false) end
+                    if message_level >= 1 then printmsg({ 'ltn-message.delivery-removed-depot', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }, delivery.force, false) end
                     if debug_log then log(string.format('(TrainArrives) Train [%d] \"%s\": Entered Depot with active Delivery. Failing Delivery and reseting train.', train.id, trainName)) end
 
                     ---@type ltn.EventData.on_delivery_failed
@@ -111,7 +108,7 @@ function TrainArrives(train)
                 end
 
                 -- make train available for new deliveries
-                local capacity, fluid_capacity = GetTrainCapacity(train)
+                local capacity, fluid_capacity = tools.getTrainCapacity(train)
 
                 assert(trainForce)
                 dispatcher.availableTrains[train.id] = {
@@ -431,19 +428,17 @@ function TrainLeaves(trainID)
     stop.parked_train = nil
     stop.parked_train_id = nil
     -- if message_level >= 3 then printmsg({"ltn-message.train-left", tostring(stoppedTrain.name), stop.entity.backer_name}, stoppedTrain.force) end
-    if message_level >= 3 then printmsg({ 'ltn-message.train-left', Make_Train_RichText(train, stoppedTrain.name), string.format('[train-stop=%d]', stopID) }, stoppedTrain.force, false) end
+    if message_level >= 3 then printmsg({ 'ltn-message.train-left', tools.richTextForTrain(train, stoppedTrain.name), string.format('[train-stop=%d]', stopID) }, stoppedTrain.force, false) end
 
     UpdateStopOutput(stop)
 
     stopped_trains[trainID] = nil
 end
 
--- local reverse_defines = require('__flib__.reverse-defines')
-
 function OnTrainStateChanged(event)
     local stopped_trains = tools.getStoppedTrains()
 
-    -- log(game.tick.." (OnTrainStateChanged) Train name: "..tostring(Get_Train_Name(event.train))..", train.id:"..tostring(event.train.id).." stop: "..tostring(event.train.station and event.train.station.backer_name)..", state: "..reverse_defines.train_state[event.old_state].." > "..reverse_defines.train_state[event.train.state] )
+    -- log(game.tick.." (OnTrainStateChanged) Train name: "..tostring(tools.getTrainName(event.train))..", train.id:"..tostring(event.train.id).." stop: "..tostring(event.train.station and event.train.station.backer_name)..", state: "..reverse_defines.train_state[event.old_state].." > "..reverse_defines.train_state[event.train.state] )
     local train = event.train
     if train.state == defines.train_state.wait_station and train.station ~= nil and ltn_stop_entity_names[train.station.name] then
         TrainArrives(train)
@@ -497,7 +492,7 @@ function Update_Delivery(old_train_id, new_train)
 end
 
 function OnTrainCreated(event)
-    -- log("(on_train_created) Train name: "..tostring(Get_Train_Name(event.train))..", train.id:"..tostring(event.train.id)..", .old_train_id_1:"..tostring(event.old_train_id_1)..", .old_train_id_2:"..tostring(event.old_train_id_2)..", state: "..tostring(event.train.state))
+    -- log("(on_train_created) Train name: "..tostring(tools.getTrainName(event.train))..", train.id:"..tostring(event.train.id)..", .old_train_id_1:"..tostring(event.old_train_id_1)..", .old_train_id_2:"..tostring(event.old_train_id_2)..", state: "..tostring(event.train.state))
     -- on_train_created always sets train.state to 9 manual, scripts have to set the train back to its former state.
 
     if event.old_train_id_1 then

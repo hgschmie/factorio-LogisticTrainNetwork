@@ -4,9 +4,6 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
-local Get_Distance = require('__flib__.position').distance
-local Get_Train_Name = require('__flib__.train').get_backer_name
-
 local tools = require('script.tools')
 
 -- update dispatcher Deliveries.force when forces are removed/merged
@@ -76,7 +73,7 @@ function OnTick(event)
                 local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
                 local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
 
-                if message_level >= 1 then printmsg({ 'ltn-message.delivery-removed-train-invalid', Make_Stop_RichText(from_entity) or delivery.from, Make_Stop_RichText(to_entity) or delivery.to }, delivery.force, false) end
+                if message_level >= 1 then printmsg({ 'ltn-message.delivery-removed-train-invalid', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }, delivery.force, false) end
                 if debug_log then log(string.format('(OnTick) Delivery from %s to %s removed. Train no longer valid.', delivery.from, delivery.to)) end
 
 
@@ -92,7 +89,7 @@ function OnTick(event)
                 local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
                 local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
 
-                if message_level >= 1 then printmsg({ 'ltn-message.delivery-removed-timeout', Make_Stop_RichText(from_entity) or delivery.from, Make_Stop_RichText(to_entity) or delivery.to, tick - delivery.started }, delivery.force, false) end
+                if message_level >= 1 then printmsg({ 'ltn-message.delivery-removed-timeout', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to, tick - delivery.started }, delivery.force, false) end
                 if debug_log then log(string.format('(OnTick) Delivery from %s to %s removed. Timed out after %d/%d ticks.', delivery.from, delivery.to, tick - delivery.started, delivery_timeout)) end
 
                 ---@type ltn.EventData.on_delivery_failed
@@ -471,7 +468,7 @@ local function getStationDistance(stationA, stationB)
         --log(stationPair.." found, distance: "..storage.StopDistances[stationPair])
         return storage.StopDistances[stationPair]
     else
-        local dist = Get_Distance(stationA.position, stationB.position)
+        local dist = tools.getDistance(stationA.position, stationB.position)
         storage.StopDistances[stationPair] = dist
         --log(stationPair.." calculated, distance: "..dist)
         return dist
@@ -507,7 +504,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                 local depot_network_id_string = string.format('0x%x', bit32.band(trainData.network_id))
                 local dest_network_id_string = string.format('0x%x', bit32.band(nextStop.network_id))
 
-                log(string.format('(getFreeTrain) checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %d', Get_Train_Name(trainData.train), trainData.force.name, nextStop.entity.force.name, depot_network_id_string, dest_network_id_string, trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, getStationDistance(trainData.train.station, nextStop.entity)))
+                log(string.format('(getFreeTrain) checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %d', tools.getTrainName(trainData.train), trainData.force.name, nextStop.entity.force.name, depot_network_id_string, dest_network_id_string, trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, getStationDistance(trainData.train.station, nextStop.entity)))
             end
 
             if inventorySize > 0                                                                                                                                -- sending trains without inventory on deliveries would be pointless
@@ -579,7 +576,7 @@ function ProcessRequest(reqIndex, request)
     local to = requestStation.entity.backer_name
     local to_rail = requestStation.entity.connected_rail
     local to_rail_direction = requestStation.entity.connected_rail_direction
-    local to_gps = Make_Stop_RichText(requestStation.entity) or to
+    local to_gps = tools.richTextForStop(requestStation.entity) or to
     local to_network_id_string = string.format('0x%x', bit32.band(requestStation.network_id))
     local item = request.item
     local count = request.count
@@ -671,7 +668,7 @@ function ProcessRequest(reqIndex, request)
     local from_rail = providerData.entity.connected_rail
     local from_rail_direction = providerData.entity.connected_rail_direction
     local from = providerData.entity.backer_name
-    local from_gps = Make_Stop_RichText(providerData.entity) or from
+    local from_gps = tools.richTextForStop(providerData.entity) or from
     local matched_network_id_string = string.format('0x%x', bit32.band(providerData.network_id))
 
     if message_level >= 3 then printmsg({ 'ltn-message.provider-found', from_gps, tostring(providerData.priority), tostring(providerData.activeDeliveryCount), providerData.count, '[' .. itype .. '=' .. iname .. ']' }, requestForce, true) end
