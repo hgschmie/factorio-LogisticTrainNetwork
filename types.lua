@@ -15,8 +15,6 @@
 ---@field StoppedTrains table<number, ltn.StoppedTrain>
 ---@field StopDistances table<string, number>
 ---@field WagonCapacity table<string, number>
----@field messageBuffer table<string, ltn.MessageTick>
-
 
 ---------------------------------------------------------
 --- Type aliases

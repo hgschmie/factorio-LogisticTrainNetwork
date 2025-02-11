@@ -17,9 +17,6 @@ local function initialize(oldVersion, newVersion)
     storage.tick_request_index = nil
     storage.tick_interval_start = nil -- stores tick of last state 0 for on_dispatcher_updated_event.update_interval
 
-    ---- initialize logger
-    storage.messageBuffer = {}
-
     ---- initialize Dispatcher
     storage.Dispatcher = storage.Dispatcher or {}
 
@@ -320,7 +317,7 @@ script.on_init(function()
     updateAllTrains()
     registerEvents()
 
-    log('[LTN] ' .. MOD_NAME .. ' ' .. tostring(newVersionString) .. ' initialized.')
+    log(string.format('[LTN] %s %s initialized.', MOD_NAME, newVersionString))
 end)
 
 script.on_configuration_changed(function(data)
@@ -337,18 +334,17 @@ script.on_configuration_changed(function(data)
         end
 
         if oldVersion and oldVersion < '01.01.01' then
-            log('[LTN] Migration failed. Migrating from ' .. tostring(oldVersionString) .. ' to ' .. tostring(newVersionString) .. 'not supported.')
-            printmsg('[LTN] Error: Direct migration from ' ..
-                tostring(oldVersionString) .. ' to ' .. tostring(newVersionString) .. ' is not supported. Oldest supported version: 1.1.1')
+            log(string.format('[LTN] Migration failed. Migrating from %s to %s not supported.', oldVersionString, newVersionString))
+            tools.printmsg(string.format('[LTN] Error: Direct migration from %s to %s is not supported. Oldest supported version: 1.1.1', oldVersionString, newVersionString))
             return
         else
             initialize(oldVersion, newVersion)
-            log('[LTN] Migrating from ' .. tostring(oldVersionString) .. ' to ' .. tostring(newVersionString) .. ' complete.')
-            printmsg('[LTN] Migration from ' .. tostring(oldVersionString) .. ' to ' .. tostring(newVersionString) .. ' complete.')
+            log(string.format('[LTN] Migrating from %s to %s complete.', oldVersionString, newVersionString))
+            tools.printmsg(string.format('[LTN] Migration from %s to %s complete.', oldVersionString, newVersionString))
         end
     end
     initializeTrainStops()
     updateAllTrains()
     registerEvents()
-    log('[LTN] ' .. MOD_NAME .. ' ' .. tostring(script.active_mods[MOD_NAME]) .. ' configuration updated.')
+    log(string.format('[LTN] %s %s configuration updated.', MOD_NAME, script.active_mods[MOD_NAME]))
 end)

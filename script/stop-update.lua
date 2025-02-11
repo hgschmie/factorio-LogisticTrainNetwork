@@ -45,7 +45,7 @@ function UpdateStop(stopID, stop)
 
     -- remove invalid stops
     if not stop or not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
-        if message_level >= 1 then printmsg { 'ltn-message.error-invalid-stop', stopID } end
+        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-stop', stopID } end
         if debug_log then log(string.format('(UpdateStop) Removing invalid stop: [%d]', stopID)) end
         RemoveStop(stopID)
         return
@@ -62,7 +62,7 @@ function UpdateStop(stopID, stop)
         if not dispatcher.Deliveries[stop.active_deliveries[i]] then
             table.remove(stop.active_deliveries, i)
 
-            if message_level >= 1 then printmsg { 'ltn-message.error-invalid-delivery', stop.entity.backer_name } end
+            if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-delivery', stop.entity.backer_name } end
             if debug_log then log(string.format("(UpdateStop) Removing invalid delivery from stop '%s': %s", stop.entity.backer_name, tostring(stop.active_deliveries[i]))) end
 
         end
@@ -417,7 +417,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                             encoded_positions_by_type[signal_type] = 2 ^ (i - 1)
                         end
                     else
-                        if message_level >= 1 then printmsg { 'ltn-message.error-invalid-position-signal', signal_type } end
+                        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-position-signal', signal_type } end
                         log(string.format('Error: signal \"%s\" not found!', signal_type))
                     end
                     local signal_name = string.format('ltn-position-%s', carriages[i].name)
@@ -428,7 +428,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                             encoded_positions_by_name[signal_name] = 2 ^ (i - 1)
                         end
                     else
-                        if message_level >= 1 then printmsg { 'ltn-message.error-invalid-position-signal', signal_name } end
+                        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-position-signal', signal_name } end
                         log(string.format('Error: signal \"%s\" not found!', signal_name))
                     end
                 end
@@ -443,7 +443,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                             encoded_positions_by_type[signal_type] = 2 ^ n
                         end
                     else
-                        if message_level >= 1 then printmsg { 'ltn-message.error-invalid-position-signal', signal_type } end
+                        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-position-signal', signal_type } end
                         log(string.format('Error: signal \"%s\" not found!', signal_type))
                     end
                     local signal_name = string.format('ltn-position-%s', carriages[i].name)
@@ -454,7 +454,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                             encoded_positions_by_name[signal_name] = 2 ^ n
                         end
                     else
-                        if message_level >= 1 then printmsg { 'ltn-message.error-invalid-position-signal', signal_name } end
+                        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-position-signal', signal_name } end
                         log(string.format('Error: signal \"%s\" not found!', signal_name))
                     end
                     n = n + 1

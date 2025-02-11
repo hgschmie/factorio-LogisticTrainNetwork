@@ -6,7 +6,6 @@
 
 require('script.constants')
 require('script.settings')
-require('script.print')
 require('script.alert')
 require('script.hotkey-events') -- requires print
 

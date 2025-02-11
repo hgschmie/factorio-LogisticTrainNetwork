@@ -10,7 +10,7 @@ local tools = require('script.tools')
 ---@param entity LuaEntity
 function CreateStop(entity)
     if storage.LogisticTrainStops[entity.unit_number] then
-        if message_level >= 1 then printmsg({ 'ltn-message.error-duplicated-unit_number', entity.unit_number }, entity.force) end
+        if message_level >= 1 then tools.printmsg({ 'ltn-message.error-duplicated-unit_number', entity.unit_number }, entity.force) end
         if debug_log then log(string.format('(CreateStop) duplicate stop unit number %d', entity.unit_number)) end
 
         return
@@ -48,7 +48,7 @@ function CreateStop(entity)
             { entity.position.x - 0.001,     entity.position.y - 0.001 + 1 - stop_offset }
         }
     else --invalid orientation
-        if message_level >= 1 then printmsg({ 'ltn-message.error-stop-orientation', tostring(entity.direction) }, entity.force) end
+        if message_level >= 1 then tools.printmsg({ 'ltn-message.error-stop-orientation', tostring(entity.direction) }, entity.force) end
         if debug_log then log(string.format('(CreateStop) invalid train stop orientation %d', entity.direction)) end
         entity.destroy()
         return

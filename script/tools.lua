@@ -24,6 +24,28 @@ function Tools.getStoppedTrains()
 end
 
 -----------------------------------------------------------------------
+-- print messages
+-----------------------------------------------------------------------
+
+---@type PrintSettings
+local settings = {
+    sound = defines.print_sound. use_player_settings,
+    skip = defines.print_skip.if_visible,
+}
+
+--- write msg to console for all member of force or all players
+---@param msg LocalisedString
+---@param force LuaForce?
+function Tools.printmsg(msg, force)
+    if force and force.valid then
+        force.print(msg, settings)
+    else
+        game.print(msg, settings)
+    end
+end
+
+
+-----------------------------------------------------------------------
 -- Item Identifier management
 -----------------------------------------------------------------------
 
