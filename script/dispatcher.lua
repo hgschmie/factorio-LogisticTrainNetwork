@@ -66,7 +66,6 @@ function OnTick(event)
                 if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-train-invalid', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }, delivery.force) end
                 if debug_log then log(string.format('(OnTick) Delivery from %s to %s removed. Train no longer valid.', delivery.from, delivery.to)) end
 
-
                 ---@type ltn.EventData.on_delivery_failed
                 local data = {
                     train_id = trainID,
@@ -88,6 +87,7 @@ function OnTick(event)
                     shipment = delivery.shipment
                 }
                 script.raise_event(on_delivery_failed_event, data)
+
                 RemoveDelivery(trainID)
             else
                 activeDeliveryTrains = activeDeliveryTrains .. ' ' .. trainID
@@ -159,7 +159,6 @@ function OnTick(event)
         local stops_data = {
             logistic_train_stops = storage.LogisticTrainStops,
         }
-
         script.raise_event(on_stops_updated_event, stops_data)
 
         ---@type ltn.EventData.on_dispatcher_updated
@@ -171,8 +170,8 @@ function OnTick(event)
             deliveries = dispatcher.Deliveries,
             available_trains = dispatcher.availableTrains,
         }
-
         script.raise_event(on_dispatcher_updated_event, dispatcher_data)
+
     else -- reset
         storage.tick_stop_index = nil
         storage.tick_request_index = nil
@@ -244,12 +243,16 @@ function NewScheduleRecord(map)
     assert(map.condType)
 
     ---@type ScheduleRecord
-    local record = { station = map.stationName, wait_conditions = {} }
+    local record = {
+        station = map.stationName,
+        wait_conditions = {}
+    }
+
     local countOverride = map.countOverride and map.countOverride
 
     if map.condType == 'time' then
         assert(map.ticks)
-        record.wait_conditions[#record.wait_conditions + 1] = { type = map.condType, compare_type = 'and', ticks = map.ticks }
+        table.insert(record.wait_conditions, { type = map.condType, compare_type = 'and', ticks = map.ticks })
     elseif map.condType == 'item_count' then
         assert(map.condComp)
         assert(map.itemList)
@@ -277,35 +280,35 @@ function NewScheduleRecord(map)
                 first_signal = { type = map.itemList[i].type, name = map.itemList[i].name },
                 constant = countOverride or map.itemList[i].count
             }
-            record.wait_conditions[#record.wait_conditions + 1] = { type = condFluid or map.condType, compare_type = 'and', condition = cond }
+            table.insert(record.wait_conditions, { type = condFluid or map.condType, compare_type = 'and', condition = cond })
         end
 
         if waitEmpty then
-            record.wait_conditions[#record.wait_conditions + 1] = condition_wait_empty
+            table.insert(record.wait_conditions, condition_wait_empty)
         elseif finish_loading then -- let inserter/pumps finish
-            record.wait_conditions[#record.wait_conditions + 1] = condition_finish_loading
+            table.insert(record.wait_conditions, condition_finish_loading)
         end
 
         -- with circuit control enabled keep trains waiting until red = 0 and force them out with green ≥ 1
         if schedule_cc then
-            record.wait_conditions[#record.wait_conditions + 1] = condition_circuit_red
-            record.wait_conditions[#record.wait_conditions + 1] = condition_circuit_green
+            table.insert(record.wait_conditions, condition_circuit_red)
+            table.insert(record.wait_conditions, condition_circuit_green)
         end
 
         if stop_timeout > 0 then -- send stuck trains away when stop_timeout is set
-            record.wait_conditions[#record.wait_conditions + 1] = condition_stop_timeout
+            table.insert(record.wait_conditions, condition_stop_timeout)
             -- should it also wait for red = 0?
             if schedule_cc then
-                record.wait_conditions[#record.wait_conditions + 1] = condition_circuit_red
+                table.insert(record.wait_conditions, condition_circuit_red)
             end
         end
     elseif map.condType == 'inactivity' then
         assert(map.ticks)
-        record.wait_conditions[#record.wait_conditions + 1] = { type = map.condType, compare_type = 'and', ticks = map.ticks }
+        table.insert(record.wait_conditions, { type = map.condType, compare_type = 'and', ticks = map.ticks })
         -- with circuit control enabled keep trains waiting until red = 0 and force them out with green ≥ 1
         if schedule_cc then
-            record.wait_conditions[#record.wait_conditions + 1] = condition_circuit_red
-            record.wait_conditions[#record.wait_conditions + 1] = condition_circuit_green
+            table.insert(record.wait_conditions, condition_circuit_red)
+            table.insert(record.wait_conditions, condition_circuit_green)
         end
     end
     return record
@@ -407,7 +410,7 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
                             log(string.format('found %d(%d)/%d %s at %s {%s}, priority: %s, active Deliveries: %d, min_carriages: %d, max_carriages: %d, locked Slots: %d, #surface_connections: %d', count, stop.providing_threshold, req_count, item, stop.entity.backer_name, from_network_id_string, stop.provider_priority, activeDeliveryCount, stop.min_carriages, stop.max_carriages, stop.locked_slots, surface_connections_count))
                         end
 
-                        stations[#stations + 1] = {
+                        table.insert(stations, {
                             entity = stop.entity,
                             network_id = matched_networks,
                             priority = stop.provider_priority,
@@ -421,7 +424,7 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
                             locked_slots = stop.locked_slots,
                             surface_connections = surface_connections,
                             surface_connections_count = surface_connections_count,
-                        }
+                        })
                     end
                 end
             end
@@ -501,12 +504,12 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                 and (min_carriages == 0 or #trainData.train.carriages >= min_carriages) and (max_carriages == 0 or #trainData.train.carriages <= max_carriages) -- train length fits requester and provider limitations
             then
                 local distance = getStationDistance(trainData.train.station, nextStop.entity)
-                filtered_trains[#filtered_trains + 1] = {
+                table.insert(filtered_trains, {
                     train = trainData.train,
                     inventory_size = inventorySize,
                     depot_priority = trainData.depot_priority,
                     provider_distance = distance,
-                }
+                })
             end
         else
             -- remove invalid train from dispatcher availableTrains
@@ -814,31 +817,31 @@ function ProcessRequest(reqIndex, request)
     -- make train go to specific stations by setting a temporary waypoint on the rail the station is connected to
     -- schedules cannot have temporary stops on a different surface, those need to be added when the delivery is updated with a train on a different surface
     if from_rail and from_rail_direction and depot.entity.surface == from_rail.surface then
-        schedule.records[#schedule.records + 1] = NewTempScheduleRecord(from_rail, from_rail_direction)
+        table.insert(schedule.records, NewTempScheduleRecord(from_rail, from_rail_direction))
     else
         if debug_log then log('(ProcessRequest) Warning: creating schedule without temporary stop for provider.') end
     end
 
-    schedule.records[#schedule.records + 1] = NewScheduleRecord {
+    table.insert(schedule.records, NewScheduleRecord {
         stationName = from,
         condType = 'item_count',
         condComp = '≥',
         itemList = loadingList
-    }
+    })
 
     if to_rail and to_rail_direction and depot.entity.surface == to_rail.surface and (from_rail and to_rail.surface == from_rail.surface) then
-        schedule.records[#schedule.records + 1] = NewTempScheduleRecord(to_rail, to_rail_direction)
+        table.insert(schedule.records, NewTempScheduleRecord(to_rail, to_rail_direction))
     else
         if debug_log then log('(ProcessRequest) Warning: creating schedule without temporary stop for requester.') end
     end
 
-    schedule.records[#schedule.records + 1] = NewScheduleRecord {
+    table.insert(schedule.records, NewScheduleRecord {
         stationName = to,
         condType = 'item_count',
         condComp = '=',
         itemList = loadingList,
         countOverride = 0
-    }
+    })
 
     local shipment = {}
     if debug_log then log(string.format('Creating Delivery: %d stacks, %s >> %s', totalStacks, from, to)) end
@@ -875,7 +878,7 @@ function ProcessRequest(reqIndex, request)
         if debug_log then log(string.format('  %s, %d in %d stacks', loadingListItem, loadingList[i].count, loadingList[i].stacks)) end
     end
 
-    dispatcher.new_Deliveries[#dispatcher.new_Deliveries + 1] = selectedTrain.id
+    table.insert(dispatcher.new_Deliveries, selectedTrain.id)
     dispatcher.Deliveries[selectedTrain.id] = {
         force = requestForce,
         train = selectedTrain,
@@ -888,6 +891,7 @@ function ProcessRequest(reqIndex, request)
         surface_connections = providerData.surface_connections,
         shipment = shipment,
     }
+
     dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[selectedTrain.id].capacity
     dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[selectedTrain.id].fluid_capacity
     dispatcher.availableTrains[selectedTrain.id] = nil
