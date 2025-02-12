@@ -172,20 +172,19 @@ function TrainArrives(train)
                         ---@type ltn.Shipment
                         local unscheduled_load = {}
 
-                        for _, item in pairs(train.get_contents()) do
-                            local typed_name = 'item,' .. item.name
-                            if not delivery.shipment[typed_name] then
+                        for _, cargo in pairs(train.get_contents()) do
+                            local item = tools.createItemIdentifierFromItemWithQualityCounts(cargo)
+                            if not delivery.shipment[item] then
                                 requester_unscheduled_cargo = true
-                                unscheduled_load[typed_name] = item.count
+                                unscheduled_load[item] = cargo.count
                             end
                         end
 
-                        local train_fluids = train.get_fluid_contents()
-                        for name, count in pairs(train_fluids) do
-                            local typed_name = 'fluid,' .. name
-                            if not delivery.shipment[typed_name] then
+                        for name, cargo in pairs(train.get_fluid_contents()) do
+                            local item = tools.createItemIdentifierFluidName(name)
+                            if not delivery.shipment[item] then
                                 requester_unscheduled_cargo = true
-                                unscheduled_load[typed_name] = count
+                                unscheduled_load[item] = math.ceil(cargo)
                             end
                         end
 
@@ -225,11 +224,11 @@ function TrainLeaves(trainID)
     local dispatcher = tools.getDispatcher()
     local stopped_trains = tools.getStoppedTrains()
 
-    local stoppedTrain = stopped_trains[trainID] -- checked before every call of TrainLeaves
-    assert(stoppedTrain)
+    local leavingTrain = stopped_trains[trainID] -- checked before every call of TrainLeaves
+    assert(leavingTrain) -- TODO: test this!
 
-    local train = stoppedTrain.train
-    local stopID = stoppedTrain.stopID
+    local train = leavingTrain.train
+    local stopID = leavingTrain.stopID
     local stop = storage.LogisticTrainStops[stopID]
     if not stop then
         if debug_log then log(string.format('(TrainLeaves) Error: StopID [%d] not found in storage.LogisticTrainStops', stopID)) end
@@ -255,11 +254,12 @@ function TrainLeaves(trainID)
             dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainID].fluid_capacity
             dispatcher.availableTrains[trainID] = nil
         end
+
         if stop.error_code == 0 then
             setLamp(stop, 'green', 1)
         end
 
-        if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Depot [%d] \"%s\".', trainID, stoppedTrain.name, stopID, stop.entity.backer_name)) end
+        if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Depot [%d] \"%s\".', trainID, leavingTrain.name, stopID, stop.entity.backer_name)) end
 
         -- train was stopped at LTN stop
     else
@@ -279,46 +279,46 @@ function TrainLeaves(trainID)
                 local provider_unscheduled_cargo = false
                 local provider_missing_cargo = false
 
-                for _, item in pairs(train.get_contents()) do
-                    local typed_name = 'item,' .. item.name
-                    local planned_count = delivery.shipment[typed_name]
+                for _, cargo in pairs(train.get_contents()) do
+                    local item = tools.createItemIdentifierFromItemWithQualityCounts(cargo)
+                    local planned_count = delivery.shipment[item]
                     if planned_count then
-                        actual_load[typed_name] = item.count -- update shipment to actual inventory
-                        if item.count < planned_count then
+                        actual_load[item] = cargo.count -- update shipment to actual inventory
+                        if cargo.count < planned_count then
                             -- underloaded
                             provider_missing_cargo = true
                         end
                     else
                         -- loaded wrong items
-                        unscheduled_load[typed_name] = item.count
                         provider_unscheduled_cargo = true
+                        unscheduled_load[item] = cargo.count
                     end
                 end
 
-                local train_fluids = train.get_fluid_contents()
-                for name, count in pairs(train_fluids) do
-                    local typed_name = 'fluid,' .. name
-                    local planned_count = delivery.shipment[typed_name]
+                for name, cargo in pairs(train.get_fluid_contents()) do
+                    local item = tools.createItemIdentifierFluidName(name)
+                    local planned_count = delivery.shipment[item]
                     if planned_count then
-                        actual_load[typed_name] = count     -- update shipment actual inventory
-                        if planned_count - count > 0.1 then -- prevent lsb errors
+                        actual_load[item] = math.ceil(cargo)  -- update shipment actual inventory
+                        if planned_count - cargo > 0.1 then   -- prevent rounding errors
                             -- underloaded
                             provider_missing_cargo = true
                         end
                     else
                         -- loaded wrong fluids
-                        unscheduled_load[typed_name] = count
                         provider_unscheduled_cargo = true
+                        unscheduled_load[item] = cargo
                     end
                 end
+
                 delivery.pickupDone = true -- remove reservations from this delivery
 
-                if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Provider [%d] \"%s\"; cargo: %s; unscheduled: %s ', trainID, stoppedTrain.name, stopID, stop.entity.backer_name, serpent.line(actual_load), serpent.line(unscheduled_load))) end
+                if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Provider [%d] \"%s\"; cargo: %s; unscheduled: %s ', trainID, leavingTrain.name, stopID, stop.entity.backer_name, serpent.line(actual_load), serpent.line(unscheduled_load))) end
 
                 stopped_trains[trainID] = nil
 
                 if provider_missing_cargo then
-                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_missing_cargo', stoppedTrain.name, stop_name }, stoppedTrain.force)
+                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_missing_cargo', leavingTrain.name, stop_name }, leavingTrain.force)
 
                     ---@type ltn.EventData.provider_missing_cargo
                     local data = {
@@ -330,8 +330,9 @@ function TrainLeaves(trainID)
 
                     script.raise_event(on_provider_missing_cargo_alert, data)
                 end
+
                 if provider_unscheduled_cargo then
-                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_unscheduled_cargo', stoppedTrain.name, stop_name }, stoppedTrain.force)
+                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_unscheduled_cargo', leavingTrain.name, stop_name }, leavingTrain.force)
 
                     ---@type ltn.EventData.unscheduled_cargo
                     local data = {
@@ -353,6 +354,7 @@ function TrainLeaves(trainID)
                 script.raise_event(on_delivery_pickup_complete_event, data)
 
                 delivery.shipment = actual_load
+
             elseif delivery.to_id == stop.entity.unit_number then
                 -- reset schedule before API events
                 if requester_delivery_reset and train.schedule then
@@ -374,25 +376,26 @@ function TrainLeaves(trainID)
 
                 local remaining_load = {}
                 local requester_left_over_cargo = false
-                for _, item in pairs(train.get_contents()) do
+
+                for _, cargo in pairs(train.get_contents()) do
                     -- not fully unloaded
-                    local typed_name = 'item,' .. item.name
+                    local item = tools.createItemIdentifierFromItemWithQualityCounts(cargo)
                     requester_left_over_cargo = true
-                    remaining_load[typed_name] = item.count
-                end
-                local train_fluids = train.get_fluid_contents()
-                for name, count in pairs(train_fluids) do
-                    -- not fully unloaded
-                    local typed_name = 'fluid,' .. name
-                    requester_left_over_cargo = true
-                    remaining_load[typed_name] = count
+                    remaining_load[item] = cargo.count
                 end
 
-                if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Requester [%d] \"%s\" with left over cargo: %s', trainID, stoppedTrain.name, stopID, stop.entity.backer_name, serpent.line(remaining_load))) end
+                for name, cargo in pairs(train.get_fluid_contents()) do
+                    -- not fully unloaded
+                    local item = tools.createItemIdentifierFluidName(name)
+                    requester_left_over_cargo = true
+                    remaining_load[item] = cargo
+                end
+
+                if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Requester [%d] \"%s\" with left over cargo: %s', trainID, leavingTrain.name, stopID, stop.entity.backer_name, serpent.line(remaining_load))) end
 
                 -- signal completed delivery and remove it
                 if requester_left_over_cargo then
-                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_left_over_cargo', stoppedTrain.name, stop_name }, stoppedTrain.force)
+                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_left_over_cargo', leavingTrain.name, stop_name }, leavingTrain.force)
 
                     ---@type ltn.EventData.requester_remaining_cargo
                     local data = {
@@ -410,9 +413,10 @@ function TrainLeaves(trainID)
                     shipment = delivery.shipment
                 }
                 script.raise_event(on_delivery_completed_event, data)
+
                 RemoveDelivery(trainID)
             else
-                if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left LTN-stop [%d] \"%s\".', trainID, stoppedTrain.name, stopID, stop.entity.backer_name)) end
+                if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left LTN-stop [%d] \"%s\".', trainID, leavingTrain.name, stopID, stop.entity.backer_name)) end
             end
         end
         if stop.error_code == 0 then
@@ -427,8 +431,8 @@ function TrainLeaves(trainID)
     -- remove train reference
     stop.parked_train = nil
     stop.parked_train_id = nil
-    -- if message_level >= 3 then tools.printmsg({"ltn-message.train-left", tostring(stoppedTrain.name), stop.entity.backer_name}, stoppedTrain.force) end
-    if message_level >= 3 then tools.printmsg({ 'ltn-message.train-left', tools.richTextForTrain(train, stoppedTrain.name), string.format('[train-stop=%d]', stopID) }, stoppedTrain.force) end
+    -- if message_level >= 3 then tools.printmsg({"ltn-message.train-left", tostring(leavingTrain.name), stop.entity.backer_name}, leavingTrain.force) end
+    if message_level >= 3 then tools.printmsg({ 'ltn-message.train-left', tools.richTextForTrain(train, leavingTrain.name), string.format('[train-stop=%d]', stopID) }, leavingTrain.force) end
 
     UpdateStopOutput(stop)
 
@@ -442,7 +446,7 @@ function OnTrainStateChanged(event)
     local train = event.train
     if train.state == defines.train_state.wait_station and train.station ~= nil and ltn_stop_entity_names[train.station.name] then
         TrainArrives(train)
-    elseif event.old_state == defines.train_state.wait_station and stopped_trains[train.id] then -- update to 0.16
+    elseif event.old_state == defines.train_state.wait_station and stopped_trains[train.id] then
         TrainLeaves(train.id)
     end
 end
@@ -491,6 +495,7 @@ function Update_Delivery(old_train_id, new_train)
     return delivery
 end
 
+---@param event EventData.on_train_created
 function OnTrainCreated(event)
     -- log("(on_train_created) Train name: "..tostring(tools.getTrainName(event.train))..", train.id:"..tostring(event.train.id)..", .old_train_id_1:"..tostring(event.old_train_id_1)..", .old_train_id_2:"..tostring(event.old_train_id_2)..", state: "..tostring(event.train.state))
     -- on_train_created always sets train.state to 9 manual, scripts have to set the train back to its former state.

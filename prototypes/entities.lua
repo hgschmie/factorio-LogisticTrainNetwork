@@ -41,6 +41,7 @@ ltn_stop_out.selection_priority = (ltn_stop_out.selection_priority or 50) + 10 -
 ltn_stop_out.collision_box = { { -0.15, -0.15 }, { 0.15, 0.15 } }
 ltn_stop_out.collision_mask = { layers = { rail = true } }                     -- collide only with rail entities
 ltn_stop_out.item_slot_count = 50
+---@diagnostic disable-next-line: undefined-global
 ltn_stop_out.sprites = make_4way_animation_from_spritesheet
     {
         layers = {

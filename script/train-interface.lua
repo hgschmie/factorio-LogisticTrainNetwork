@@ -4,6 +4,8 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
+local tools = require('script.tools')
+
 
 ---Finds the next logistic stop in the schedule of the given train. Returns nil if the train is not executing a delivery or has no further logistic stops in its schedule.
 ---@param train LuaTrain
@@ -12,6 +14,8 @@
 ---@return integer? id the unit_number of the logistic stop
 ---@return "provider"|"requester"|nil type
 function GetNextLogisticStop(train, schedule_index)
+    local dispatcher = tools.getDispatcher()
+
     if not (train and train.valid) then
         if debug_log then log('(GetNextLogisticStop) train not valid') end
         return
@@ -22,7 +26,7 @@ function GetNextLogisticStop(train, schedule_index)
         return
     end
 
-    local delivery = storage.Dispatcher.Deliveries[train.id]
+    local delivery = dispatcher.Deliveries[train.id]
     if not delivery then
         if debug_log then log(string.format('(GetNextLogisticStop) train [%d] not found in deliveries.', train.id)) end
         return
@@ -38,7 +42,9 @@ function GetNextLogisticStop(train, schedule_index)
     -- Comparing stop names is not enough to find the provider and the requester,
     -- they might share names with each other or another stop in the schedule.
     -- So use a heuristic that also looks at the wait conditions
-    local itype, iname = string.match(item, MATCH_STRING)
+    local identifier = tools.parseItemIdentifier(item)
+    if not identifier then return end
+
     local records = train.schedule.records
 
     local record_index = schedule_index or train.schedule.current or 2 -- defaulting to 1 is pointless because that's the depot
@@ -55,8 +61,12 @@ function GetNextLogisticStop(train, schedule_index)
                 if condition and condition.constant and (wait_condition.type == 'item_count' or wait_condition.type == 'fluid_count') then
                     local signal = condition.first_signal
                     if signal then
-                        signal.type = signal.type or 'item'
-                        return signal.type == itype and signal.name == iname and condition.comparator
+                        local signal_type = signal.type or 'item'
+                        local signal_quality = signal.quality or 'normal'
+                        return (signal_type == identifier.type
+                            and signal.name == identifier.name
+                            and signal_quality == identifier.quality
+                        ) and condition.comparator
                     end
                 end
             end
@@ -130,8 +140,10 @@ end
 ---@param new_train LuaTrain
 ---@return boolean reassigned true if the old train was executing a delivery, false otherwise
 function ReassignDelivery(old_train_id, new_train)
+    local dispatcher = tools.getDispatcher()
+
     -- check if delivery exists for given train id
-    if not (old_train_id and storage.Dispatcher.Deliveries[old_train_id]) then
+    if not (old_train_id and dispatcher.Deliveries[old_train_id]) then
         if debug_log then log(string.format('(ReassignDelivery) train [%d] not found in deliveries.', old_train_id)) end
         return false
     end

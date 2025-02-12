@@ -233,7 +233,7 @@ local condition_finish_loading = { type = 'inactivity', compare_type = 'and', ti
 ---@field stationName string
 ---@field condType WaitConditionType
 ---@field condComp ComparatorString?
----@field itemList ltn.LoadingElement[]?
+---@field itemList ltn.ItemLoadingElement[]?
 ---@field countOverride number?
 ---@field ticks number?
 
@@ -261,7 +261,7 @@ function NewScheduleRecord(map)
         -- write itemlist to conditions
         for i = 1, #map.itemList do
             local condFluid = nil
-            if map.itemList[i].type == 'fluid' then
+            if map.itemList[i].item.type == 'fluid' then
                 condFluid = 'fluid_count'
                 -- workaround for leaving with fluid residue due to Factorio rounding down to 0
                 if map.condComp == '=' and countOverride == 0 then
@@ -277,7 +277,7 @@ function NewScheduleRecord(map)
             ---@type CircuitCondition
             local cond = {
                 comparator = map.condComp,
-                first_signal = { type = map.itemList[i].type, name = map.itemList[i].name },
+                first_signal = map.itemList[i].item,
                 constant = countOverride or map.itemList[i].count
             }
             table.insert(record.wait_conditions, { type = condFluid or map.condType, compare_type = 'and', condition = cond })
@@ -378,6 +378,7 @@ end
 local function getProviders(requestStation, item, req_count, min_length, max_length)
     local dispatcher = tools.getDispatcher()
 
+    ---@type ltn.Provider[]?
     local stations = {}
     local providers = dispatcher.Provided[item] --[[@as table<number, number>? ]]
     if not providers then return nil end
@@ -588,8 +589,8 @@ function ProcessRequest(reqIndex, request)
     end
 
     -- find providers for requested item
-    local itype, iname = string.match(item, MATCH_STRING)
-    if not (itype and iname and (prototypes.item[iname] or prototypes.fluid[iname])) then
+    local item_info = tools.parseItemIdentifier(item)
+    if not item_info then
         if message_level >= 1 then tools.printmsg({ 'ltn-message.error-parse-item', item }, requestForce) end
         if debug_log then log(string.format('(ProcessRequests) could not parse %s', item)) end
 
@@ -597,8 +598,8 @@ function ProcessRequest(reqIndex, request)
     end
 
     local localname
-    if itype == 'fluid' then
-        localname = prototypes.fluid[iname].localised_name
+    if item_info.type == 'fluid' then
+        localname = prototypes.fluid[item_info.name].localised_name
         -- skip if no trains are available
         if (dispatcher.availableTrains_total_fluid_capacity or 0) == 0 then
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-fluid' }, requestForce)
@@ -617,7 +618,7 @@ function ProcessRequest(reqIndex, request)
             return nil
         end
     else
-        localname = prototypes.item[iname].localised_name
+        localname = prototypes.item[item_info.name].localised_name
         -- skip if no trains are available
         if (dispatcher.availableTrains_total_capacity or 0) == 0 then
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-item' }, requestForce)
@@ -642,7 +643,7 @@ function ProcessRequest(reqIndex, request)
     -- get providers ordered by priority
     local providers = getProviders(requestStation, item, count, min_carriages, max_carriages)
     if not providers or #providers < 1 then
-        if requestStation.no_warnings == false and message_level >= 1 then tools.printmsg({ 'ltn-message.no-provider-found', to_gps, '[' .. itype .. '=' .. iname .. ']', to_network_id_string }, requestForce) end
+        if requestStation.no_warnings == false and message_level >= 1 then tools.printmsg({ 'ltn-message.no-provider-found', to_gps, tools.prettyPrint(item_info), to_network_id_string }, requestForce) end
 
         if debug_log then log(string.format('No supply of %s found for Requester %s: surface: %s min length: %s, max length: %s, network-ID: %s', item, to, surface_name, min_carriages, max_carriages, to_network_id_string)) end
 
@@ -660,7 +661,7 @@ function ProcessRequest(reqIndex, request)
     local from_gps = tools.richTextForStop(providerData.entity) or from
     local matched_network_id_string = string.format('0x%x', bit32.band(providerData.network_id))
 
-    if message_level >= 3 then tools.printmsg({ 'ltn-message.provider-found', from_gps, tostring(providerData.priority), tostring(providerData.activeDeliveryCount), providerData.count, '[' .. itype .. '=' .. iname .. ']' }, requestForce) end
+    if message_level >= 3 then tools.printmsg({ 'ltn-message.provider-found', from_gps, tostring(providerData.priority), tostring(providerData.activeDeliveryCount), providerData.count, tools.prettyPrint(item_info) }, requestForce) end
 
     -- limit deliverySize to count at provider
     local deliverySize = count
@@ -669,8 +670,8 @@ function ProcessRequest(reqIndex, request)
     end
 
     local stacks = deliverySize                                              -- for fluids stack = tanker capacity
-    if itype ~= 'fluid' then
-        stacks = math.ceil(deliverySize / prototypes.item[iname].stack_size) -- calculate amount of stacks item count will occupy
+    if item_info.type ~= 'fluid' then
+        stacks = math.ceil(deliverySize / prototypes.item[item_info.name].stack_size) -- calculate amount of stacks item count will occupy
     end
 
     -- max_carriages = shortest set max-train-length
@@ -684,11 +685,10 @@ function ProcessRequest(reqIndex, request)
 
     dispatcher.Requests_by_Stop[toID][item] = nil -- remove before merge so it's not added twice
 
-    ---@type ltn.LoadingElement[]
+    ---@type ltn.ItemLoadingElement[]
     local loadingList = {
         {
-            type = itype,
-            name = iname,
+            item = item_info,
             localname = localname,
             count = deliverySize,
             stacks = stacks
@@ -699,11 +699,11 @@ function ProcessRequest(reqIndex, request)
     if debug_log then log(string.format('created new order %s >> %s: %d %s in %d/%d stacks, min length: %d max length: %d', from, to, deliverySize, item, stacks, totalStacks, min_carriages, max_carriages)) end
 
     -- find possible mergeable items, fluids can't be merged in a sane way
-    if itype ~= 'fluid' then
+    if item_info.type ~= 'fluid' then
         for merge_item, merge_count_req in pairs(dispatcher.Requests_by_Stop[toID]) do
-            local merge_type, merge_name = string.match(merge_item, MATCH_STRING)
-            if merge_type and merge_name and prototypes.item[merge_name] then
-                local merge_localname = prototypes.item[merge_name].localised_name
+            local merge_item_info = tools.parseItemIdentifier(merge_item)
+            if merge_item_info then
+                local merge_localname = prototypes.item[merge_item_info.name].localised_name
                 -- get current provider for requested item
                 if dispatcher.Provided[merge_item] and dispatcher.Provided[merge_item][fromID] then
                     -- set delivery Size and stacks
@@ -712,16 +712,15 @@ function ProcessRequest(reqIndex, request)
                     if merge_count_req > merge_count_prov then
                         merge_deliverySize = merge_count_prov
                     end
-                    local merge_stacks = math.ceil(merge_deliverySize / prototypes.item[merge_name].stack_size) -- calculate amount of stacks item count will occupy
+                    local merge_stacks = math.ceil(merge_deliverySize / prototypes.item[merge_item_info.name].stack_size) -- calculate amount of stacks item count will occupy
 
                     -- add to loading list
                     table.insert(loadingList, {
-                        type = merge_type,
-                        name = merge_name,
+                        item = merge_item_info,
                         localname = merge_localname,
                         count = merge_deliverySize,
                         stacks = merge_stacks
-                    })
+                    } --[[@as ltn.ItemLoadingElement ]])
 
                     totalStacks = totalStacks + merge_stacks
                     -- order.totalStacks = order.totalStacks + merge_stacks
@@ -733,7 +732,7 @@ function ProcessRequest(reqIndex, request)
     end
 
     -- find train
-    local free_trains = getFreeTrains(providerData, min_carriages, max_carriages, itype, totalStacks)
+    local free_trains = getFreeTrains(providerData, min_carriages, max_carriages, item_info.type, totalStacks)
     if not free_trains then
         create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.no-train-found', from, to, matched_network_id_string, tostring(min_carriages), tostring(max_carriages) }, requestForce)
 
@@ -749,7 +748,7 @@ function ProcessRequest(reqIndex, request)
             network_id = requestStation.network_id,
             min_carriages = min_carriages,
             max_carriages = max_carriages,
-            shipment = loadingList,
+            shipment = tools.createLoadingList(loadingList),
         }
 
         script.raise_event(on_dispatcher_no_train_found_event, data)
@@ -767,7 +766,7 @@ function ProcessRequest(reqIndex, request)
     -- recalculate delivery amount to fit in train
     if trainInventorySize < totalStacks then
         -- recalculate partial shipment
-        if itype == 'fluid' then
+        if item_info.type == 'fluid' then
             -- fluids are simple
             loadingList[1].count = trainInventorySize
         else
@@ -777,7 +776,7 @@ function ProcessRequest(reqIndex, request)
                     -- remove stacks until it fits in train
                     loadingList[i].stacks = loadingList[i].stacks - (totalStacks - trainInventorySize)
                     totalStacks = trainInventorySize
-                    local newcount = loadingList[i].stacks * prototypes.item[loadingList[i].name].stack_size
+                    local newcount = loadingList[i].stacks * prototypes.item[loadingList[i].item.name].stack_size
                     loadingList[i].count = math.min(newcount, loadingList[i].count)
                     break
                 else
@@ -792,7 +791,7 @@ function ProcessRequest(reqIndex, request)
     -- create delivery
     if message_level >= 2 then
         if #loadingList == 1 then
-            tools.printmsg({ 'ltn-message.creating-delivery', from_gps, to_gps, loadingList[1].count, '[' .. loadingList[1].type .. '=' .. loadingList[1].name .. ']' }, requestForce)
+            tools.printmsg({ 'ltn-message.creating-delivery', from_gps, to_gps, loadingList[1].count, tools.prettyPrint(loadingList[1].item) }, requestForce)
         else
             tools.printmsg({ 'ltn-message.creating-delivery-merged', from_gps, to_gps, totalStacks }, requestForce)
         end
@@ -846,7 +845,7 @@ function ProcessRequest(reqIndex, request)
     local shipment = {}
     if debug_log then log(string.format('Creating Delivery: %d stacks, %s >> %s', totalStacks, from, to)) end
     for i = 1, #loadingList do
-        local loadingListItem = loadingList[i].type .. ',' .. loadingList[i].name
+        local loadingListItem = tools.createItemIdentifier(loadingList[i].item)
         -- store Delivery
         shipment[loadingListItem] = loadingList[i].count
 
@@ -855,9 +854,9 @@ function ProcessRequest(reqIndex, request)
         local new_provided = dispatcher.Provided[loadingListItem][fromID]
         local new_provided_stacks = 0
         local useProvideStackThreshold = false
-        if loadingList[i].type == 'item' then
-            if prototypes.item[loadingList[i].name] then
-                new_provided_stacks = new_provided / prototypes.item[loadingList[i].name].stack_size
+        if loadingList[i].item.type == 'item' then
+            if prototypes.item[loadingList[i].item.name] then
+                new_provided_stacks = new_provided / prototypes.item[loadingList[i].item.name].stack_size
             end
             useProvideStackThreshold = providerData.providing_threshold_stacks > 0
         end

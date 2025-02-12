@@ -6,7 +6,7 @@ end
 --- returns the string "number1|number2" in consistent order: the smaller number is always placed first
 ---@param number1 number
 ---@param number2 number
----@return ltn.SurfaceConnectionKey
+---@return ltn.EntityPairKey
 local function sorted_pair(number1, number2)
     return (number1 < number2) and (number1 .. '|' .. number2) or (number2 .. '|' .. number1)
 end
@@ -26,6 +26,8 @@ function DisconnectSurfaces(entity1, entity2)
     end
 
     local surface_pair_key = sorted_pair(entity1.surface.index, entity2.surface.index)
+
+    ---@type table<ltn.EntityPairKey, ltn.SurfaceConnection>?
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
 
     if surface_connections then
@@ -62,6 +64,7 @@ function ConnectSurfaces(entity1, entity2, network_id)
     local surface_pair_key = sorted_pair(entity1.surface.index, entity2.surface.index)
 
     storage.ConnectedSurfaces[surface_pair_key] = storage.ConnectedSurfaces[surface_pair_key] or {}
+    ---@type table<ltn.EntityPairKey, ltn.SurfaceConnection>
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
 
     local entity_pair_key = sorted_pair(entity1.unit_number, entity2.unit_number)
@@ -99,9 +102,12 @@ function OnSurfaceRemoved(event)
     local first_surface = '^' .. surfaceID .. '|'
     local second_surface = '|' .. surfaceID .. '$'
 
-    for surface_pair_key, _ in pairs(storage.ConnectedSurfaces) do
+    ---@type table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
+    local connected_surfaces = storage.ConnectedSurfaces
+
+    for surface_pair_key, _ in pairs(connected_surfaces) do
         if string.find(surface_pair_key, first_surface) or string.find(surface_pair_key, second_surface) then
-            storage.ConnectedSurfaces[surface_pair_key] = nil
+            connected_surfaces[surface_pair_key] = nil
         end
     end
 end

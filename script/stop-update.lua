@@ -130,46 +130,47 @@ function UpdateStop(stopID, stop)
     local signals_filtered = {}
 
     for _, v in pairs(signals) do
-        local signal = v.signal
-        signal.type = signal.type or 'item'
-        if signal.name and signal.type then
-            if signal.type ~= 'virtual' then
+        local signal_name = v.signal.name
+        local signal_type = v.signal.type or 'item'
+        if signal_name and signal_type then
+            if signal_type ~= 'virtual' then
                 -- add item and fluid signals to new array
-                signals_filtered[signal] = v.count
-            elseif ControlSignals[signal.name] then
+                signals_filtered[v.signal] = v.count
+            elseif ControlSignals[signal_name] then
                 -- read out control signals
-                if signal.name == ISDEPOT and v.count > 0 then
+                if signal_name == ISDEPOT and v.count > 0 then
                     is_depot = true
-                elseif signal.name == DEPOT_PRIORITY then
+                elseif signal_name == DEPOT_PRIORITY then
                     depot_priority = v.count
-                elseif signal.name == NETWORKID then
+                elseif signal_name == NETWORKID then
                     network_id = v.count
-                elseif signal.name == MINTRAINLENGTH and v.count > 0 then
+                elseif signal_name == MINTRAINLENGTH and v.count > 0 then
                     min_carriages = v.count
-                elseif signal.name == MAXTRAINLENGTH and v.count > 0 then
+                elseif signal_name == MAXTRAINLENGTH and v.count > 0 then
                     max_carriages = v.count
-                elseif signal.name == MAXTRAINS and v.count > 0 then
+                elseif signal_name == MAXTRAINS and v.count > 0 then
                     max_trains = v.count
-                elseif signal.name == REQUESTED_THRESHOLD then
+                elseif signal_name == REQUESTED_THRESHOLD then
                     requesting_threshold = math.abs(v.count)
-                elseif signal.name == REQUESTED_STACK_THRESHOLD then
+                elseif signal_name == REQUESTED_STACK_THRESHOLD then
                     requesting_threshold_stacks = math.abs(v.count)
-                elseif signal.name == REQUESTED_PRIORITY then
+                elseif signal_name == REQUESTED_PRIORITY then
                     requester_priority = v.count
-                elseif signal.name == NOWARN and v.count > 0 then
+                elseif signal_name == NOWARN and v.count > 0 then
                     no_warnings = true
-                elseif signal.name == PROVIDED_THRESHOLD then
+                elseif signal_name == PROVIDED_THRESHOLD then
                     providing_threshold = math.abs(v.count)
-                elseif signal.name == PROVIDED_STACK_THRESHOLD then
+                elseif signal_name == PROVIDED_STACK_THRESHOLD then
                     providing_threshold_stacks = math.abs(v.count)
-                elseif signal.name == PROVIDED_PRIORITY then
+                elseif signal_name == PROVIDED_PRIORITY then
                     provider_priority = v.count
-                elseif signal.name == LOCKEDSLOTS and v.count > 0 then
+                elseif signal_name == LOCKEDSLOTS and v.count > 0 then
                     locked_slots = v.count
                 end
             end
         end
     end
+
     local network_id_string = string.format('0x%x', bit32.band(network_id))
 
     --update lamp colors when error_code or is_depot changed state
@@ -233,7 +234,7 @@ function UpdateStop(stopID, stop)
         end
 
         for signal, count in pairs(signals_filtered) do
-            local signal_type = signal.type
+            local signal_type = signal.type or 'item'
             local signal_name = signal.name
             local item = tools.createItemIdentifier(signal)
 
@@ -334,10 +335,7 @@ function UpdateStop(stopID, stop)
                 dispatcher.Requests_by_Stop[stopID] = dispatcher.Requests_by_Stop[stopID] or {}
                 dispatcher.Requests_by_Stop[stopID][item] = count
                 if debug_log then
-                    local trainsEnRoute = '';
-                    for k, v in pairs(stop.active_deliveries) do
-                        trainsEnRoute = trainsEnRoute .. ' ' .. v
-                    end
+                    local trainsEnRoute = table.concat(stop.active_deliveries, ', ');
                     log(string.format('(UpdateStop) %s {%s} requests %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, age: %d/%d, trains en route: %s', stop.entity.backer_name, network_id_string, item, count, requesting_threshold, stack_count * -1, requesting_threshold_stacks, requester_priority, min_carriages, max_carriages, dispatcher.RequestAge[ageIndex], game.tick, trainsEnRoute))
                 end
             end
@@ -400,12 +398,19 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
         local encoded_positions_by_name = {}
         local encoded_positions_by_type = {}
 
-        local train_contents = {}
-        for _, item in pairs(trainStop.parked_train.get_contents()) do
-            train_contents[item.name] = item
+        ---@type table<string, ItemWithQualityCounts>
+        local inventory = {}
+        ---@type table<string, number>
+        local fluidInventory = {}
+
+        if not (ignore_existing_cargo) then
+            for _, item in pairs(trainStop.parked_train.get_contents()) do
+                inventory[item.name] = item
+            end
+            for name, amount in pairs(trainStop.parked_train.get_fluid_contents()) do
+                fluidInventory[name] = math.floor(amount)
+            end
         end
-        local inventory = not (ignore_existing_cargo) and train_contents or {}
-        local fluidInventory = not (ignore_existing_cargo) and trainStop.parked_train.get_fluid_contents() or {}
 
         if #carriages < 32 then                       --prevent circuit network integer overflow error
             if trainStop.parked_train_faces_stop then --train faces forwards >> iterate normal
@@ -484,7 +489,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                                 --train expects to be loaded to x of this item
                                 inventory[c.condition.first_signal.name] = inventory[c.condition.first_signal.name] or {
                                     name = c.condition.first_signal.name,
-                                    quality = 'normal'
+                                    quality = c.condition.first_signal.quality or 'normal',
                                 }
                                 inventory[c.condition.first_signal.name].count = c.condition.constant
                             end

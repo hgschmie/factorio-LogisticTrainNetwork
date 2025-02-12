@@ -29,7 +29,7 @@ end
 
 ---@type PrintSettings
 local settings = {
-    sound = defines.print_sound. use_player_settings,
+    sound = defines.print_sound.use_player_settings,
     skip = defines.print_skip.if_visible,
 }
 
@@ -44,33 +44,90 @@ function Tools.printmsg(msg, force)
     end
 end
 
-
 -----------------------------------------------------------------------
 -- Item Identifier management
 -----------------------------------------------------------------------
 
---- Convert a Signal into a typed item string
+--- Convert a Signal into a typed item string. If the quality is 'normal',
+--- omit quality information
 ---@param signal SignalID
 ---@return ltn.ItemIdentifier
 function Tools.createItemIdentifier(signal)
     assert(signal)
-    return (signal.type or 'item')
-        .. ',' .. signal.name
-    -- .. ',' .. (signal.quality or 'normal')
+    return table.concat({
+        signal.type or 'item',
+        signal.name,
+        signal.quality and signal.quality ~= 'normal' and signal.quality or nil
+    }, ',')
+end
+
+--- Convert a ItemWithQualityCounts into a typed item string
+---@param item ItemWithQualityCounts
+---@return ltn.ItemIdentifier
+function Tools.createItemIdentifierFromItemWithQualityCounts(item)
+    assert(item)
+    return Tools.createItemIdentifier {
+        type = 'item',
+        name = item.name,
+        quality = item.quality
+    }
+end
+
+--- Convert a fluid name into a typed item string
+---@param fluid_name string
+---@return ltn.ItemIdentifier
+function Tools.createItemIdentifierFluidName(fluid_name)
+    assert(fluid_name)
+    return Tools.createItemIdentifier {
+        type = 'fluid',
+        name = fluid_name,
+    }
 end
 
 ---@param identifier ltn.ItemIdentifier
----@return SignalID Guaranteed to have all fields filled.
+---@return SignalID? Guaranteed to have all fields filled.
 function Tools.parseItemIdentifier(identifier)
-    assert(identifier)
+    if not identifier then return nil end
     local type, name, quality = identifier:match('^([^,]+),([^,]+),?([^,]*)')
-    assert(#name > 0)
+
+    if not name or #name == 0 then return nil end
+    if not (prototypes.item[name] or prototypes.fluid[name]) then return nil end
 
     return {
         type = type or 'item',
         name = name,
-        quality = quality or 'normal',
+        quality = (quality and #quality > 0) and quality or 'normal',
     }
+end
+
+---@param item_info SignalID
+---@return string result
+function Tools.prettyPrint(item_info)
+    if item_info.type == 'item' then
+        return string.format('[item=%s,quality=%s]', item_info.name, item_info.quality)
+    else
+        return string.format('[fluid=%s]', item_info.name, item_info.quality)
+    end
+end
+
+--- Create backwards compatible loading list for API use.
+---@param loadingList ltn.ItemLoadingElement[]
+---@return ltn.LoadingList
+function Tools.createLoadingList(loadingList)
+    ---@type ltn.ItemLoadingElement[]
+    local result = {}
+
+    for _, element in pairs(loadingList) do
+        table.insert(result, {
+            name = element.item.name,
+            type = element.item.type,
+            quality = element.item.quality,
+            count = element.count,
+            localname = element.localname,
+            stacks = element.stacks,
+        })
+    end
+    return result
 end
 
 -----------------------------------------------------------------------
