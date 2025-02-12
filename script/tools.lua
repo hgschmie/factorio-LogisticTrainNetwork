@@ -162,20 +162,34 @@ function Tools.getDistance(pos1, pos2)
     return math.sqrt((x1 - x2) ^ 2 + (y1 - y2) ^ 2)
 end
 
----@param entity LuaEntity
----@return number
-function Tools.getCargoWagonCapacity(entity)
-    local capacity = entity.prototype.get_inventory_size(defines.inventory.cargo_wagon) or 0
-    storage.WagonCapacity[entity.name] = capacity
+---@param wagon LuaEntity
+---@param cap_function fun(): number?
+local function get_wagon_capacity(wagon, cap_function)
+    local name = wagon.name
+    local quality = wagon.quality.name
+    storage.WagonCapacity[name] = storage.WagonCapacity[name] or {}
+    local capacity = storage.WagonCapacity[name][quality] or cap_function() or 0
+
+    storage.WagonCapacity[name][quality] = capacity
+
     return capacity
 end
 
----@param entity LuaEntity
+---@param wagon LuaEntity
 ---@return number
-function Tools.getFluidWagonCapacity(entity)
-    local capacity = entity.prototype.fluid_capacity
-    storage.WagonCapacity[entity.name] = capacity
-    return capacity
+function Tools.getCargoWagonCapacity(wagon)
+    return get_wagon_capacity(wagon, function()
+        return wagon.prototype.get_inventory_size(defines.inventory.cargo_wagon, wagon.quality)
+    end)
+end
+
+---@param wagon LuaEntity
+---@return number
+function Tools.getFluidWagonCapacity(wagon)
+    return get_wagon_capacity(wagon, function()
+        local capacity = wagon.prototype.fluid_capacity
+        return math.floor(capacity * (1 + 0.3 * wagon.quality.level))
+    end)
 end
 
 -- returns inventory and fluid capacity of a given train
@@ -187,11 +201,11 @@ function Tools.getTrainCapacity(train)
     local fluidCapacity = 0
     if train and train.valid then
         for _, wagon in pairs(train.cargo_wagons) do
-            local capacity = storage.WagonCapacity[wagon.name] or Tools.getCargoWagonCapacity(wagon)
+            local capacity = Tools.getCargoWagonCapacity(wagon)
             inventorySize = inventorySize + capacity
         end
         for _, wagon in pairs(train.fluid_wagons) do
-            local capacity = storage.WagonCapacity[wagon.name] or Tools.getFluidWagonCapacity(wagon)
+            local capacity = Tools.getFluidWagonCapacity(wagon)
             fluidCapacity = fluidCapacity + capacity
         end
     end
