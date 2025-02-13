@@ -35,7 +35,7 @@ The recommended way to parse these attributes was using the following lua regula
 local identifier = 'item,advanced-circuit,epic'
 
 local type, name, quality = identifier:match('^([^,]+),([^,]+),?([^,]*)')
-quality = quality or 'normal'
+quality = (quality and #quality > 0) and quality or 'normal'
 ```
 
 #### Event changes
