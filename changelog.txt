@@ -3,6 +3,7 @@ Version: 2.1.1
 Date: ????
   Changes:
     - support quality for cargo/fluid wagons (they might have larger inventories).
+    - harden the signal processing to only allow item/fluid signals.
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.0
 Date: 2025-02-12

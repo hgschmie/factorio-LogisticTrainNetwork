@@ -6,6 +6,24 @@
 
 local tools = require('script.tools')
 
+---@type table<string, fun(signal: Signal, state: ltn.SignalState)>
+local ltn_signals = {
+    [ISDEPOT] = function(signal, state) if signal.count > 0 then state.is_depot = true end end,
+    [DEPOT_PRIORITY] = function(signal, state)  state.depot_priority = signal.count end,
+    [NETWORKID] = function(signal, state) state.network_id = signal.count end,
+    [MINTRAINLENGTH] = function(signal, state) if signal.count > 0 then state.min_carriages = signal.count end end,
+    [MAXTRAINLENGTH] = function(signal, state) if signal.count > 0 then state.max_carriages = signal.count end end,
+    [MAXTRAINS] = function(signal, state) if signal.count then state.max_trains = signal.count end end,
+    [REQUESTED_THRESHOLD] = function(signal, state) state.requesting_threshold = math.abs(signal.count) end,
+    [REQUESTED_STACK_THRESHOLD] = function(signal, state) state.requesting_threshold_stacks = math.abs(signal.count) end,
+    [REQUESTED_PRIORITY] = function(signal, state) state.requester_priority = signal.count end ,
+    [NOWARN] = function(signal, state) if signal.count > 0 then state.no_warnings = true end end,
+    [PROVIDED_THRESHOLD] = function(signal, state) state.providing_threshold = math.abs(signal.count) end,
+    [PROVIDED_STACK_THRESHOLD] = function(signal, state) state.providing_threshold_stacks = math.abs(signal.count) end,
+    [PROVIDED_PRIORITY] = function(signal, state) state.provider_priority = signal.count end,
+    [LOCKEDSLOTS] = function(signal, state) if signal.count > 0 then state.locked_slots = signal.count end end,
+}
+
 --- return true if stop, output, lamp are on same logic network
 ---@param checkStop ltn.TrainStop
 ---@return boolean True if short circuit detected
@@ -108,20 +126,23 @@ function UpdateStop(stopID, stop)
     end
 
     -- initialize control signal values to defaults
-    local is_depot = false
-    local depot_priority = 0
-    local network_id = default_network
-    local min_carriages = 0
-    local max_carriages = 0
-    local max_trains = 0
-    local requesting_threshold = min_requested
-    local requesting_threshold_stacks = 0
-    local requester_priority = 0
-    local no_warnings = false
-    local providing_threshold = min_provided
-    local providing_threshold_stacks = 0
-    local provider_priority = 0
-    local locked_slots = 0
+    ---@type ltn.SignalState
+    local ltn_state = {
+        is_depot = false,
+        depot_priority = 0,
+        network_id = default_network,
+        min_carriages = 0,
+        max_carriages = 0,
+        max_trains = 0,
+        requesting_threshold = min_requested,
+        requesting_threshold_stacks = 0,
+        requester_priority = 0,
+        no_warnings = false,
+        providing_threshold = min_provided,
+        providing_threshold_stacks = 0,
+        provider_priority = 0,
+        locked_slots = 0,
+    }
 
     local signals = stop.input.get_signals(defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
     if not signals then return end -- either lamp and lampctrl are not connected or lampctrl has no output signal
@@ -132,51 +153,19 @@ function UpdateStop(stopID, stop)
     for _, v in pairs(signals) do
         local signal_name = v.signal.name
         local signal_type = v.signal.type or 'item'
-        if signal_name and signal_type then
-            if signal_type ~= 'virtual' then
-                -- add item and fluid signals to new array
-                signals_filtered[v.signal] = v.count
-            elseif ControlSignals[signal_name] then
-                -- read out control signals
-                if signal_name == ISDEPOT and v.count > 0 then
-                    is_depot = true
-                elseif signal_name == DEPOT_PRIORITY then
-                    depot_priority = v.count
-                elseif signal_name == NETWORKID then
-                    network_id = v.count
-                elseif signal_name == MINTRAINLENGTH and v.count > 0 then
-                    min_carriages = v.count
-                elseif signal_name == MAXTRAINLENGTH and v.count > 0 then
-                    max_carriages = v.count
-                elseif signal_name == MAXTRAINS and v.count > 0 then
-                    max_trains = v.count
-                elseif signal_name == REQUESTED_THRESHOLD then
-                    requesting_threshold = math.abs(v.count)
-                elseif signal_name == REQUESTED_STACK_THRESHOLD then
-                    requesting_threshold_stacks = math.abs(v.count)
-                elseif signal_name == REQUESTED_PRIORITY then
-                    requester_priority = v.count
-                elseif signal_name == NOWARN and v.count > 0 then
-                    no_warnings = true
-                elseif signal_name == PROVIDED_THRESHOLD then
-                    providing_threshold = math.abs(v.count)
-                elseif signal_name == PROVIDED_STACK_THRESHOLD then
-                    providing_threshold_stacks = math.abs(v.count)
-                elseif signal_name == PROVIDED_PRIORITY then
-                    provider_priority = v.count
-                elseif signal_name == LOCKEDSLOTS and v.count > 0 then
-                    locked_slots = v.count
-                end
-            end
+        if signal_type == 'virtual' and ltn_signals[signal_name] then
+            ltn_signals[signal_name](v, ltn_state)
+        elseif (signal_type == 'item' or signal_type == 'fluid') then
+            signals_filtered[v.signal] = v.count
         end
     end
 
-    local network_id_string = string.format('0x%x', bit32.band(network_id))
+    local network_id_string = string.format('0x%x', bit32.band(ltn_state.network_id))
 
     --update lamp colors when error_code or is_depot changed state
-    if stop.error_code ~= 0 or stop.is_depot ~= is_depot then
+    if stop.error_code ~= 0 or stop.is_depot ~= ltn_state.is_depot then
         stop.error_code = 0 -- we are error free here
-        if is_depot then
+        if ltn_state.is_depot then
             if stop.parked_train_id and stop.parked_train.valid then
                 if dispatcher.Deliveries[stop.parked_train_id] then
                     setLamp(stop, 'yellow', 1)
@@ -200,16 +189,16 @@ function UpdateStop(stopID, stop)
     end
 
     -- check if it's a depot
-    if is_depot then
+    if ltn_state.is_depot then
         stop.is_depot = true
-        stop.depot_priority = depot_priority
-        stop.network_id = network_id
+        stop.depot_priority = ltn_state.depot_priority
+        stop.network_id = ltn_state.network_id
 
         -- add parked train to available trains
         if stop.parked_train_id and stop.parked_train.valid then
             if dispatcher.Deliveries[stop.parked_train_id] then
 
-                if debug_log then log(string.format('(UpdateStop) %s {%s}, depot priority: %d, assigned train.id: %d', stop.entity.backer_name, network_id_string, depot_priority, stop.parked_train_id)) end
+                if debug_log then log(string.format('(UpdateStop) %s {%s}, depot priority: %d, assigned train.id: %d', stop.entity.backer_name, network_id_string, ltn_state.depot_priority, stop.parked_train_id)) end
 
             else
                 if not dispatcher.availableTrains[stop.parked_train_id] then
@@ -217,13 +206,13 @@ function UpdateStop(stopID, stop)
                     TrainArrives(stop.parked_train)
                 else
                     -- update properties from depot
-                    dispatcher.availableTrains[stop.parked_train_id].network_id = network_id
-                    dispatcher.availableTrains[stop.parked_train_id].depot_priority = depot_priority
+                    dispatcher.availableTrains[stop.parked_train_id].network_id = ltn_state.network_id
+                    dispatcher.availableTrains[stop.parked_train_id].depot_priority = ltn_state.depot_priority
                 end
-                if debug_log then log(string.format('(UpdateStop) %s {%s}, depot priority: %d, available train.id: %d', stop.entity.backer_name, network_id_string, depot_priority, stop.parked_train_id)) end
+                if debug_log then log(string.format('(UpdateStop) %s {%s}, depot priority: %d, available train.id: %d', stop.entity.backer_name, network_id_string, ltn_state.depot_priority, stop.parked_train_id)) end
             end
         else
-            if debug_log then log(string.format('(UpdateStop) %s {%s}, depot priority: %d, no available train', stop.entity.backer_name, network_id_string, depot_priority)) end
+            if debug_log then log(string.format('(UpdateStop) %s {%s}, depot priority: %d, no available train', stop.entity.backer_name, network_id_string, ltn_state.depot_priority)) end
         end
 
         -- not a depot > check if the name is unique
@@ -294,8 +283,9 @@ function UpdateStop(stopID, stop)
             local stack_count = 0
 
             if signal_type == 'item' then
-                useProvideStackThreshold = providing_threshold_stacks > 0
-                useRequestStackThreshold = requesting_threshold_stacks > 0
+                useProvideStackThreshold = ltn_state.providing_threshold_stacks > 0
+                useRequestStackThreshold = ltn_state.requesting_threshold_stacks > 0
+                assert(prototypes.item[signal_name], 'item prototype undefined!', signal_name)
                 if prototypes.item[signal_name] then
                     stack_count = count / prototypes.item[signal_name].stack_size
                 end
@@ -304,8 +294,8 @@ function UpdateStop(stopID, stop)
             -- update Dispatcher Storage
             -- Providers are used when above Provider Threshold
             -- Requests are handled when above Requester Threshold
-            if (useProvideStackThreshold and stack_count >= providing_threshold_stacks) or
-                (not useProvideStackThreshold and count >= providing_threshold) then
+            if (useProvideStackThreshold and stack_count >= ltn_state.providing_threshold_stacks) or
+                (not useProvideStackThreshold and count >= ltn_state.providing_threshold) then
                 dispatcher.Provided[item] = dispatcher.Provided[item] or {}
                 dispatcher.Provided[item][stopID] = count
                 dispatcher.Provided_by_Stop[stopID] = dispatcher.Provided_by_Stop[stopID] or {}
@@ -316,18 +306,18 @@ function UpdateStop(stopID, stop)
                         trainsEnRoute = trainsEnRoute .. ' ' .. v
                     end
 
-                    log(string.format('(UpdateStop) %s {%s} provides %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, trains en route: %s', stop.entity.backer_name, network_id_string, item, count, providing_threshold, stack_count, providing_threshold_stacks, provider_priority, min_carriages, max_carriages, trainsEnRoute))
+                    log(string.format('(UpdateStop) %s {%s} provides %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, trains en route: %s', stop.entity.backer_name, network_id_string, item, count, ltn_state.providing_threshold, stack_count, ltn_state.providing_threshold_stacks, ltn_state.provider_priority, ltn_state.min_carriages, ltn_state.max_carriages, trainsEnRoute))
 
                 end
-            elseif (useRequestStackThreshold and stack_count * -1 >= requesting_threshold_stacks) or
-                (not useRequestStackThreshold and count * -1 >= requesting_threshold) then
+            elseif (useRequestStackThreshold and stack_count * -1 >= ltn_state.requesting_threshold_stacks) or
+                (not useRequestStackThreshold and count * -1 >= ltn_state.requesting_threshold) then
                 count = count * -1
                 local ageIndex = item .. ',' .. stopID
                 dispatcher.RequestAge[ageIndex] = dispatcher.RequestAge[ageIndex] or game.tick
                 table.insert(dispatcher.Requests, {
                     age = dispatcher.RequestAge[ageIndex],
                     stopID = stopID,
-                    priority = requester_priority,
+                    priority = ltn_state.requester_priority,
                     item = item,
                     count = count
                 })
@@ -336,23 +326,23 @@ function UpdateStop(stopID, stop)
                 dispatcher.Requests_by_Stop[stopID][item] = count
                 if debug_log then
                     local trainsEnRoute = table.concat(stop.active_deliveries, ', ');
-                    log(string.format('(UpdateStop) %s {%s} requests %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, age: %d/%d, trains en route: %s', stop.entity.backer_name, network_id_string, item, count, requesting_threshold, stack_count * -1, requesting_threshold_stacks, requester_priority, min_carriages, max_carriages, dispatcher.RequestAge[ageIndex], game.tick, trainsEnRoute))
+                    log(string.format('(UpdateStop) %s {%s} requests %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, age: %d/%d, trains en route: %s', stop.entity.backer_name, network_id_string, item, count, ltn_state.requesting_threshold, stack_count * -1, ltn_state.requesting_threshold_stacks, ltn_state.requester_priority, ltn_state.min_carriages, ltn_state.max_carriages, dispatcher.RequestAge[ageIndex], game.tick, trainsEnRoute))
                 end
             end
         end -- for circuitValues
 
-        stop.network_id = network_id
-        stop.providing_threshold = providing_threshold
-        stop.providing_threshold_stacks = providing_threshold_stacks
-        stop.provider_priority = provider_priority
-        stop.requesting_threshold = requesting_threshold
-        stop.requesting_threshold_stacks = requesting_threshold_stacks
-        stop.requester_priority = requester_priority
-        stop.min_carriages = min_carriages
-        stop.max_carriages = max_carriages
-        stop.max_trains = max_trains
-        stop.locked_slots = locked_slots
-        stop.no_warnings = no_warnings
+        stop.network_id = ltn_state.network_id
+        stop.providing_threshold = ltn_state.providing_threshold
+        stop.providing_threshold_stacks = ltn_state.providing_threshold_stacks
+        stop.provider_priority = ltn_state.provider_priority
+        stop.requesting_threshold = ltn_state.requesting_threshold
+        stop.requesting_threshold_stacks = ltn_state.requesting_threshold_stacks
+        stop.requester_priority = ltn_state.requester_priority
+        stop.min_carriages = ltn_state.min_carriages
+        stop.max_carriages = ltn_state.max_carriages
+        stop.max_trains = ltn_state.max_trains
+        stop.locked_slots = ltn_state.locked_slots
+        stop.no_warnings = ltn_state.no_warnings
     end
 end
 

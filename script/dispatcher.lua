@@ -599,6 +599,7 @@ function ProcessRequest(reqIndex, request)
 
     local localname
     if item_info.type == 'fluid' then
+        assert(prototypes.fluid[item_info.name], 'fluid prototype undefined!', item_info)
         localname = prototypes.fluid[item_info.name].localised_name
         -- skip if no trains are available
         if (dispatcher.availableTrains_total_fluid_capacity or 0) == 0 then
@@ -618,6 +619,7 @@ function ProcessRequest(reqIndex, request)
             return nil
         end
     else
+        assert(prototypes.item[item_info.name], 'item prototype undefined!', item_info)
         localname = prototypes.item[item_info.name].localised_name
         -- skip if no trains are available
         if (dispatcher.availableTrains_total_capacity or 0) == 0 then
@@ -670,7 +672,8 @@ function ProcessRequest(reqIndex, request)
     end
 
     local stacks = deliverySize                                              -- for fluids stack = tanker capacity
-    if item_info.type ~= 'fluid' then
+    if item_info.type == 'item' then
+        assert(prototypes.item[item_info.name], 'item prototype undefined!', item_info)
         stacks = math.ceil(deliverySize / prototypes.item[item_info.name].stack_size) -- calculate amount of stacks item count will occupy
     end
 
@@ -699,10 +702,11 @@ function ProcessRequest(reqIndex, request)
     if debug_log then log(string.format('created new order %s >> %s: %d %s in %d/%d stacks, min length: %d max length: %d', from, to, deliverySize, item, stacks, totalStacks, min_carriages, max_carriages)) end
 
     -- find possible mergeable items, fluids can't be merged in a sane way
-    if item_info.type ~= 'fluid' then
+    if item_info.type == 'item' then
         for merge_item, merge_count_req in pairs(dispatcher.Requests_by_Stop[toID]) do
             local merge_item_info = tools.parseItemIdentifier(merge_item)
             if merge_item_info then
+                assert(prototypes.item[merge_item_info.name], 'item prototype undefined!', merge_item_info)
                 local merge_localname = prototypes.item[merge_item_info.name].localised_name
                 -- get current provider for requested item
                 if dispatcher.Provided[merge_item] and dispatcher.Provided[merge_item][fromID] then

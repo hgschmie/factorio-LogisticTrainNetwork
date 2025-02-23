@@ -160,6 +160,22 @@
 ---@field count     number  number of elements
 ---@field stacks    number  stack size for items
 
+---@class ltn.SignalState
+---@field is_depot boolean
+---@field depot_priority number
+---@field network_id number
+---@field min_carriages number
+---@field max_carriages number
+---@field max_trains number
+---@field requesting_threshold number
+---@field requesting_threshold_stacks number
+---@field requester_priority number
+---@field no_warnings boolean
+---@field providing_threshold number
+---@field providing_threshold_stacks number
+---@field provider_priority number
+---@field locked_slots number
+
 ---------------------------------------------------------
 --- Event payloads
 ---------------------------------------------------------
