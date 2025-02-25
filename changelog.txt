@@ -6,7 +6,7 @@ Date: ????
 Version: 2.1.2
 Date: 2025-02-25
   Changes:
-    - enforce that only items can be put into a merged delivery
+    - enforce that only items can be put into a merged delivery (Same as #9 by @abrenneke, thanks for the PR!)
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.1
 Date: 2025-02-23
