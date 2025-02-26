@@ -777,7 +777,7 @@ function ProcessRequest(reqIndex, request)
             -- items need a bit more math
             for i = #loadingList, 1, -1 do
                 if totalStacks - loadingList[i].stacks < trainInventorySize then
-                    assert(prototypes.item[loadingList[i].item.type])
+                    assert(prototypes.item[loadingList[i].item.name])
                     -- remove stacks until it fits in train
                     loadingList[i].stacks = loadingList[i].stacks - (totalStacks - trainInventorySize)
                     totalStacks = trainInventorySize
