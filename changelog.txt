@@ -3,6 +3,12 @@ Version: 2.1.3
 Date: ????
   Bugfixes:
     - fix typo in dispatcher that caused crashes when recomputing shipmends because of too many stacks
+  Changes:
+    - changed default network value from -1 ("all networks") to 0 ("no networks"). This affects any station
+      that has no explicit network id signal connected. Rationale for that change is that before this release,
+      turning off a connected combinator (LTN or constant combinator) will activate the station for all 
+      networks instead of turning it off. If your setup relies on the default signal being "-1", set it 
+      explicitly in the LTN settings.
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.2
 Date: 2025-02-25

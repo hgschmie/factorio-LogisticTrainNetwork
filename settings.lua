@@ -154,7 +154,7 @@ data:extend {
         name = 'ltn-stop-default-network',
         order = 'ea',
         setting_type = 'runtime-global',
-        default_value = -1, -- any
+        default_value = 0, -- none
     },
     {
         type = 'bool-setting',
