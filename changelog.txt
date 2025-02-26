@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.2.0
-Date: ????
+Date: 2025-02-26
   Bugfixes:
     - fix typo in dispatcher that caused crashes when recomputing shipmends because of too many stacks
   Changes:
