@@ -233,10 +233,13 @@ function UpdateStop(stopID, stop)
                     if stop.parked_train and stop.parked_train_id == trainID then
                         -- calculate items +- train inventory
                         local traincount = 0
-                        if signal_type == 'fluid' then
-                            traincount = math.floor(stop.parked_train.get_fluid_count(signal_name))
-                        else
-                            traincount = stop.parked_train.get_item_count(signal_name)
+
+                        if not requester_ignores_trains then
+                            if signal_type == 'fluid' then
+                                traincount = math.floor(stop.parked_train.get_fluid_count(signal_name))
+                            else
+                                traincount = stop.parked_train.get_item_count(signal_name)
+                            end
                         end
 
                         if delivery.to_id == stop.entity.unit_number then

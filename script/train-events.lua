@@ -80,22 +80,11 @@ function TrainArrives(train)
                 local train_items = train.get_contents()
                 local train_fluids = train.get_fluid_contents()
                 if table_size(train_fluids) > 0 and depot_fluid_cleaning > 0 then
-                    -- cleaning per wagon
-                    for i, wagon in pairs(train.fluid_wagons) do
-                        for fluid, count in pairs(wagon.get_fluid_contents()) do
-                            if count <= depot_fluid_cleaning then
-                                local removed = wagon.remove_fluid { name = fluid, amount = count }
-                                if debug_log then log(string.format('(TrainArrives) Train \"%s\"[%d]: Depot fluid removal %s %f/%f', trainName, i, fluid, removed, count)) end
-                            end
-                        end
+                    for fluid, count in pairs(train_fluids) do
+                        local cleaning_amount = math.ceil(math.min(count, depot_fluid_cleaning))
+                        local removed = math.ceil(train.remove_fluid({name=fluid, amount=cleaning_amount}))
+                        if debug_log then log(string.format('(TrainArrives) Train \"%s\": Depot fluid removal %s %f/%f', trainName, fluid, removed, count)) end
                     end
-                    -- cleaning whole train doesn't work in 1.1.26
-                    -- for fluid, count in pairs(train_fluids) do
-                    --   if count <= depot_fluid_cleaning then
-                    --     local removed = train.remove_fluid({name=fluid, amount=count})
-                    --     log(string.format("Train %s: removed %s %f/%f", trainName, fluid, removed, count))
-                    --   end
-                    -- end
                     train_fluids = train.get_fluid_contents()
                 end
 

@@ -12,6 +12,7 @@ The most common request for LTN is "please support Factorio 2.0 train interrupts
 
 ### API
 
+[LTN Settings Documentation](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/SETTINGS.md)
 [LTN API Documentation](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/API.md)
 
 Starting with version 2.1.0, LTN supports quality for requester and provider signals. To support this, there are a few _minimal_, _backwards compatible_ API changes. If you maintain a mod that uses the LTN remote API, the changes are documented [LTN API Documentation](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/API.md#changelog)

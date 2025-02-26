@@ -39,15 +39,6 @@ data:extend {
         allowed_values = { '0', '1', '2', '3' }
     },
     {
-        type = 'int-setting',
-        name = 'ltn-interface-message-filter-age',
-        order = 'ae',
-        setting_type = 'runtime-global',
-        default_value = 18000,
-        minimum_value = 0,
-        maximum_value = 2147483647, -- prevent 32bit signed overflow
-    },
-    {
         type = 'bool-setting',
         name = 'ltn-interface-message-gps',
         order = 'af',
@@ -160,6 +151,13 @@ data:extend {
         type = 'bool-setting',
         name = 'ltn-provider-show-existing-cargo',
         order = 'eb',
+        setting_type = 'runtime-global',
+        default_value = true
+    },
+    {
+        type = 'bool-setting',
+        name = 'ltn-provider-ignore-stopped-train',
+        order = 'ec',
         setting_type = 'runtime-global',
         default_value = true
     },
