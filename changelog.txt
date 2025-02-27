@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.2.1
 Date: ????
+  Bugfixes:
+    - fix crash when renaming a non-LTN entity (e.g. a spidertron). Reported in the mod forum by @Nekrobot, thank you!
   Changes:
 ---------------------------------------------------------------------------------------------------
 Version: 2.2.0

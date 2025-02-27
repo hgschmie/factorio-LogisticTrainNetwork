@@ -341,12 +341,13 @@ local function renamedStop(targetID, old_name, new_name)
 end
 
 script.on_event(defines.events.on_entity_renamed, function(event)
+    if not (event and event.entity and event.entity.valid) then return end
+    local entity = event.entity
+    if not (entity.type == 'train-stop' and ltn_stop_entity_names[entity.name]) then return end
+
     local uid = event.entity.unit_number
     local oldName = event.old_name
     local newName = event.entity.backer_name
     assert(newName)
-
-    if ltn_stop_entity_names[event.entity.name] then
-        renamedStop(uid, oldName, newName)
-    end
+    renamedStop(uid, oldName, newName)
 end)
