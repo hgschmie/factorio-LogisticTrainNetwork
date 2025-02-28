@@ -231,10 +231,8 @@ function RemoveStop(stopID, create_ghosts)
     end
 
     -- remove available train
-    if stop and stop.is_depot and stop.parked_train_id and dispatcher.availableTrains[stop.parked_train_id] then
-        dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[stop.parked_train_id].capacity
-        dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[stop.parked_train_id].fluid_capacity
-        dispatcher.availableTrains[stop.parked_train_id] = nil
+    if stop and stop.is_depot then
+        tools.reduceAvailableCapacity(stop.parked_train_id)
     end
 
     -- destroy IO entities, broken IO entities should be sufficiently handled in initializeTrainStops()

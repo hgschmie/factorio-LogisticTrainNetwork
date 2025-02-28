@@ -1,6 +1,6 @@
 {
   "name": "LogisticTrainNetwork",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "title": "LTN - Logistic Train Network",
   "author": "Optera",
   "contact": "https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues",
@@ -8,7 +8,7 @@
   "description": "Adds new train stops forming a highly configurable, fully automated logistic network.",
   "factorio_version": "2.0",
   "dependencies": [
-    "base >= 2.0.18",
+    "base >= 2.0.37",
     "(?)cargo-ships"
   ],
   "package": {

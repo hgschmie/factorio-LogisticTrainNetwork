@@ -236,4 +236,56 @@ function Tools.richTextForTrain(train, train_name)
     end
 end
 
+-----------------------------------------------------------------------
+-- Train capacity management
+-----------------------------------------------------------------------
+
+---@param trainId number?
+---@return boolean True if capacity was really reduced
+function Tools.reduceAvailableCapacity(trainId)
+    if not trainId then return false end
+
+    local dispatcher = Tools.getDispatcher()
+
+    if not dispatcher.availableTrains[trainId] then return false end
+
+    dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[trainId].capacity
+    dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainId].fluid_capacity
+    dispatcher.availableTrains[trainId] = nil
+
+    return true
+end
+
+---@param train LuaTrain
+---@param stop ltn.TrainStop
+---@return boolean True if capacity was really increased
+function Tools.increaseAvailableCapacity(train, stop)
+    local dispatcher = Tools.getDispatcher()
+
+    if dispatcher.availableTrains[train.id] then return false end
+
+    ---@type LuaEntity?
+    local loco = Tools.getMainLocomotive(train)
+    ---@type LuaForce?
+    local trainForce = loco and loco.force
+    assert(trainForce)
+
+    local capacity, fluid_capacity = Tools.getTrainCapacity(train)
+
+    dispatcher.availableTrains[train.id] = {
+        train = train,
+        surface = stop.entity.surface,
+        force = trainForce,
+        depot_priority = stop.depot_priority,
+        network_id = stop.network_id,
+        capacity = capacity,
+        fluid_capacity = fluid_capacity
+    }
+
+    dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity + capacity
+    dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity + fluid_capacity
+
+    return true
+end
+
 return Tools

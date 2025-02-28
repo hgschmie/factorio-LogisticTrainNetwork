@@ -6,6 +6,8 @@
 
 local tools = require('script.tools')
 
+local schedule = require('script.schedule')
+
 ---@type table<string, fun(signal: Signal, state: ltn.SignalState)>
 local ltn_signals = {
     [ISDEPOT] = function(signal, state) if signal.count > 0 then state.is_depot = true end end,
@@ -41,16 +43,6 @@ local function detectShortCircuit(checkStop)
     end
 
     return false
-end
-
----@param trainID number
-local function remove_available_train(trainID)
-    local dispatcher = tools.getDispatcher()
-
-    if debug_log then log(string.format('(UpdateStop) removing available train %d from depot.', trainID)) end
-    dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[trainID].capacity
-    dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainID].fluid_capacity
-    dispatcher.availableTrains[trainID] = nil
 end
 
 -- update stop input signals
@@ -101,9 +93,8 @@ function UpdateStop(stopID, stop)
     -- skip short circuited stops
     if detectShortCircuit(stop) then
         stop.error_code = 1
-        if stop.parked_train_id and dispatcher.availableTrains[stop.parked_train_id] then
-            remove_available_train(stop.parked_train_id)
-        end
+        tools.reduceAvailableCapacity(stop.parked_train_id)
+
         setLamp(stop, ErrorCodes[stop.error_code], 1)
 
         if debug_log then log(string.format('(UpdateStop) Short circuit error: %s', stop.entity.backer_name)) end
@@ -115,9 +106,8 @@ function UpdateStop(stopID, stop)
     local stopCB = stop.entity.get_control_behavior() --[[@as LuaTrainStopControlBehavior ]]
     if stopCB and stopCB.disabled then
         stop.error_code = 1
-        if stop.parked_train_id and dispatcher.availableTrains[stop.parked_train_id] then
-            remove_available_train(stop.parked_train_id)
-        end
+        tools.reduceAvailableCapacity(stop.parked_train_id)
+
         setLamp(stop, ErrorCodes[stop.error_code], 2)
 
         if debug_log then log(string.format('(UpdateStop) Circuit deactivated stop: %s', stop.entity.backer_name)) end
@@ -218,9 +208,7 @@ function UpdateStop(stopID, stop)
         -- not a depot > check if the name is unique
     else
         stop.is_depot = false
-        if stop.parked_train_id and dispatcher.availableTrains[stop.parked_train_id] then
-            remove_available_train(stop.parked_train_id)
-        end
+        tools.reduceAvailableCapacity(stop.parked_train_id)
 
         for signal, count in pairs(signals_filtered) do
             local signal_type = signal.type or 'item'
@@ -391,9 +379,9 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
         local encoded_positions_by_name = {}
         local encoded_positions_by_type = {}
 
-        ---@type table<string, ItemWithQualityCounts>
+        ---@type ltn.InventoryType
         local inventory = {}
-        ---@type table<string, number>
+        ---@type ltn.FluidInventoryType
         local fluidInventory = {}
 
         if not (ignore_existing_cargo) then
@@ -469,35 +457,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
         end
 
         if not trainStop.is_depot then
-            -- Update normal stations
-            local conditions = trainStop.parked_train.schedule.records[trainStop.parked_train.schedule.current].wait_conditions
-            if conditions ~= nil then
-                for _, c in pairs(conditions) do
-                    if c.condition and c.condition.first_signal then -- loading without mods can make first signal nil?
-                        if c.type == 'item_count' then
-                            if (c.condition.comparator == '=' and c.condition.constant == 0) then
-                                --train expects to be unloaded of each of this item
-                                inventory[c.condition.first_signal.name] = nil
-                            elseif c.condition.comparator == '≥' then
-                                --train expects to be loaded to x of this item
-                                inventory[c.condition.first_signal.name] = inventory[c.condition.first_signal.name] or {
-                                    name = c.condition.first_signal.name,
-                                    quality = c.condition.first_signal.quality or 'normal',
-                                }
-                                inventory[c.condition.first_signal.name].count = c.condition.constant
-                            end
-                        elseif c.type == 'fluid_count' then
-                            if (c.condition.comparator == '=' and c.condition.constant == 0) then
-                                --train expects to be unloaded of each of this fluid
-                                fluidInventory[c.condition.first_signal.name] = -1
-                            elseif c.condition.comparator == '≥' then
-                                --train expects to be loaded to x of this fluid
-                                fluidInventory[c.condition.first_signal.name] = c.condition.constant
-                            end
-                        end
-                    end
-                end
-            end
+            schedule:updateFromSchedule(trainStop.parked_train, inventory, fluidInventory)
 
             -- output expected inventory contents
             for k, v in pairs(inventory) do
@@ -520,9 +480,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
     local section = outputControl.sections[1]
     section.filters = {}
 
-    local idx = 1
-    for _, signal in pairs(signals) do
+    for idx, signal in pairs(signals) do
         section.set_slot(idx, signal)
-        idx = idx + 1
     end
 end

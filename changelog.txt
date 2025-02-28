@@ -1,7 +1,9 @@
 ---------------------------------------------------------------------------------------------------
-Version: 2.2.2
+Version: 2.3.0
 Date: ????
   Changes:
+    - Use new LuaSchedule API to manage trains, this preserves interrupts that have been added
+      to the schedule
 ---------------------------------------------------------------------------------------------------
 Version: 2.2.1
 Date: 2025-02-27

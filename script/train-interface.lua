@@ -6,6 +6,8 @@
 
 local tools = require('script.tools')
 
+local schedule = require('script.schedule')
+
 
 ---Finds the next logistic stop in the schedule of the given train. Returns nil if the train is not executing a delivery or has no further logistic stops in its schedule.
 ---@param train LuaTrain
@@ -21,7 +23,7 @@ function GetNextLogisticStop(train, schedule_index)
         return
     end
 
-    if not train.schedule then
+    if not schedule:hasSchedule(train) then
         if debug_log then log(string.format('(GetNextLogisticStop) train [%d] has no schedule.', train.id)) end
         return
     end
@@ -45,43 +47,25 @@ function GetNextLogisticStop(train, schedule_index)
     local identifier = tools.parseItemIdentifier(item)
     if not identifier then return end
 
-    local records = train.schedule.records
+    local records, current = schedule:getSchedule(train)
 
     local record_index = schedule_index or train.schedule.current or 2 -- defaulting to 1 is pointless because that's the depot
-    if record_index == train.schedule.current and train.state == defines.train_state.wait_station then
+    if record_index == current and train.state == defines.train_state.wait_station then
         record_index = record_index + 1
-    end
-
-    ---@param record ScheduleRecord
-    ---@return ComparatorString?
-    local function get_wait_count_comparator(record)
-        if record.wait_conditions then
-            for _, wait_condition in pairs(record.wait_conditions) do
-                local condition = wait_condition.condition
-                if condition and condition.constant and (wait_condition.type == 'item_count' or wait_condition.type == 'fluid_count') then
-                    local signal = condition.first_signal
-                    if signal then
-                        local signal_type = signal.type or 'item'
-                        local signal_quality = signal.quality or 'normal'
-                        return (signal_type == identifier.type
-                            and signal.name == identifier.name
-                            and signal_quality == identifier.quality
-                        ) and condition.comparator
-                    end
-                end
-            end
-        end
     end
 
     local record = records[record_index]
     while record do
-        if record.station == delivery.from and get_wait_count_comparator(record) == '≥' then
-            return record_index, delivery.from_id, 'provider'
+        local results = schedule:analyzeRecord(record.wait_conditions)
+        local result = results[identifier]
+        if result then
+            if record.station == delivery.from and result.provider then
+                return record_index, delivery.from_id, 'provider'
+            end
+            if record.station == delivery.to and result.requester then
+                return record_index, delivery.to_id, 'requester'
+            end
         end
-        if record.station == delivery.to and get_wait_count_comparator(record) == '=' then
-            return record_index, delivery.to_id, 'requester'
-        end
-
         record_index = record_index + 1
         record = records[record_index]
     end
@@ -119,19 +103,15 @@ function GetOrCreateNextTempStop(train, schedule_index)
     end
 
     -- insert temp stop in schedule
-    local schedule = train.schedule
-    assert(schedule)
-    local previous_record = schedule.records[stop_schedule_index - 1]
+    local train_schedule = schedule:getSchedule(train)
+    assert(train_schedule)
+    local previous_record = train_schedule[stop_schedule_index - 1]
     if previous_record and previous_record.temporary then return stop_schedule_index - 1 end -- schedule already up-to-date for stop_position
 
     if debug_log then log(string.format('(UpdateSchedule) adding new temp-stop before stop [%d] at rail [%d] to train [%d] ', stop_id, rail.unit_number, train.id)) end
-    table.insert(schedule.records, stop_schedule_index, {
-        wait_conditions = temp_wait_condition,
-        rail = rail,
-        rail_direction = rail_direction,
-        temporary = true,
-    })
-    train.schedule = schedule
+
+    schedule:temporaryStop(train, rail, rail_direction, stop_schedule_index)
+
     return stop_schedule_index
 end
 

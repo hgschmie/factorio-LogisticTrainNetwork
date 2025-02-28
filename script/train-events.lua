@@ -5,6 +5,7 @@
 --]]
 
 local tools = require('script.tools')
+local schedule = require('script.schedule')
 
 -- update stop output when train enters stop
 ---@param train LuaTrain
@@ -21,14 +22,9 @@ function TrainArrives(train)
         ---@type LuaEntity?
         local loco = tools.getMainLocomotive(train)
         ---@type LuaForce?
-        local trainForce = nil
+        local trainForce = loco and loco.force
         ---@type string?
-        local trainName = nil
-
-        if loco then
-            trainName = loco.backer_name
-            trainForce = loco.force
-        end
+        local trainName = loco and loco.backer_name
 
         -- add train to stopped_trains
         stopped_trains[train.id] = {
@@ -96,39 +92,10 @@ function TrainArrives(train)
                     create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name }, trainForce)
                 end
 
-                -- make train available for new deliveries
-                local capacity, fluid_capacity = tools.getTrainCapacity(train)
-
-                assert(trainForce)
-                dispatcher.availableTrains[train.id] = {
-                    train = train,
-                    surface = stop.entity.surface,
-                    force = trainForce,
-                    depot_priority = stop.depot_priority,
-                    network_id = stop.network_id,
-                    capacity = capacity,
-                    fluid_capacity = fluid_capacity
-                }
-
-                dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity + capacity
-                dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity + fluid_capacity
-                -- log("added available train "..train.id..", inventory: "..tostring(dispatcher.availableTrains[train.id].capacity)..", fluid capacity: "..tostring(dispatcher.availableTrains[train.id].fluid_capacity))
+                tools.increaseAvailableCapacity(train, stop)
 
                 -- reset schedule
-                ---@type TrainSchedule
-                local schedule = {
-                    current = 1,
-
-                    records = {
-                        NewScheduleRecord {
-                            stationName = stop_name,
-                            condType = 'inactivity',
-                            ticks = depot_inactivity
-                        }
-                    }
-                }
-
-                train.schedule = schedule
+                schedule:depotStop(train, stop_name, depot_inactivity, true)
 
                 -- reset filters and bars
                 if depot_reset_filters and train.cargo_wagons then
@@ -238,11 +205,7 @@ function TrainLeaves(trainID)
 
     -- train was stopped at LTN depot
     if stop.is_depot then
-        if dispatcher.availableTrains[trainID] then -- trains are normally removed when deliveries are created
-            dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[trainID].capacity
-            dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainID].fluid_capacity
-            dispatcher.availableTrains[trainID] = nil
-        end
+        tools.reduceAvailableCapacity(trainID)
 
         if stop.error_code == 0 then
             setLamp(stop, 'green', 1)
@@ -346,21 +309,12 @@ function TrainLeaves(trainID)
 
             elseif delivery.to_id == stop.entity.unit_number then
                 -- reset schedule before API events
-                if requester_delivery_reset and train.schedule then
-                    ---@type TrainSchedule
-                    local schedule = {
-                        current = 1,
-
-                        records = {
-                            NewScheduleRecord {
-                                stationName = train.schedule.records[1].station,
-                                condType = 'inactivity',
-                                ticks = depot_inactivity
-                            }
-                        }
-                    }
-
-                    train.schedule = schedule
+                if requester_delivery_reset then
+                    -- first stop on each LTN schedule is the depot
+                    local station_name = schedule:getStopName(train, 1)
+                    if station_name then
+                        schedule:depotStop(train, station_name, depot_inactivity, true)
+                    end
                 end
 
                 local remaining_load = {}

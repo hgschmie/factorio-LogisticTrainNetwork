@@ -246,7 +246,7 @@ local function updateAllTrains()
 
     -- add still valid trains back to stops
     local train_manager = game.train_manager
-    for force_name, force in pairs(game.forces) do
+    for _, force in pairs(game.forces) do
         local trains = train_manager.get_trains { force = force }
         if trains then
             for _, train in pairs(trains) do

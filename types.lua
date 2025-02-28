@@ -33,6 +33,11 @@
 
 ---@alias ltn.AlertType ('cargo-warning'|'cargo-alert'|'deport-warning'|'depot-empty')
 
+---@alias ltn.ItemFluid ('item'|'fluid')
+
+---@alias ltn.InventoryType table<string, ItemWithQualityCounts>
+---@alias ltn.FluidInventoryType table<string, number>
+
 ---------------------------------------------------------
 --- Main types
 ---------------------------------------------------------
@@ -116,7 +121,7 @@
 ---@field pickupDone           boolean?
 
 ---@class ltn.LoadingElement
----@field type             string  'item' or 'fluid'
+---@field type             ltn.ItemFluid 'item' or 'fluid'
 ---@field name             string  Item or fluid name
 ---@field quality          string? *Since 2.1.0* Requested quality. If missing, 'normal' quality was requested
 ---@field localname        string  Localized name

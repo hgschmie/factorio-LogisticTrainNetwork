@@ -5,6 +5,7 @@
 --]]
 
 local tools = require('script.tools')
+local schedule = require('script.schedule')
 
 -- update dispatcher Deliveries.force when forces are removed/merged
 script.on_event(defines.events.on_forces_merging, function(event)
@@ -214,114 +215,6 @@ function RemoveDelivery(trainID)
     dispatcher.Deliveries[trainID] = nil
 end
 
--- NewScheduleRecord: returns new schedule_record
-
----@type WaitCondition
-local condition_circuit_red = { type = 'circuit', compare_type = 'and', condition = { comparator = '=', first_signal = { type = 'virtual', name = 'signal-red' }, constant = 0 } }
-
----@type WaitCondition
-local condition_circuit_green = { type = 'circuit', compare_type = 'or', condition = { comparator = '≥', first_signal = { type = 'virtual', name = 'signal-green' }, constant = 1 } }
-
----@type WaitCondition
-local condition_wait_empty = { type = 'empty', compare_type = 'and' }
-
----@type WaitCondition
-local condition_finish_loading = { type = 'inactivity', compare_type = 'and', ticks = 120 }
--- local condition_stop_timeout -- set in settings.lua to capture changes
-
----@class ltn.NewScheduleRecordParameters
----@field stationName string
----@field condType WaitConditionType
----@field condComp ComparatorString?
----@field itemList ltn.ItemLoadingElement[]?
----@field countOverride number?
----@field ticks number?
-
----@param map ltn.NewScheduleRecordParameters
-function NewScheduleRecord(map)
-    assert(map.stationName)
-    assert(map.condType)
-
-    ---@type ScheduleRecord
-    local record = {
-        station = map.stationName,
-        wait_conditions = {}
-    }
-
-    local countOverride = map.countOverride and map.countOverride
-
-    if map.condType == 'time' then
-        assert(map.ticks)
-        table.insert(record.wait_conditions, { type = map.condType, compare_type = 'and', ticks = map.ticks })
-    elseif map.condType == 'item_count' then
-        assert(map.condComp)
-        assert(map.itemList)
-
-        local waitEmpty = false
-        -- write itemlist to conditions
-        for i = 1, #map.itemList do
-            local condFluid = nil
-            if map.itemList[i].item.type == 'fluid' then
-                condFluid = 'fluid_count'
-                -- workaround for leaving with fluid residue due to Factorio rounding down to 0
-                if map.condComp == '=' and countOverride == 0 then
-                    waitEmpty = true
-                end
-            end
-
-            -- make > into >=
-            if map.condComp == '>' then
-                countOverride = map.itemList[i].count - 1
-            end
-
-            ---@type CircuitCondition
-            local cond = {
-                comparator = map.condComp,
-                first_signal = map.itemList[i].item,
-                constant = countOverride or map.itemList[i].count
-            }
-            table.insert(record.wait_conditions, { type = condFluid or map.condType, compare_type = 'and', condition = cond })
-        end
-
-        if waitEmpty then
-            table.insert(record.wait_conditions, condition_wait_empty)
-        elseif finish_loading then -- let inserter/pumps finish
-            table.insert(record.wait_conditions, condition_finish_loading)
-        end
-
-        -- with circuit control enabled keep trains waiting until red = 0 and force them out with green ≥ 1
-        if schedule_cc then
-            table.insert(record.wait_conditions, condition_circuit_red)
-            table.insert(record.wait_conditions, condition_circuit_green)
-        end
-
-        if stop_timeout > 0 then -- send stuck trains away when stop_timeout is set
-            table.insert(record.wait_conditions, condition_stop_timeout)
-            -- should it also wait for red = 0?
-            if schedule_cc then
-                table.insert(record.wait_conditions, condition_circuit_red)
-            end
-        end
-    elseif map.condType == 'inactivity' then
-        assert(map.ticks)
-        table.insert(record.wait_conditions, { type = map.condType, compare_type = 'and', ticks = map.ticks })
-        -- with circuit control enabled keep trains waiting until red = 0 and force them out with green ≥ 1
-        if schedule_cc then
-            table.insert(record.wait_conditions, condition_circuit_red)
-            table.insert(record.wait_conditions, condition_circuit_green)
-        end
-    end
-    return record
-end
-
-local temp_wait_condition = { { type = 'time', compare_type = 'and', ticks = 0 } }
-
--- NewScheduleRecord: returns new schedule_record for waypoints
-function NewTempScheduleRecord(rail, rail_direction)
-    local record = { wait_conditions = temp_wait_condition, rail = rail, rail_direction = rail_direction, temporary = true }
-    return record
-end
-
 ---- ProcessRequest ----
 
 -- returns the string "number1|number2" in consistent order: the smaller number is always placed first
@@ -514,9 +407,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
             end
         else
             -- remove invalid train from dispatcher availableTrains
-            dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[trainID].capacity
-            dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainID].fluid_capacity
-            dispatcher.availableTrains[trainID] = nil
+            tools.reduceAvailableCapacity(trainID)
         end
     end
 
@@ -727,8 +618,7 @@ function ProcessRequest(reqIndex, request)
                     } --[[@as ltn.ItemLoadingElement ]])
 
                     totalStacks = totalStacks + merge_stacks
-                    -- order.totalStacks = order.totalStacks + merge_stacks
-                    -- order.loadingList[#order.loadingList+1] = loadingList
+
                     if debug_log then log(string.format('inserted into order %s >> %s: %d %s in %d/%d stacks.', from, to, merge_deliverySize, merge_item, merge_stacks, totalStacks)) end
                 end
             end
@@ -803,49 +693,27 @@ function ProcessRequest(reqIndex, request)
     end
 
     -- create schedule
-    -- local selectedTrain = dispatcher availableTrains[trainID].train
     local depot = storage.LogisticTrainStops[selectedTrain.station.unit_number]
 
-    ---@type TrainSchedule
-    local schedule = {
-        current = 1,
-        records = {
-            NewScheduleRecord {
-                stationName = depot.entity.backer_name,
-                condType = 'inactivity',
-                ticks = depot_inactivity,
-            }
-        }
-    }
+    schedule:depotStop(selectedTrain, depot.entity.backer_name, depot_inactivity)
 
     -- make train go to specific stations by setting a temporary waypoint on the rail the station is connected to
     -- schedules cannot have temporary stops on a different surface, those need to be added when the delivery is updated with a train on a different surface
     if from_rail and from_rail_direction and depot.entity.surface == from_rail.surface then
-        table.insert(schedule.records, NewTempScheduleRecord(from_rail, from_rail_direction))
+        schedule:temporaryStop(selectedTrain, from_rail, from_rail_direction)
     else
         if debug_log then log('(ProcessRequest) Warning: creating schedule without temporary stop for provider.') end
     end
 
-    table.insert(schedule.records, NewScheduleRecord {
-        stationName = from,
-        condType = 'item_count',
-        condComp = '≥',
-        itemList = loadingList
-    })
+    schedule:providerStop(selectedTrain, from, loadingList)
 
     if to_rail and to_rail_direction and depot.entity.surface == to_rail.surface and (from_rail and to_rail.surface == from_rail.surface) then
-        table.insert(schedule.records, NewTempScheduleRecord(to_rail, to_rail_direction))
+        schedule:temporaryStop(selectedTrain, to_rail, to_rail_direction)
     else
         if debug_log then log('(ProcessRequest) Warning: creating schedule without temporary stop for requester.') end
     end
 
-    table.insert(schedule.records, NewScheduleRecord {
-        stationName = to,
-        condType = 'item_count',
-        condComp = '=',
-        itemList = loadingList,
-        countOverride = 0
-    })
+    schedule:requesterStop(selectedTrain, to, loadingList)
 
     local shipment = {}
     if debug_log then log(string.format('Creating Delivery: %d stacks, %s >> %s', totalStacks, from, to)) end
@@ -896,14 +764,7 @@ function ProcessRequest(reqIndex, request)
         shipment = shipment,
     }
 
-    dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[selectedTrain.id].capacity
-    dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[selectedTrain.id].fluid_capacity
-    dispatcher.availableTrains[selectedTrain.id] = nil
-
-    -- raises on_train_schedule_changed instantly
-    -- GetNextLogisticStop relies on dispatcher Deliveries[train.id].train to be set
-    selectedTrain.schedule = schedule
-    -- dispatcher Deliveries[selectedTrain.id].train = selectedTrain -- not required, train object is stored as reference
+    tools.reduceAvailableCapacity(selectedTrain.id)
 
     -- train is no longer available => set depot to yellow
     setLamp(depot, 'yellow', 1)
