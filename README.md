@@ -48,12 +48,11 @@ Starting with version 2.1.0, LTN supports quality for requester and provider sig
 
 ### Contact
 
-* [Forum](https://mods.factorio.com/mod/LogisticTrainNetwork/discussion) (changed from pre-2.0!)
-* [Bug Reports](https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues)
-* [Source Code](https://github.com/hgschmie/factorio-LogisticTrainNetwork)
-* [Download](https://mods.factorio.com/mod/LogisticTrainNetwork/downloads)
-
-* [Manual (on the LTN subforum)](https://forums.factorio.com/viewtopic.php?f=214&t=51072)
+- [Forum](https://mods.factorio.com/mod/LogisticTrainNetwork/discussion) (changed from pre-2.0!)
+- [Bug Reports](https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues)
+- [Source Code](https://github.com/hgschmie/factorio-LogisticTrainNetwork)
+- [Download](https://mods.factorio.com/mod/LogisticTrainNetwork/downloads)
+- [Manual (on the LTN subforum)](https://forums.factorio.com/viewtopic.php?f=214&t=51072)
 
 ### How you can help
 
