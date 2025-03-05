@@ -42,6 +42,33 @@ quality = (quality and #quality > 0) and quality or 'normal'
 
 The `ltn.EventData.no_train_found_shipment` payload which is raised when LTN has a scheduled shipment but no matching train could be found contains the `shipment` attribute which is a list of `ltn.LoadingElement` objects. Each of these objects now has an additional, optional attribute `quality` attribute.
 
+### Fuel Stations (v 2.3.0+)
+
+Fuel station support adds a few new attributes to the `ltn.TrainStop` data type. Any external mod that reads this information needs to check the following attributes to determine the station type:
+
+- if `is_depot` is true, then the station is a Depot
+- if `is_fuel_station` is true, then the station is a Fuel Station
+- otherwise the station participates in deliveries and can be a requester or a provider.
+
+Reference code:
+
+```lua
+---@enum ltn.StationType
+station_type = {
+    station = 1,
+    depot = 2,
+    fuel_stop = 3,
+}
+
+---@param station ltn.TrainStop|ltn.SignalState
+---@return ltn.StationType station_type The station type
+function GetStationType(station)
+    if station.is_depot then return station_type.depot end
+    if station.is_fuel_station then return station_type.fuel_stop end
+    return station_type.station
+end
+```
+
 ----
 
 ## API documentation

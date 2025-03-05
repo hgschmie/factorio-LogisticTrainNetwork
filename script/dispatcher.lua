@@ -28,7 +28,7 @@ function OnTick(event)
     -- log("DEBUG: (OnTick) "..tick.." storage.tick_state: "..tostring(storage.tick_state).." storage.tick_stop_index: "..tostring(storage.tick_stop_index).." storage.tick_request_index: "..tostring(storage.tick_request_index) )
 
     if storage.tick_state == 1 then -- update stops
-        for i = 1, dispatcher_updates_per_tick, 1 do
+        for i = 1, LtnSettings:getUpdatesPerTick(), 1 do
             -- reset on invalid index
             if storage.tick_stop_index and not storage.LogisticTrainStops[storage.tick_stop_index] then
                 storage.tick_state = 0
@@ -75,12 +75,12 @@ function OnTick(event)
                 script.raise_event(on_delivery_failed_event, data)
 
                 RemoveDelivery(trainID)
-            elseif tick - delivery.started > delivery_timeout then
+            elseif tick - delivery.started > LtnSettings.delivery_timeout then
                 local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
                 local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
 
                 if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-timeout', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to, tick - delivery.started }, delivery.force) end
-                if debug_log then log(string.format('(OnTick) Delivery from %s to %s removed. Timed out after %d/%d ticks.', delivery.from, delivery.to, tick - delivery.started, delivery_timeout)) end
+                if debug_log then log(string.format('(OnTick) Delivery from %s to %s removed. Timed out after %d/%d ticks.', delivery.from, delivery.to, tick - delivery.started, LtnSettings.delivery_timeout)) end
 
                 ---@type ltn.EventData.on_delivery_failed
                 local data = {
@@ -117,10 +117,10 @@ function OnTick(event)
             end
         end)
     elseif storage.tick_state == 3 then -- parse requests and dispatch trains
-        if dispatcher_enabled then
+        if LtnSettings.dispatcher_enabled then
             if debug_log then log(string.format('(OnTick) Available train capacity: %d item stacks, %d fluid capacity.', dispatcher.availableTrains_total_capacity, dispatcher.availableTrains_total_fluid_capacity)) end
 
-            for i = 1, dispatcher_updates_per_tick, 1 do
+            for i = 1, LtnSettings:getUpdatesPerTick(), 1 do
                 -- reset on invalid index
                 if storage.tick_request_index and not dispatcher.Requests[storage.tick_request_index] then
                     storage.tick_state = 0
@@ -172,7 +172,6 @@ function OnTick(event)
             available_trains = dispatcher.availableTrains,
         }
         script.raise_event(on_dispatcher_updated_event, dispatcher_data)
-
     else -- reset
         storage.tick_stop_index = nil
         storage.tick_request_index = nil
@@ -276,7 +275,6 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
     local providers = dispatcher.Provided[item] --[[@as table<number, number>? ]]
     if not providers then return nil end
 
-    local toID = requestStation.entity.unit_number
     local force = requestStation.entity.force
     local surface = requestStation.entity.surface
 
@@ -301,11 +299,12 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
 
                         if debug_log then
                             local from_network_id_string = string.format('0x%x', bit32.band(stop.network_id))
-                            log(string.format('found %d(%d)/%d %s at %s {%s}, priority: %s, active Deliveries: %d, min_carriages: %d, max_carriages: %d, locked Slots: %d, #surface_connections: %d', count, stop.providing_threshold, req_count, item, stop.entity.backer_name, from_network_id_string, stop.provider_priority, activeDeliveryCount, stop.min_carriages, stop.max_carriages, stop.locked_slots, surface_connections_count))
+                            log(string.format('found %d(%d)/%d %s at %s {%s}, priority: %s, active Deliveries: %d, min_carriages: %d, max_carriages: %d, locked Slots: %d, #surface_connections: %d', count, stop.providing_threshold, req_count, item, stop.entity.backer_name, from_network_id_string,
+                                stop.provider_priority, activeDeliveryCount, stop.min_carriages, stop.max_carriages, stop.locked_slots, surface_connections_count))
                         end
 
                         table.insert(stations, {
-                            entity = stop.entity,
+                            stop = stop,
                             network_id = matched_networks,
                             priority = stop.provider_priority,
                             activeDeliveryCount = activeDeliveryCount,
@@ -388,16 +387,17 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                 local depot_network_id_string = string.format('0x%x', bit32.band(trainData.network_id))
                 local dest_network_id_string = string.format('0x%x', bit32.band(nextStop.network_id))
 
-                log(string.format('(getFreeTrain) checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %d', tools.getTrainName(trainData.train), trainData.force.name, nextStop.entity.force.name, depot_network_id_string, dest_network_id_string, trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, getStationDistance(trainData.train.station, nextStop.entity)))
+                log(string.format('(getFreeTrain) checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %d', tools.getTrainName(trainData.train), trainData.force.name, nextStop.stop.entity.force.name, depot_network_id_string,
+                    dest_network_id_string, trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, getStationDistance(trainData.train.station, nextStop.stop.entity)))
             end
 
             if inventorySize > 0                                                                                                                                -- sending trains without inventory on deliveries would be pointless
-                and trainData.force == nextStop.entity.force                                                                                                    -- forces match
-                and trainData.surface == nextStop.entity.surface                                                                                                -- pathing between surfaces is impossible
+                and trainData.force == nextStop.stop.entity.force                                                                                               -- forces match
+                and trainData.surface == nextStop.stop.entity.surface                                                                                           -- pathing between surfaces is impossible
                 and bit32.btest(trainData.network_id, nextStop.network_id)                                                                                      -- depot is in the same network as requester and provider
                 and (min_carriages == 0 or #trainData.train.carriages >= min_carriages) and (max_carriages == 0 or #trainData.train.carriages <= max_carriages) -- train length fits requester and provider limitations
             then
-                local distance = getStationDistance(trainData.train.station, nextStop.entity)
+                local distance = getStationDistance(trainData.train.station, nextStop.stop.entity)
                 table.insert(filtered_trains, {
                     train = trainData.train,
                     inventory_size = inventorySize,
@@ -467,7 +467,8 @@ function ProcessRequest(reqIndex, request)
     local min_carriages = requestStation.min_carriages
     local requestForce = requestStation.entity.force
 
-    if debug_log then log(string.format('request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d', reqIndex, #dispatcher.Requests, count, requestStation.requesting_threshold, item, requestStation.entity.backer_name, to_network_id_string, request.priority, min_carriages, max_carriages)) end
+    if debug_log then log(string.format('request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d', reqIndex, #dispatcher.Requests, count, requestStation.requesting_threshold, item, requestStation.entity.backer_name, to_network_id_string, request.priority, min_carriages,
+            max_carriages)) end
 
     if not (dispatcher.Requests_by_Stop[toID] and dispatcher.Requests_by_Stop[toID][item]) then
         if debug_log then log(string.format('Skipping request %s: %s. Item has already been processed.', requestStation.entity.backer_name, item)) end
@@ -545,13 +546,13 @@ function ProcessRequest(reqIndex, request)
 
     local providerData = providers[1] -- only one delivery/request is created so use only the best provider
 
-    local fromID = providerData.entity.unit_number
+    local fromID = providerData.stop.entity.unit_number
     assert(fromID)
 
-    local from_rail = providerData.entity.connected_rail
-    local from_rail_direction = providerData.entity.connected_rail_direction
-    local from = providerData.entity.backer_name
-    local from_gps = tools.richTextForStop(providerData.entity) or from
+    local from_rail = providerData.stop.entity.connected_rail
+    local from_rail_direction = providerData.stop.entity.connected_rail_direction
+    local from = providerData.stop.entity.backer_name
+    local from_gps = tools.richTextForStop(providerData.stop.entity) or from
     local matched_network_id_string = string.format('0x%x', bit32.band(providerData.network_id))
 
     if message_level >= 3 then tools.printmsg({ 'ltn-message.provider-found', from_gps, tostring(providerData.priority), tostring(providerData.activeDeliveryCount), providerData.count, tools.prettyPrint(item_info) }, requestForce) end
@@ -562,7 +563,7 @@ function ProcessRequest(reqIndex, request)
         deliverySize = providerData.count
     end
 
-    local stacks = deliverySize                                              -- for fluids stack = tanker capacity
+    local stacks = deliverySize -- for fluids stack = tanker capacity
     if item_info.type == 'item' then
         assert(prototypes.item[item_info.name], 'item prototype undefined!', item_info)
         stacks = math.ceil(deliverySize / prototypes.item[item_info.name].stack_size) -- calculate amount of stacks item count will occupy
@@ -695,7 +696,7 @@ function ProcessRequest(reqIndex, request)
     -- create schedule
     local depot = storage.LogisticTrainStops[selectedTrain.station.unit_number]
 
-    schedule:depotStop(selectedTrain, depot.entity.backer_name, depot_inactivity)
+    schedule:depotStop(selectedTrain, depot, LtnSettings.depot_inactivity)
 
     -- make train go to specific stations by setting a temporary waypoint on the rail the station is connected to
     -- schedules cannot have temporary stops on a different surface, those need to be added when the delivery is updated with a train on a different surface
@@ -705,7 +706,7 @@ function ProcessRequest(reqIndex, request)
         if debug_log then log('(ProcessRequest) Warning: creating schedule without temporary stop for provider.') end
     end
 
-    schedule:providerStop(selectedTrain, from, loadingList)
+    schedule:providerStop(selectedTrain, providerData.stop, loadingList)
 
     if to_rail and to_rail_direction and depot.entity.surface == to_rail.surface and (from_rail and to_rail.surface == from_rail.surface) then
         schedule:temporaryStop(selectedTrain, to_rail, to_rail_direction)
@@ -713,7 +714,7 @@ function ProcessRequest(reqIndex, request)
         if debug_log then log('(ProcessRequest) Warning: creating schedule without temporary stop for requester.') end
     end
 
-    schedule:requesterStop(selectedTrain, to, loadingList)
+    schedule:requesterStop(selectedTrain, requestStation, loadingList)
 
     local shipment = {}
     if debug_log then log(string.format('Creating Delivery: %d stacks, %s >> %s', totalStacks, from, to)) end

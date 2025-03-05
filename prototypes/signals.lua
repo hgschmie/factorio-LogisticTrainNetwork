@@ -29,11 +29,19 @@ data:extend {
     },
     {
         type = 'virtual-signal',
+        name = 'ltn-fuel-station',
+        icon = '__LogisticTrainNetwork__/graphics/icons/fuel-station.png',
+        icon_size = 64,
+        subgroup = 'LTN-signal',
+        order = 'a-c'
+    },
+    {
+        type = 'virtual-signal',
         name = 'ltn-network-id',
         icon = '__LogisticTrainNetwork__/graphics/icons/network-id.png',
         icon_size = 64,
         subgroup = 'LTN-signal',
-        order = 'a-c'
+        order = 'a-e'
     },
     {
         type = 'virtual-signal',

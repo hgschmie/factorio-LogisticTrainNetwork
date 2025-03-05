@@ -5,80 +5,93 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
-message_level                = tonumber(settings.global['ltn-interface-console-level'].value)
-debug_log                    = settings.global['ltn-interface-debug-logfile'].value
-message_include_gps          = settings.global['ltn-interface-message-gps'].value
+local tools = require('script.tools')
 
-delivery_timeout             = settings.global['ltn-dispatcher-delivery-timeout'].value * 60
-depot_inactivity             = settings.global['ltn-dispatcher-depot-inactivity'].value * 60
-dispatcher_enabled           = settings.global['ltn-dispatcher-enabled'].value
-finish_loading               = settings.global['ltn-dispatcher-finish-loading'].value
-dispatcher_nth_tick          = settings.global['ltn-dispatcher-nth_tick'].value
-min_provided                 = settings.global['ltn-dispatcher-provider-threshold'].value
-requester_delivery_reset     = settings.global['ltn-dispatcher-requester-delivery-reset'].value
-min_requested                = settings.global['ltn-dispatcher-requester-threshold'].value
-schedule_cc                  = settings.global['ltn-dispatcher-schedule-circuit-control'].value
-stop_timeout                 = settings.global['ltn-dispatcher-stop-timeout'].value * 60
-dispatcher_updates_per_tick  = settings.global['ltn-dispatcher-updates-per-tick'].value
 
-depot_reset_filters          = settings.global['ltn-depot-reset-filters'].value
-depot_fluid_cleaning         = settings.global['ltn-depot-fluid-cleaning'].value
+---@class ltn.Settings
+---@field message_level integer
+---@field debug_log boolean
+---@field message_include_gps boolean
+---@field delivery_timeout integer
+---@field depot_inactivity integer
+---@field dispatcher_enabled boolean
+---@field finish_loading boolean
+---@field dispatcher_nth_tick integer
+---@field min_provided integer
+---@field requester_delivery_reset boolean
+---@field min_requested integer
+---@field schedule_cc boolean
+---@field stop_timeout integer
+---@field dispatcher_updates_per_tick integer
+---@field depot_reset_filters boolean
+---@field depot_fluid_cleaning integer
+---@field default_network integer
+---@field provider_show_existing_cargo boolean
+---@field requester_ignores_trains boolean
+---@field condition_stop_timeout WaitCondition
+---@field enable_fuel_stations boolean
+---@field reset_interrupts boolean
+---@diagnostic disable-next-line: missing-fields
+LtnSettings = LtnSettings or {}
 
-default_network              = settings.global['ltn-stop-default-network'].value
-
-provider_show_existing_cargo = settings.global['ltn-provider-show-existing-cargo'].value
-requester_ignores_trains     = settings.global['ltn-provider-ignore-stopped-train'].value
-
-condition_stop_timeout       = { type = 'time', compare_type = 'or', ticks = stop_timeout }
-
-if dispatcher_nth_tick > 1 then
-    dispatcher_updates_per_tick = 1
-end
-
+---@type table<string, fun(settings: ltn.Settings, name: string): boolean?>
 local change_settings = {
-    ['ltn-interface-console-level'] = function() message_level = tonumber(settings.global['ltn-interface-console-level'].value) end,
-    ['ltn-interface-message-gps'] = function() message_include_gps = settings.global['ltn-interface-message-gps'].value end,
-    ['ltn-interface-debug-logfile'] = function() debug_log = settings.global['ltn-interface-debug-logfile'].value end,
-    ['ltn-dispatcher-requester-threshold'] = function() min_requested = settings.global['ltn-dispatcher-requester-threshold'].value end,
-    ['ltn-dispatcher-provider-threshold'] = function() min_provided = settings.global['ltn-dispatcher-provider-threshold'].value end,
-    ['ltn-dispatcher-schedule-circuit-control'] = function() schedule_cc = settings.global['ltn-dispatcher-schedule-circuit-control'].value end,
-    ['ltn-dispatcher-depot-inactivity'] = function() depot_inactivity = settings.global['ltn-dispatcher-depot-inactivity'].value * 60 end,
-    ['ltn-dispatcher-stop-timeout'] = function()
-        stop_timeout = settings.global['ltn-dispatcher-stop-timeout'].value * 60
-        condition_stop_timeout = { type = 'time', compare_type = 'or', ticks = stop_timeout }
+    ['ltn-interface-console-level'] = function(ltn_settings, name)
+        ltn_settings.message_level = tonumber(settings.global[name].value)
+        message_level = ltn_settings.message_level -- legacy
     end,
-    ['ltn-dispatcher-delivery-timeout'] = function() delivery_timeout = settings.global['ltn-dispatcher-delivery-timeout'].value * 60 end,
-    ['ltn-dispatcher-finish-loading'] = function() finish_loading = settings.global['ltn-dispatcher-finish-loading'].value end,
-    ['ltn-dispatcher-requester-delivery-reset'] = function() requester_delivery_reset = settings.global['ltn-dispatcher-requester-delivery-reset'].value end,
-    ['ltn-dispatcher-enabled'] = function() dispatcher_enabled = settings.global['ltn-dispatcher-enabled'].value end,
-    ['ltn-dispatcher-updates-per-tick'] = function()
-        if dispatcher_nth_tick == 1 then
-            dispatcher_updates_per_tick = settings.global['ltn-dispatcher-updates-per-tick'].value
-        else
-            dispatcher_updates_per_tick = 1
-        end
+    ['ltn-interface-message-gps'] = function(ltn_settings, name) ltn_settings.message_include_gps = settings.global[name].value end,
+    ['ltn-interface-debug-logfile'] = function(ltn_settings, name)
+        ltn_settings.debug_log = settings.global[name].value
+        debug_log = ltn_settings.debug_log -- legacy
     end,
-    ['ltn-dispatcher-nth_tick'] = function()
-        if dispatcher_nth_tick == 1 then
-            dispatcher_updates_per_tick = settings.global['ltn-dispatcher-updates-per-tick'].value
-        else
-            dispatcher_updates_per_tick = 1
-        end
-        script.on_nth_tick(nil)
-        if next(storage.LogisticTrainStops) then
-            script.on_nth_tick(dispatcher_nth_tick, OnTick)
-        end
+    ['ltn-dispatcher-requester-threshold'] = function(ltn_settings, name) ltn_settings.min_requested = settings.global[name].value end,
+    ['ltn-dispatcher-provider-threshold'] = function(ltn_settings, name) ltn_settings.min_provided = settings.global[name].value end,
+    ['ltn-dispatcher-schedule-circuit-control'] = function(ltn_settings, name) ltn_settings.schedule_cc = settings.global[name].value end,
+    ['ltn-dispatcher-depot-inactivity'] = function(ltn_settings, name) ltn_settings.depot_inactivity = settings.global[name].value * 60 end,
+    ['ltn-dispatcher-stop-timeout'] = function(ltn_settings, name)
+        ltn_settings.stop_timeout = settings.global[name].value * 60
+        ltn_settings.condition_stop_timeout = { type = 'time', compare_type = 'or', ticks = ltn_settings.stop_timeout }
     end,
-    ['ltn-depot-reset-filters'] = function() depot_reset_filters = settings.global['ltn-depot-reset-filters'].value end,
-    ['ltn-depot-fluid-cleaning'] = function() depot_fluid_cleaning = settings.global['ltn-depot-fluid-cleaning'].value end,
-    ['ltn-stop-default-network'] = function() default_network = settings.global['ltn-stop-default-network'].value end,
-    ['ltn-provider-show-existing-cargo'] = function() provider_show_existing_cargo = settings.global['ltn-provider-show-existing-cargo'].value end,
-    ['ltn-provider-ignore-stopped-train'] = function() requester_ignores_trains = settings.global['ltn-provider-ignore-stopped-train'].value end,
+    ['ltn-dispatcher-delivery-timeout'] = function(ltn_settings, name) ltn_settings.delivery_timeout = settings.global[name].value * 60 end,
+    ['ltn-dispatcher-finish-loading'] = function(ltn_settings, name) ltn_settings.finish_loading = settings.global[name].value end,
+    ['ltn-dispatcher-requester-delivery-reset'] = function(ltn_settings, name) ltn_settings.requester_delivery_reset = settings.global[name].value end,
+    ['ltn-dispatcher-enabled'] = function(ltn_settings, name) ltn_settings.dispatcher_enabled = settings.global[name].value end,
+    ['ltn-dispatcher-nth_tick'] = function(ltn_settings, name)
+        ltn_settings.dispatcher_nth_tick = settings.global[name].value
+        return true
+    end,
+    ['ltn-dispatcher-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_updates_per_tick = settings.global[name].value end,
+    ['ltn-depot-reset-filters'] = function(ltn_settings, name) ltn_settings.depot_reset_filters = settings.global[name].value end,
+    ['ltn-depot-fluid-cleaning'] = function(ltn_settings, name) ltn_settings.depot_fluid_cleaning = settings.global[name].value end,
+    ['ltn-stop-default-network'] = function(ltn_settings, name) ltn_settings.default_network = settings.global[name].value end,
+    ['ltn-provider-show-existing-cargo'] = function(ltn_settings, name) ltn_settings.provider_show_existing_cargo = settings.global[name].value end,
+    ['ltn-provider-ignore-stopped-train'] = function(ltn_settings, name) ltn_settings.requester_ignores_trains = settings.global[name].value end,
+
+    ['ltn-schedule-fuel-station'] = function(ltn_settings, name) ltn_settings.enable_fuel_stations = settings.global[name].value end,
+    ['ltn-schedule-reset-interrupts'] = function(ltn_settings, name) ltn_settings.reset_interrupts = settings.global[name].value end,
 }
 
 
-script.on_event(defines.events.on_runtime_mod_setting_changed, function(event)
-    if event and change_settings[event.setting] then
-        change_settings[event.setting]()
+function LtnSettings:init()
+    for name in pairs(change_settings) do
+        change_settings[name](self, name)
     end
-end)
+end
+
+function LtnSettings:getUpdatesPerTick()
+    return (self.dispatcher_nth_tick == 1) and self.dispatcher_updates_per_tick or 1
+end
+
+---@param event EventData.on_runtime_mod_setting_changed
+function LtnSettings.on_config_changed(event)
+    local name = event.setting
+    if event and change_settings[name] then
+        local tick_update = change_settings[name](LtnSettings, name) or false
+        if tick_update then
+            tools.updateDispatchTicker()
+        end
+    end
+end
+
+return LtnSettings

@@ -33,6 +33,7 @@ local function initialize(oldVersion, newVersion)
 
     ---- initialize stops
     storage.LogisticTrainStops = storage.LogisticTrainStops or {}
+    storage.FuelStations = storage.FuelStations or {}
 
     -- table of connections per surface used to decide if providers from another surface are valid sources
     -- { [surface1.index|surface2.index] = { [entity1.unit_number|entity2.unit_number] = { entity1, entity2, network_id } }
@@ -72,7 +73,6 @@ local function initialize(oldVersion, newVersion)
     -- update to 1.6.1 migrate locomotiveID to trainID
     if oldVersion and oldVersion < '01.06.01' then
         local locoID_to_trainID = {} -- id dictionary
-        local new_availableTrains = {}
         local new_Deliveries = {}
 
         local train_manager = game.train_manager
@@ -101,7 +101,7 @@ local function initialize(oldVersion, newVersion)
 
     -- update to 1.8.0
     if oldVersion and oldVersion < '01.08.00' then
-        for stopID, stop in pairs(storage.LogisticTrainStops) do
+        for _, stop in pairs(storage.LogisticTrainStops) do
             local control = stop.entity.get_or_create_control_behavior --[[@as LuaTrainStopControlBehavior]]
             control.send_to_train = true
             control.read_from_train = true
@@ -110,7 +110,7 @@ local function initialize(oldVersion, newVersion)
 
     -- update to 1.12.3 migrate networkID to network_id
     if oldVersion and oldVersion < '01.12.03' then
-        for train_id, delivery in pairs(storage.Dispatcher.Deliveries) do
+        for _, delivery in pairs(storage.Dispatcher.Deliveries) do
             delivery.network_id = delivery.networkID
             delivery.networkID = nil
         end
@@ -118,7 +118,7 @@ local function initialize(oldVersion, newVersion)
 
     -- update to 1.13.1 renamed almost all stop properties
     if oldVersion and oldVersion < '01.13.01' and next(storage.LogisticTrainStops) then
-        for stopID, stop in pairs(storage.LogisticTrainStops) do
+        for _, stop in pairs(storage.LogisticTrainStops) do
             stop.lamp_control = stop.lamp_control or stop.lampControl
             stop.lampControl = nil ---@diagnostic disable-line: inject-field
             stop.error_code = stop.error_code or stop.errorCode or -1
@@ -135,13 +135,13 @@ local function initialize(oldVersion, newVersion)
             stop.minTraincars = nil ---@diagnostic disable-line: inject-field
             stop.max_trains = stop.max_trains or stop.trainLimit or 0
             stop.trainLimit = nil ---@diagnostic disable-line: inject-field
-            stop.providing_threshold = stop.providing_threshold or stop.provideThreshold or min_provided
+            stop.providing_threshold = stop.providing_threshold or stop.provideThreshold or LtnSettings.min_provided
             stop.provideThreshold = nil ---@diagnostic disable-line: inject-field
             stop.providing_threshold_stacks = stop.providing_threshold_stacks or stop.provideStackThreshold or 0
             stop.provideStackThreshold = nil ---@diagnostic disable-line: inject-field
             stop.provider_priority = stop.provider_priority or stop.providePriority or 0
             stop.providePriority = nil ---@diagnostic disable-line: inject-field
-            stop.requesting_threshold = stop.requesting_threshold or stop.requestThreshold or min_requested
+            stop.requesting_threshold = stop.requesting_threshold or stop.requestThreshold or LtnSettings.min_requested
             stop.requestThreshold = nil ---@diagnostic disable-line: inject-field
             stop.requesting_threshold_stacks = stop.requesting_threshold_stacks or stop.requestStackThreshold or 0
             stop.requestStackThreshold = nil ---@diagnostic disable-line: inject-field
@@ -160,7 +160,7 @@ local function initialize(oldVersion, newVersion)
 
     -- update to 1.9.4
     if oldVersion and oldVersion < '01.09.04' then
-        for stopID, stop in pairs(storage.LogisticTrainStops) do
+        for _, stop in pairs(storage.LogisticTrainStops) do
             stop.lamp_control.teleport { stop.input.position.x, stop.input.position.y } -- move control under lamp
 
             local input_connectors = stop.input.get_wire_connectors(true)
@@ -209,9 +209,11 @@ local function initializeTrainStops()
                 if ltn_stop_entity_names[stop.name] then
                     local ltn_stop = storage.LogisticTrainStops[stop.unit_number]
                     if ltn_stop then
-                        if not (ltn_stop.output and ltn_stop.output.valid and ltn_stop.input and ltn_stop.input.valid and ltn_stop.lamp_control and ltn_stop.lamp_control.valid) then
+                        if not (ltn_stop.output and ltn_stop.output.valid)
+                            and (ltn_stop.input and ltn_stop.input.valid)
+                            and (ltn_stop.lamp_control and ltn_stop.lamp_control.valid) then
                             -- I/O entities are corrupted
-                            log('[LTN] recreating corrupt stop ' .. tostring(stop.backer_name))
+                            log(string.format('[LTN] recreating corrupt stop %s', stop.backer_name))
                             storage.LogisticTrainStops[stop.unit_number] = nil
                             CreateStop(stop) -- recreate to spawn missing I/O entities
                         end
@@ -230,15 +232,14 @@ local function updateAllTrains()
     -- reset global lookup tables
     storage.StoppedTrains = {} -- trains stopped at LTN stops
     storage.StopDistances = {} -- reset station distance lookup table
-    storage.WagonCapacity = {  --preoccupy table with wagons to ignore at 0 capacity
-        ['rail-tanker'] = 0
-    }
+    storage.WagonCapacity = {}
+
     storage.Dispatcher.availableTrains_total_capacity = 0
     storage.Dispatcher.availableTrains_total_fluid_capacity = 0
     storage.Dispatcher.availableTrains = {}
 
     -- remove all parked train from logistic stops
-    for stopID, stop in pairs(storage.LogisticTrainStops) do
+    for _, stop in pairs(storage.LogisticTrainStops) do
         stop.parked_train = nil
         stop.parked_train_id = nil
         UpdateStopOutput(stop)
@@ -274,14 +275,9 @@ local function registerEvents()
     script.on_event(defines.events.script_raised_destroy, OnEntityRemoved)
 
     script.on_event({ defines.events.on_pre_surface_deleted, defines.events.on_pre_surface_cleared }, OnSurfaceRemoved)
+    script.on_event(defines.events.on_runtime_mod_setting_changed, LtnSettings.on_config_changed)
 
-    if storage.LogisticTrainStops and next(storage.LogisticTrainStops) then
-        -- script.on_event(defines.events.on_tick, OnTick)
-        script.on_nth_tick(nil)
-        script.on_nth_tick(dispatcher_nth_tick, OnTick)
-        script.on_event(defines.events.on_train_changed_state, OnTrainStateChanged)
-        script.on_event(defines.events.on_train_created, OnTrainCreated)
-    end
+    tools.updateDispatchTicker()
 
     -- disable instant blueprint in creative mode
     if remote.interfaces['creative-mode'] and remote.interfaces['creative-mode']['exclude_from_instant_blueprint'] then
@@ -292,7 +288,7 @@ local function registerEvents()
 
     -- blacklist LTN entities from picker dollies
     if remote.interfaces['PickerDollies'] and remote.interfaces['PickerDollies']['add_blacklist_name'] then
-        for name, offset in pairs(ltn_stop_entity_names) do
+        for name, _ in pairs(ltn_stop_entity_names) do
             remote.call('PickerDollies', 'add_blacklist_name', name, true)
         end
         remote.call('PickerDollies', 'add_blacklist_name', ltn_stop_input, true)
@@ -302,10 +298,14 @@ local function registerEvents()
 end
 
 script.on_load(function()
+    LtnSettings:init()
+
     registerEvents()
 end)
 
 script.on_init(function()
+    LtnSettings:init()
+
     -- format version string to "00.00.00"
     local oldVersion, newVersion = nil, nil
     local newVersionString = script.active_mods[MOD_NAME]

@@ -179,16 +179,17 @@ function CreateStop(entity)
         active_deliveries = {}, --delivery IDs to/from stop
         error_code = -1,        --key to error_codes table
         is_depot = false,
+        is_fuel_station = false,
         depot_priority = 0,
-        network_id = default_network,
+        network_id = LtnSettings.default_network,
         min_carriages = 0,
         max_carriages = 0,
         max_trains = 0,
-        requesting_threshold = min_requested,
+        requesting_threshold = LtnSettings.min_requested,
         requesting_threshold_stacks = 0,
         requester_priority = 0,
         no_warnings = false,
-        providing_threshold = min_provided,
+        providing_threshold = LtnSettings.min_provided,
         providing_threshold_stacks = 0,
         provider_priority = 0,
         locked_slots = 0,
@@ -197,12 +198,9 @@ function CreateStop(entity)
     UpdateStopOutput(storage.LogisticTrainStops[entity.unit_number])
 
     -- register events
-    script.on_nth_tick(nil)
-    script.on_nth_tick(dispatcher_nth_tick, OnTick)
-    script.on_event(defines.events.on_train_changed_state, OnTrainStateChanged)
-    script.on_event(defines.events.on_train_created, OnTrainCreated)
+    tools.updateDispatchTicker()
 
-    if debug_log then log(string.format('(OnEntityCreated) on_nth_tick(%d), on_train_changed_state, on_train_created registered', dispatcher_nth_tick)) end
+    if debug_log then log(string.format('(OnEntityCreated) on_nth_tick(%d), on_train_changed_state, on_train_created registered', LtnSettings.dispatcher_nth_tick)) end
 end
 
 ---@param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.on_entity_cloned
@@ -219,24 +217,25 @@ end
 ---@param stopID number
 ---@param create_ghosts boolean?
 function RemoveStop(stopID, create_ghosts)
-    local dispatcher = tools.getDispatcher()
-
-    local stop = storage.LogisticTrainStops[stopID]
-
     -- clean lookup tables
-    for k, v in pairs(storage.StopDistances) do
+    for k in pairs(storage.StopDistances) do
         if k:find(stopID) then
             storage.StopDistances[k] = nil
         end
     end
 
-    -- remove available train
-    if stop and stop.is_depot then
-        tools.reduceAvailableCapacity(stop.parked_train_id)
-    end
+    local stop = storage.LogisticTrainStops[stopID]
 
-    -- destroy IO entities, broken IO entities should be sufficiently handled in initializeTrainStops()
     if stop then
+        -- remove available train
+        if GetStationType(stop) ~= station_type.station then
+            tools.removeStop(tools.getDepots(), stopID)
+            tools.removeStop(tools.getFuelStations(), stopID)
+
+            tools.reduceAvailableCapacity(stop.parked_train_id)
+        end
+
+        -- destroy IO entities, broken IO entities should be sufficiently handled in initializeTrainStops()
         if stop.input and stop.input.valid then
             if create_ghosts then
                 stop.input.destructible = true
@@ -254,9 +253,9 @@ function RemoveStop(stopID, create_ghosts)
             end
         end
         if stop.lamp_control and stop.lamp_control.valid then stop.lamp_control.destroy() end
-    end
 
-    storage.LogisticTrainStops[stopID] = nil
+        storage.LogisticTrainStops[stopID] = nil
+    end
 
     if not next(storage.LogisticTrainStops) then
         -- reset tick indexes
@@ -265,9 +264,7 @@ function RemoveStop(stopID, create_ghosts)
         storage.tick_request_index = nil
 
         -- unregister events
-        script.on_nth_tick(nil)
-        script.on_event(defines.events.on_train_changed_state, nil)
-        script.on_event(defines.events.on_train_created, nil)
+        tools.updateDispatchTicker()
         if debug_log then log('(OnEntityRemoved) Removed last LTN Stop: on_nth_tick, on_train_changed_state, on_train_created unregistered') end
     end
 end

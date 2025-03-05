@@ -2,6 +2,7 @@
 -- Manage all schedule related things
 -----------------------------------------------------------------------
 
+local util = require('util')
 local tools = require('script.tools')
 
 ---@class ltn.ScheduleManager
@@ -64,32 +65,203 @@ function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
     end
 end
 
+---@param train LuaTrain
+---@param network_id integer
+---@return ltn.TrainStop? train_stop A depot train stop
+function ScheduleManager.findDepot(train, network_id)
+    local all_stops = tools.getAllStops()
+    local all_depots = tools.findMatchingStops(tools.getDepots(), network_id)
+    if table_size(all_depots) == 0 then return nil end
+
+    ---@type LuaEntity[]
+    local depots = {}
+    for _, depot in pairs(all_depots) do
+        table.insert(depots, depot.entity)
+    end
+
+    local path_results = game.train_manager.request_train_path {
+        type = 'all-goals-accessible',
+        train = train,
+        goals = depots,
+    }
+
+    if path_results.amount_accessible == 0 then return nil end
+    ---@type ltn.TrainStop[]
+    local accessible_stations = {}
+
+    for idx, accessible in pairs(path_results.accessible) do
+        if accessible then
+            table.insert(accessible_stations, all_stops[depots[idx].unit_number])
+        end
+    end
+
+    return accessible_stations[math.random(#accessible_stations)]
+end
+
+---@param train LuaTrain
+---@param network_id integer
+---@return ltn.TrainStop? train_stop A fuel station train stop
+function ScheduleManager:findFuelStation(train, network_id)
+    local all_stops = tools.getAllStops()
+    local all_fuel_stations = tools.findMatchingStops(tools.getFuelStations(), network_id)
+    if table_size(all_fuel_stations) == 0 then return nil end
+
+    ---@type LuaEntity[]
+    local stations = {}
+    for _, station in pairs(all_fuel_stations) do
+        if station.fuel_signals then -- must provide some threshold signal
+            table.insert(stations, station.entity)
+        end
+    end
+
+    ---@type TrainPathFinderOneGoalResult
+    local path_result = game.train_manager.request_train_path {
+        type = 'any-goal-accessible',
+        train = train,
+        goals = stations,
+    }
+
+    if not path_result.found_path then return nil end
+    return all_stops[stations[path_result.goal_index].unit_number]
+end
+
+---@param train LuaTrain
+function ScheduleManager:resetInterrupts(train)
+    if not LtnSettings.reset_interrupts then return end
+
+    local train_schedule = train.get_schedule()
+
+    if not LtnSettings.enable_fuel_stations then
+        train_schedule.clear_interrupts()
+        return
+    end
+
+    for i = train_schedule.interrupt_count, 1, -1 do
+        local interrupt = train_schedule.get_interrupt(i)
+        if interrupt and interrupt.name ~= LTN_INTERRUPT_NAME then
+            train_schedule.remove_interrupt(i)
+        end
+    end
+end
+
 ---@param train_schedule LuaSchedule
-function ScheduleManager:resetSchedule(train_schedule)
-    local record_count = train_schedule.get_record_count()
-    if not record_count then return end
-    for i = record_count, 1, -1 do
-        train_schedule.remove_record { schedule_index = i }
+---@param name string
+---@return integer?
+local function find_interupt_index(train_schedule, name)
+    for i = 1, train_schedule.interrupt_count do
+        local interrupt = train_schedule.get_interrupt(i)
+        if interrupt and interrupt.name == name then return i end
+    end
+    return nil
+end
+
+---@param train LuaTrain
+function ScheduleManager:removeFuelInterrupt(train)
+    local train_schedule = train.get_schedule()
+    local interrupt_index = find_interupt_index(train_schedule, LTN_INTERRUPT_NAME)
+    if interrupt_index then train_schedule.remove_interrupt(interrupt_index) end
+end
+
+---@param train LuaTrain
+---@param network_id integer
+function ScheduleManager:updateFuelInterrupt(train, network_id)
+    local fuel_station = self:findFuelStation(train, network_id)
+    local train_schedule = train.get_schedule()
+
+    local interrupt_index = find_interupt_index(train_schedule, LTN_INTERRUPT_NAME)
+
+    if LtnSettings.enable_fuel_stations and fuel_station then
+        assert(fuel_station.fuel_signals)
+
+        ---@type WaitCondition[]
+        local interrupt_conditions = {}
+
+        for _, circuit_condition in pairs(fuel_station.fuel_signals) do
+            table.insert(interrupt_conditions, {
+                type = 'fuel_item_count_any',
+                condition = util.copy(circuit_condition),
+                compare_type = 'or',
+            })
+            table.insert(interrupt_conditions, {
+                type = 'fuel_item_count_any',
+                condition = {
+                    comparator = '>',
+                    first_signal = util.copy(circuit_condition.first_signal),
+                    constant = 0,
+                },
+                compare_type = 'and',
+            })
+        end
+
+        ---@type ScheduleInterrupt
+        local schedule_interrupt = {
+            name = LTN_INTERRUPT_NAME,
+            inside_interrupt = false,
+            conditions = interrupt_conditions,
+            targets = {
+                {
+                    station = fuel_station.entity.backer_name,
+                    rail = fuel_station.entity.connected_rail,
+                    rail_direction = fuel_station.entity.connected_rail_direction,
+                    wait_conditions = {
+                        {
+                            type = 'inactivity',
+                            ticks = 120,
+                        },
+                        {
+                            type = 'fuel_full',
+                            compare_type = 'or',
+                        },
+
+                    },
+                    temporary = true,
+                    allows_unloading = false,
+                }
+            }
+        }
+
+        if interrupt_index then
+            train_schedule.change_interrupt(interrupt_index, schedule_interrupt)
+        else
+            train_schedule.add_interrupt(schedule_interrupt)
+        end
+    else
+        -- no fuel station in the network
+        if interrupt_index then train_schedule.remove_interrupt(interrupt_index) end
     end
 end
 
 --- Adds a stop for a depot
 ---@param train LuaTrain
----@param stop_name string
+---@param stop ltn.TrainStop
 ---@param inactivity number
 ---@param reset boolean?
-function ScheduleManager:depotStop(train, stop_name, inactivity, reset)
+function ScheduleManager:depotStop(train, stop, inactivity, reset)
     local train_schedule = train.get_schedule()
 
     local count = train_schedule.get_record_count()
     if reset or count == 0 then
-        self:resetSchedule(train_schedule)
+        train_schedule.clear_records()
+
         train_schedule.add_record {
-            station = stop_name,
+            station = stop.entity.backer_name,
+            --            rail = stop.entity.connected_rail,
+            ---@diagnostic disable-next-line: assign-type-mismatch
+            rail_direction = stop.entity.connected_rail_direction,
             temporary = false,
+            allows_unloading = true,
+            -- wait_conditions = { -- see https://forums.factorio.com/viewtopic.php?t=127270
+            --     {
+            --         type = 'inactivity',
+            --         ticks = inactivity,
+            --     }
+
+            -- },
         }
-        train_schedule.add_wait_condition({ schedule_index = 1 }, 1, 'inactivity') -- see https://forums.factorio.com/viewtopic.php?t=127153
-        train_schedule.change_wait_condition({ schedule_index = 1 }, 1, {
+
+        local record_position = { schedule_index = 1 }
+        train_schedule.add_wait_condition(record_position, 1, 'inactivity')
+        train_schedule.change_wait_condition(record_position, 1, {
             type = 'inactivity',
             ticks = inactivity,
         })
@@ -106,47 +278,38 @@ function ScheduleManager:temporaryStop(train, rail, rail_direction, stop_schedul
     train_schedule.add_record {
         temporary = true,
         rail = rail,
---         rail_direction = rail_direction, -- not yet supported in 2.0.37
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        rail_direction = rail_direction,
+        allows_unloading = false,
+        -- wait_conditions = { -- see https://forums.factorio.com/viewtopic.php?t=127270
+        --     {
+        --         type = 'time',
+        --         ticks = 0,
+        --     }
+        -- },
     }
 
-    local index = train_schedule.get_record_count()
-    train_schedule.drag_record(1, index) -- https://forums.factorio.com/viewtopic.php?t=127178
-
-
-    -- train_schedule.add_wait_condition({ schedule_index = index }, 1, 'time') -- see https://forums.factorio.com/viewtopic.php?t=127180
-    train_schedule.change_wait_condition({ schedule_index = index }, 1, {
+    local record_position = { schedule_index = train_schedule.get_record_count() }
+    train_schedule.add_wait_condition(record_position, 1, 'time')
+    train_schedule.change_wait_condition(record_position, 1, {
         type = 'time',
         ticks = 0,
     })
-
-    if stop_schedule_index then
-        train_schedule.drag_record(index, stop_schedule_index)
-    end
 end
 
----@param train LuaTrain
-function ScheduleManager:addControlSignals(train)
-    local train_schedule = train.get_schedule()
-    local record_index = {
-        schedule_index = train_schedule.get_record_count()
-    }
-
-    local idx = train_schedule.get_wait_condition_count(record_index) + 1
-
-    if finish_loading then
-        train_schedule.add_wait_condition(record_index, idx, 'inactivity') -- see https://forums.factorio.com/viewtopic.php?t=127153
-        train_schedule.change_wait_condition(record_index, idx, {
+---@param wait_conditions WaitCondition[]
+function ScheduleManager:addControlSignals(wait_conditions)
+    if LtnSettings.finish_loading then
+        table.insert(wait_conditions, {
             compare_type = 'and',
             type = 'inactivity',
             ticks = 120,
         })
-        idx = idx + 1
     end
 
     -- with circuit control enabled keep trains waiting until red = 0 and force them out with green ≥ 1
-    if schedule_cc then
-        train_schedule.add_wait_condition(record_index, idx, 'circuit') -- see https://forums.factorio.com/viewtopic.php?t=127153
-        train_schedule.change_wait_condition(record_index, idx, {
+    if LtnSettings.schedule_cc then
+        table.insert(wait_conditions, {
             compare_type = 'and',
             type = 'circuit',
             condition = {
@@ -159,9 +322,7 @@ function ScheduleManager:addControlSignals(train)
                 constant = 0,
             }
         })
-        idx = idx + 1
-        train_schedule.add_wait_condition(record_index, idx, 'circuit') -- see https://forums.factorio.com/viewtopic.php?t=127153
-        train_schedule.change_wait_condition(record_index, idx, {
+        table.insert(wait_conditions, {
             compare_type = 'or',
             type = 'circuit',
             condition = {
@@ -174,17 +335,13 @@ function ScheduleManager:addControlSignals(train)
                 constant = 1,
             }
         })
-        idx = idx + 1
     end
 
-    if stop_timeout > 0 then -- send stuck trains away when stop_timeout is set
-        train_schedule.add_wait_condition(record_index, idx, 'time')
-        train_schedule.change_wait_condition(record_index, idx, condition_stop_timeout)
-        idx = idx + 1
+    if LtnSettings.stop_timeout > 0 then -- send stuck trains away when stop_timeout is set
+        table.insert(wait_conditions, LtnSettings.condition_stop_timeout)
         -- should it also wait for red = 0?
-        if schedule_cc then
-            train_schedule.add_wait_condition(record_index, idx, 'circuit') -- see https://forums.factorio.com/viewtopic.php?t=127153
-            train_schedule.change_wait_condition(record_index, idx, {
+        if LtnSettings.schedule_cc then
+            table.insert(wait_conditions, {
                 compare_type = 'and',
                 type = 'circuit',
                 condition = {
@@ -202,26 +359,15 @@ function ScheduleManager:addControlSignals(train)
 end
 
 ---@param train LuaTrain
----@param stationName string
+---@param stop ltn.TrainStop
 ---@param loadingList ltn.ItemLoadingElement[]
-function ScheduleManager:providerStop(train, stationName, loadingList)
-    local train_schedule = train.get_schedule()
-    train_schedule.add_record {
-        station = stationName,
-        temporary = false,
-    }
+function ScheduleManager:providerStop(train, stop, loadingList)
+    local wait_conditions = {}
 
-    local record_index = {
-        schedule_index = train_schedule.get_record_count()
-    }
-
-    for idx, loadingElement in pairs(loadingList) do
-        ---@type WaitConditionType
-        local wait_condition_type = loadingElement.item.type == 'item' and 'item_count' or 'fluid_count'
-        train_schedule.add_wait_condition(record_index, idx, wait_condition_type) -- see https://forums.factorio.com/viewtopic.php?t=127153
-        train_schedule.change_wait_condition(record_index, idx, {
+    for _, loadingElement in pairs(loadingList) do
+        table.insert(wait_conditions, {
             compare_type = 'and',
-            type = wait_condition_type,
+            type = loadingElement.item.type == 'item' and 'item_count' or 'fluid_count',
             condition = {
                 comparator = '>=',
                 first_signal = loadingElement.item,
@@ -230,31 +376,29 @@ function ScheduleManager:providerStop(train, stationName, loadingList)
         })
     end
 
-    self:addControlSignals(train)
+    self:addControlSignals(wait_conditions)
 
-    train_schedule.set_allow_unloading(record_index, false)
+    local train_schedule = train.get_schedule()
+    train_schedule.add_record {
+        station = stop.entity.backer_name,
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        rail_direction = stop.entity.connected_rail_direction,
+        temporary = false,
+        allows_unloading = false,
+        wait_conditions = wait_conditions,
+    }
 end
 
 ---@param train LuaTrain
----@param stationName string
+---@param stop ltn.TrainStop
 ---@param loadingList ltn.ItemLoadingElement[]
-function ScheduleManager:requesterStop(train, stationName, loadingList)
-    local train_schedule = train.get_schedule()
-    train_schedule.add_record {
-        station = stationName,
-        temporary = false,
-    }
+function ScheduleManager:requesterStop(train, stop, loadingList)
+    local wait_conditions = {}
 
-    local record_index = {
-        schedule_index = train_schedule.get_record_count()
-    }
-
-    for idx, loadingElement in pairs(loadingList) do
-        local wait_condition_type = loadingElement.item.type == 'item' and 'item_count' or 'fluid_count'
-        train_schedule.add_wait_condition(record_index, idx, wait_condition_type) -- see https://forums.factorio.com/viewtopic.php?t=127153
-        train_schedule.change_wait_condition(record_index, idx, {
+    for _, loadingElement in pairs(loadingList) do
+        table.insert(wait_conditions, {
             compare_type = 'and',
-            type = wait_condition_type,
+            type = loadingElement.item.type == 'item' and 'item_count' or 'fluid_count',
             condition = {
                 comparator = '=',
                 first_signal = loadingElement.item,
@@ -263,9 +407,17 @@ function ScheduleManager:requesterStop(train, stationName, loadingList)
         })
     end
 
-    self:addControlSignals(train)
+    self:addControlSignals(wait_conditions)
 
-    train_schedule.set_allow_unloading(record_index, true)
+    local train_schedule = train.get_schedule()
+    train_schedule.add_record {
+        station = stop.entity.backer_name,
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        rail_direction = stop.entity.connected_rail_direction,
+        temporary = false,
+        allows_unloading = true,
+        wait_conditions = wait_conditions,
+    }
 end
 
 ---@param train LuaTrain
@@ -291,15 +443,7 @@ end
 ---@return integer current
 function ScheduleManager:getSchedule(train)
     local train_schedule = train.get_schedule()
-    ---@type ScheduleRecord[]
-    local records = {}
-    local record_count = train_schedule.get_record_count()
-
-    if record_count then
-        for i = 1, record_count, 1 do
-            table.insert(records, train_schedule.get_record { schedule_index = i })
-        end
-    end
+    local records = train_schedule.get_records() or {}
     return records, train_schedule.current
 end
 

@@ -161,4 +161,18 @@ data:extend {
         setting_type = 'runtime-global',
         default_value = true
     },
+    {
+        type = 'bool-setting',
+        name = 'ltn-schedule-fuel-station',
+        order = 'ed',
+        setting_type = 'runtime-global',
+        default_value = false,
+    },
+    {
+        type = 'bool-setting',
+        name = 'ltn-schedule-reset-interrupts',
+        order = 'ee',
+        setting_type = 'runtime-global',
+        default_value = false,
+    },
 }

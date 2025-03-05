@@ -10,11 +10,13 @@
 ---@field tick_interval_start   number
 ---@field tick_stop_index       number?
 ---@field Dispatcher            ltn.Dispatcher
----@field LogisticTrainStops    table<number, ltn.TrainStop>
+---@field LogisticTrainStops    table<integer, ltn.TrainStop>
 ---@field ConnectedSurfaces     table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
 ---@field StoppedTrains         table<number, ltn.StoppedTrain>
 ---@field StopDistances         table<string, number>
 ---@field WagonCapacity         table<string, number>
+---@field FuelStations          ltn.TrainStop[][]
+---@field Depots                ltn.TrainStop[][]
 
 ---------------------------------------------------------
 --- Type aliases
@@ -64,6 +66,7 @@
 ---@field lamp_control                LuaEntity  Hidden combinator that controls the input lamp
 ---@field error_code                  number     Current error state of the stop
 ---@field is_depot                    boolean    True if the stop is a depot
+---@field is_fuel_station             boolean    True if the stop is a fuel station
 ---@field depot_priority              number     Depot priority value
 ---@field network_id                  number     Encoded network id for the stop
 ---@field min_carriages               number     minimum train length for this stop
@@ -80,6 +83,7 @@
 ---@field parked_train                LuaTrain?  The currently parked train at this stop
 ---@field parked_train_id             number?    The train id of the currently parked train
 ---@field parked_train_faces_stop     boolean?   True if the train faces the stop, false otherwise
+---@field fuel_signals                (CircuitCondition[])? Fuel Signals for a fuel station, used to create refuel interrupt condition
 
 --- LTN Train information
 ---@class ltn.Train
@@ -139,7 +143,7 @@
 ---------------------------------------------------------
 
 ---@class ltn.Provider
----@field entity                      LuaEntity
+---@field stop                        ltn.TrainStop
 ---@field network_id                  number
 ---@field priority                    number
 ---@field activeDeliveryCount         number
@@ -167,6 +171,7 @@
 
 ---@class ltn.SignalState
 ---@field is_depot boolean
+---@field is_fuel_station boolean
 ---@field depot_priority number
 ---@field network_id number
 ---@field min_carriages number

@@ -52,7 +52,8 @@ function TrainArrives(train)
         if debug_log then log(string.format('(TrainArrives) Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop)) end
 
         if stop.error_code == 0 then
-            if stop.is_depot then
+            local stop_type = GetStationType(stop)
+            if stop_type == station_type.depot then
                 local delivery = dispatcher.Deliveries[train.id]
                 if delivery then
                     -- delivery should have been removed when leaving requester. Handle like delivery timeout.
@@ -72,12 +73,15 @@ function TrainArrives(train)
                     RemoveDelivery(train.id)
                 end
 
+                schedule:resetInterrupts(train)
+                schedule:updateFuelInterrupt(train, stop.network_id)
+
                 -- clean fluid residue
                 local train_items = train.get_contents()
                 local train_fluids = train.get_fluid_contents()
-                if table_size(train_fluids) > 0 and depot_fluid_cleaning > 0 then
+                if table_size(train_fluids) > 0 and LtnSettings.depot_fluid_cleaning > 0 then
                     for fluid, count in pairs(train_fluids) do
-                        local cleaning_amount = math.ceil(math.min(count, depot_fluid_cleaning))
+                        local cleaning_amount = math.ceil(math.min(count, LtnSettings.depot_fluid_cleaning))
                         local removed = math.ceil(train.remove_fluid({name=fluid, amount=cleaning_amount}))
                         if debug_log then log(string.format('(TrainArrives) Train \"%s\": Depot fluid removal %s %f/%f', trainName, fluid, removed, count)) end
                     end
@@ -95,10 +99,10 @@ function TrainArrives(train)
                 tools.increaseAvailableCapacity(train, stop)
 
                 -- reset schedule
-                schedule:depotStop(train, stop_name, depot_inactivity, true)
+                schedule:depotStop(train, stop, LtnSettings.depot_inactivity, true)
 
                 -- reset filters and bars
-                if depot_reset_filters and train.cargo_wagons then
+                if LtnSettings.depot_reset_filters and train.cargo_wagons then
                     for _, wagon in pairs(train.cargo_wagons) do
                         local inventory = wagon.get_inventory(defines.inventory.cargo_wagon)
                         if inventory then
@@ -117,7 +121,7 @@ function TrainArrives(train)
                 end
 
                 setLamp(stop, 'blue', 1)
-            else -- stop is no Depot
+            elseif stop_type == station_type.station then -- stop is no Depot
                 -- check requester for incorrect shipment
                 local delivery = dispatcher.Deliveries[train.id]
                 if delivery then
@@ -166,10 +170,12 @@ function TrainArrives(train)
                         break
                     end
                 end
+            elseif stop_type == station_type.fuel_stop then
+                -- fuel stop
             end
         end
 
-        UpdateStopOutput(stop, is_provider and not (provider_show_existing_cargo))
+        UpdateStopOutput(stop, is_provider and not LtnSettings.provider_show_existing_cargo)
     end
 end
 
@@ -203,8 +209,10 @@ function TrainLeaves(trainID)
 
     local stop_name = stop.entity.backer_name
 
+    local stop_type = GetStationType(stop)
+
     -- train was stopped at LTN depot
-    if stop.is_depot then
+    if stop_type == station_type.depot then
         tools.reduceAvailableCapacity(trainID)
 
         if stop.error_code == 0 then
@@ -214,7 +222,7 @@ function TrainLeaves(trainID)
         if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Depot [%d] \"%s\".', trainID, leavingTrain.name, stopID, stop.entity.backer_name)) end
 
         -- train was stopped at LTN stop
-    else
+    elseif stop_type == station_type.station then
         -- remove delivery from stop
         for i = #stop.active_deliveries, 1, -1 do
             if stop.active_deliveries[i] == trainID then
@@ -309,11 +317,10 @@ function TrainLeaves(trainID)
 
             elseif delivery.to_id == stop.entity.unit_number then
                 -- reset schedule before API events
-                if requester_delivery_reset then
-                    -- first stop on each LTN schedule is the depot
-                    local station_name = schedule:getStopName(train, 1)
-                    if station_name then
-                        schedule:depotStop(train, station_name, depot_inactivity, true)
+                if LtnSettings.requester_delivery_reset then
+                    local depot = schedule.findDepot(leavingTrain.train, delivery.network_id)
+                    if depot then
+                        schedule:depotStop(train, depot, LtnSettings.depot_inactivity, true)
                     end
                 end
 
@@ -369,6 +376,10 @@ function TrainLeaves(trainID)
                 setLamp(stop, 'green', 1)
             end
         end
+    elseif stop_type == station_type.fuel_stop then
+        -- temporarily remove the fuel stop, it gets readded at the depot
+        -- otherwise the train could end up in an endless refueling loop
+        schedule:removeFuelInterrupt(train)
     end
 
     -- remove train reference

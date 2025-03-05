@@ -13,14 +13,33 @@ local Tools = {}
 ---
 ---@return ltn.Dispatcher
 function Tools.getDispatcher()
-    return storage.Dispatcher
+    return assert(storage.Dispatcher)
 end
 
 --- Typed access to the stopped trains from storage.
 ---
----@return table<number, ltn.StoppedTrain>
+---@return table<integer, ltn.StoppedTrain>
 function Tools.getStoppedTrains()
-    return storage.StoppedTrains
+    return assert(storage.StoppedTrains)
+end
+
+--- Typed access to all stops
+---
+---@return table<integer, ltn.TrainStop>
+function Tools.getAllStops()
+    return assert(storage.LogisticTrainStops)
+end
+
+--- Typed access to the fuel stops.
+---@return ltn.TrainStop[][]
+function Tools.getFuelStations()
+    return assert(storage.FuelStations)
+end
+
+--- Typed access to the depots.
+---@return ltn.TrainStop[][]
+function Tools.getDepots()
+    return assert(storage.Depots)
 end
 
 -----------------------------------------------------------------------
@@ -218,7 +237,7 @@ end
 function Tools.richTextForStop(entity)
     if not (entity and entity.valid) then return nil end
 
-    if message_include_gps then
+    if LtnSettings.message_include_gps then
         return string.format('[train-stop=%d] [gps=%s,%s,%s]', entity.unit_number, entity.position['x'], entity.position['y'], entity.surface.name)
     else
         return string.format('[train-stop=%d]', entity.unit_number)
@@ -286,6 +305,73 @@ function Tools.increaseAvailableCapacity(train, stop)
     dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity + fluid_capacity
 
     return true
+end
+
+-----------------------------------------------------------------------
+-- Stop List management
+-----------------------------------------------------------------------
+
+---@param stop ltn.TrainStop
+---@param stop_list ltn.TrainStop[]
+---@param network_id integer
+function Tools.updateStopList(stop, stop_list, network_id)
+    for i = 1, 32 do
+        local stops = stop_list[i] or {}
+        local in_network = bit32.btest(network_id, bit32.lshift(1, i - 1))
+        stops[stop.entity.unit_number] = in_network and stop or nil
+        stop_list[i] = stops
+    end
+end
+
+--- Find all stations in the stop list that are a match for the given network id.
+---@param stop_list ltn.TrainStop[]
+---@param network_id integer
+---@param available boolean? If true, only available stops are returned
+---@return ltn.TrainStop[] train_stops Available train stops
+function Tools.findMatchingStops(stop_list, network_id, available)
+    local all_stops = Tools.getAllStops()
+    local result = {}
+
+    for i = 1, 32 do
+        if stop_list[i] and bit32.btest(network_id, bit32.lshift(1, i - 1)) then
+            for stop_id in pairs(stop_list[i]) do
+                -- check if the station id is still valid
+                local stop = all_stops[stop_id]
+                if stop then
+                    result[stop_id] = stop
+                else
+                    stop_list[i][stop_id] = nil
+                end
+            end
+        end
+    end
+
+    return result
+end
+
+---@param stop_list ltn.TrainStop[][]
+---@param stop_id integer
+function Tools.removeStop(stop_list, stop_id)
+    for i = 1, 32 do
+        if stop_list[i] then stop_list[i][stop_id] = nil end
+    end
+end
+
+-----------------------------------------------------------------------
+-- Manage dispatcher ticker events
+-----------------------------------------------------------------------Tools
+function Tools.updateDispatchTicker()
+    local stops = Tools.getAllStops()
+    if next(stops) then
+        -- bring up dispatcher and Train State ticker
+        script.on_nth_tick(LtnSettings.dispatcher_nth_tick, OnTick)
+        script.on_event(defines.events.on_train_changed_state, OnTrainStateChanged)
+        script.on_event(defines.events.on_train_created, OnTrainCreated)
+    else
+        script.on_nth_tick(nil)
+        script.on_event(defines.events.on_train_changed_state, nil)
+        script.on_event(defines.events.on_train_created, nil)
+    end
 end
 
 return Tools

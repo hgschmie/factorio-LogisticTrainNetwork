@@ -2,8 +2,14 @@
 Version: 2.3.0
 Date: ????
   Changes:
-    - Use new LuaSchedule API to manage trains, this preserves interrupts that have been added
-      to the schedule
+    - refactor schedule management with new LuaSchedule API
+    - add new station type 'fuel station'
+    - add new virtual signal 'ltn-fuel-station' to declare a stop to be a fuel station
+    - add configuration option 'ltn-schedule-fuel-station' to enable/disable fuel station support
+    - add configuration option 'ltn-schedule-reset-interrupts' to enable/disable schedule reset
+    - [API] add attribute `is_fuel_station` to `ltn.TrainStop` to show whether this is a fuel station
+    - [API] add attribute `fuel_signals` to `ltn.TrainStop` for the fuel conditions added to the refuel interrupt
+    - trains will reselect a depot in their network when leaving requester and 'delivery ends at requester' is active
 ---------------------------------------------------------------------------------------------------
 Version: 2.2.1
 Date: 2025-02-27

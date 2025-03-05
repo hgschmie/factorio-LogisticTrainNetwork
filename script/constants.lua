@@ -8,6 +8,7 @@ MOD_NAME = 'LogisticTrainNetwork'
 
 ISDEPOT = 'ltn-depot'
 DEPOT_PRIORITY = 'ltn-depot-priority'
+ISFUEL_STATION = 'ltn-fuel-station'
 NETWORKID = 'ltn-network-id'
 MINTRAINLENGTH = 'ltn-min-train-length'
 MAXTRAINLENGTH = 'ltn-max-train-length'
@@ -25,6 +26,7 @@ LOCKEDSLOTS = 'ltn-locked-slots'
 ControlSignals = {
     [ISDEPOT] = { type = 'virtual', name = ISDEPOT, quality = 'normal', },
     [DEPOT_PRIORITY] = { type = 'virtual', name = DEPOT_PRIORITY, quality = 'normal', },
+    [ISFUEL_STATION] = { type = 'virtual', name = ISFUEL_STATION, quality = 'normal', },
     [NETWORKID] = { type = 'virtual', name = NETWORKID, quality = 'normal', },
     [MINTRAINLENGTH] = { type = 'virtual', name = MINTRAINLENGTH, quality = 'normal', },
     [MAXTRAINLENGTH] = { type = 'virtual', name = MAXTRAINLENGTH, quality = 'normal', },
@@ -61,9 +63,9 @@ ColorLookup = {
     red = 'signal-red',
     green = 'signal-green',
     blue = 'signal-blue',
-    yellow = 'signal-yellow',
-    pink = 'signal-pink',
     cyan = 'signal-cyan',
+    pink = 'signal-pink',
+    yellow = 'signal-yellow',
     white = 'signal-white',
     grey = 'signal-grey',
     black = 'signal-black'
@@ -71,3 +73,6 @@ ColorLookup = {
 
 -- often used strings and functions
 MATCH_STRING = '([^,]+),([^,]+)'
+
+-- LTN Interrupt name
+LTN_INTERRUPT_NAME = 'LTN Fuel'
