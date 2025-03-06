@@ -28,7 +28,6 @@ local tools = require('script.tools')
 ---@field default_network integer
 ---@field provider_show_existing_cargo boolean
 ---@field requester_ignores_trains boolean
----@field condition_stop_timeout WaitCondition
 ---@field enable_fuel_stations boolean
 ---@field reset_interrupts boolean
 ---@diagnostic disable-next-line: missing-fields
@@ -49,10 +48,7 @@ local change_settings = {
     ['ltn-dispatcher-provider-threshold'] = function(ltn_settings, name) ltn_settings.min_provided = settings.global[name].value end,
     ['ltn-dispatcher-schedule-circuit-control'] = function(ltn_settings, name) ltn_settings.schedule_cc = settings.global[name].value end,
     ['ltn-dispatcher-depot-inactivity'] = function(ltn_settings, name) ltn_settings.depot_inactivity = settings.global[name].value * 60 end,
-    ['ltn-dispatcher-stop-timeout'] = function(ltn_settings, name)
-        ltn_settings.stop_timeout = settings.global[name].value * 60
-        ltn_settings.condition_stop_timeout = { type = 'time', compare_type = 'or', ticks = ltn_settings.stop_timeout }
-    end,
+    ['ltn-dispatcher-stop-timeout'] = function(ltn_settings, name) ltn_settings.stop_timeout = settings.global[name].value * 60 end,
     ['ltn-dispatcher-delivery-timeout'] = function(ltn_settings, name) ltn_settings.delivery_timeout = settings.global[name].value * 60 end,
     ['ltn-dispatcher-finish-loading'] = function(ltn_settings, name) ltn_settings.finish_loading = settings.global[name].value end,
     ['ltn-dispatcher-requester-delivery-reset'] = function(ltn_settings, name) ltn_settings.requester_delivery_reset = settings.global[name].value end,

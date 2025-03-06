@@ -201,8 +201,6 @@ function ScheduleManager:updateFuelInterrupt(train, network_id)
             targets = {
                 {
                     station = fuel_station.entity.backer_name,
-                    rail = fuel_station.entity.connected_rail,
-                    rail_direction = fuel_station.entity.connected_rail_direction,
                     wait_conditions = {
                         {
                             type = 'inactivity',
@@ -245,26 +243,15 @@ function ScheduleManager:depotStop(train, stop, inactivity, reset)
 
         train_schedule.add_record {
             station = stop.entity.backer_name,
-            --            rail = stop.entity.connected_rail,
-            ---@diagnostic disable-next-line: assign-type-mismatch
-            rail_direction = stop.entity.connected_rail_direction,
             temporary = false,
             allows_unloading = true,
-            -- wait_conditions = { -- see https://forums.factorio.com/viewtopic.php?t=127270
-            --     {
-            --         type = 'inactivity',
-            --         ticks = inactivity,
-            --     }
-
-            -- },
+            wait_conditions = {
+                {
+                    type = 'inactivity',
+                    ticks = inactivity,
+                }
+            },
         }
-
-        local record_position = { schedule_index = 1 }
-        train_schedule.add_wait_condition(record_position, 1, 'inactivity')
-        train_schedule.change_wait_condition(record_position, 1, {
-            type = 'inactivity',
-            ticks = inactivity,
-        })
     end
 end
 
@@ -276,84 +263,72 @@ function ScheduleManager:temporaryStop(train, rail, rail_direction, stop_schedul
     local train_schedule = train.get_schedule()
 
     train_schedule.add_record {
+        index = stop_schedule_index and { schedule_index = stop_schedule_index, },
         temporary = true,
         rail = rail,
-        ---@diagnostic disable-next-line: assign-type-mismatch
         rail_direction = rail_direction,
         allows_unloading = false,
-        -- wait_conditions = { -- see https://forums.factorio.com/viewtopic.php?t=127270
-        --     {
-        --         type = 'time',
-        --         ticks = 0,
-        --     }
-        -- },
+        wait_conditions = {
+            {
+                type = 'time',
+                ticks = 0,
+            }
+        },
     }
-
-    local record_position = { schedule_index = train_schedule.get_record_count() }
-    train_schedule.add_wait_condition(record_position, 1, 'time')
-    train_schedule.change_wait_condition(record_position, 1, {
-        type = 'time',
-        ticks = 0,
-    })
 end
+
+---@type WaitCondition
+local RED_SIGNAL_CONDITION = {
+    compare_type = 'and',
+    type = 'circuit',
+    condition = {
+        comparator = '=',
+        first_signal = {
+            type = 'virtual',
+            name = 'signal-red',
+            quality = 'normal',
+        },
+        constant = 0,
+    }
+}
+
+local GREEN_SIGNAL_CONDITION = {
+    compare_type = 'or',
+    type = 'circuit',
+    condition = {
+        comparator = '>=',
+        first_signal = {
+            type = 'virtual',
+            name = 'signal-green',
+            quality = 'normal',
+        },
+        constant = 1,
+    }
+}
+
+local INACTIVITY_CONDITION = {
+    compare_type = 'and',
+    type = 'inactivity',
+    ticks = 120,
+}
 
 ---@param wait_conditions WaitCondition[]
 function ScheduleManager:addControlSignals(wait_conditions)
     if LtnSettings.finish_loading then
-        table.insert(wait_conditions, {
-            compare_type = 'and',
-            type = 'inactivity',
-            ticks = 120,
-        })
+        table.insert(wait_conditions, INACTIVITY_CONDITION)
     end
 
     -- with circuit control enabled keep trains waiting until red = 0 and force them out with green ≥ 1
     if LtnSettings.schedule_cc then
-        table.insert(wait_conditions, {
-            compare_type = 'and',
-            type = 'circuit',
-            condition = {
-                comparator = '=',
-                first_signal = {
-                    type = 'virtual',
-                    name = 'signal-red',
-                    quality = 'normal',
-                },
-                constant = 0,
-            }
-        })
-        table.insert(wait_conditions, {
-            compare_type = 'or',
-            type = 'circuit',
-            condition = {
-                comparator = '>=',
-                first_signal = {
-                    type = 'virtual',
-                    name = 'signal-green',
-                    quality = 'normal',
-                },
-                constant = 1,
-            }
-        })
+        table.insert(wait_conditions, RED_SIGNAL_CONDITION)
+        table.insert(wait_conditions, GREEN_SIGNAL_CONDITION)
     end
 
     if LtnSettings.stop_timeout > 0 then -- send stuck trains away when stop_timeout is set
-        table.insert(wait_conditions, LtnSettings.condition_stop_timeout)
+        table.insert(wait_conditions, { compare_type = 'or', type = 'time', ticks = LtnSettings.stop_timeout })
         -- should it also wait for red = 0?
         if LtnSettings.schedule_cc then
-            table.insert(wait_conditions, {
-                compare_type = 'and',
-                type = 'circuit',
-                condition = {
-                    comparator = '=',
-                    first_signal = {
-                        type = 'virtual',
-                        name = 'signal-red',
-                        quality = 'normal',
-                    },
-                    constant = 0,
-                }
-            })
+            table.insert(wait_conditions, RED_SIGNAL_CONDITION)
         end
     end
 end
@@ -381,8 +356,6 @@ function ScheduleManager:providerStop(train, stop, loadingList)
     local train_schedule = train.get_schedule()
     train_schedule.add_record {
         station = stop.entity.backer_name,
-        ---@diagnostic disable-next-line: assign-type-mismatch
-        rail_direction = stop.entity.connected_rail_direction,
         temporary = false,
         allows_unloading = false,
         wait_conditions = wait_conditions,
@@ -412,8 +385,6 @@ function ScheduleManager:requesterStop(train, stop, loadingList)
     local train_schedule = train.get_schedule()
     train_schedule.add_record {
         station = stop.entity.backer_name,
-        ---@diagnostic disable-next-line: assign-type-mismatch
-        rail_direction = stop.entity.connected_rail_direction,
         temporary = false,
         allows_unloading = true,
         wait_conditions = wait_conditions,

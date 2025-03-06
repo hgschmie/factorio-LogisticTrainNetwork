@@ -8,7 +8,7 @@
   "description": "Adds new train stops forming a highly configurable, fully automated logistic network.",
   "factorio_version": "2.0",
   "dependencies": [
-    "base >= 2.0.37",
+    "base >= 2.0.39",
     "(?)cargo-ships"
   ],
   "package": {
