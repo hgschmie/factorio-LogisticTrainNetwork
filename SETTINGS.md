@@ -79,7 +79,9 @@ If `true`, a delivery is considered "complete" when the train leaves the request
 
 If `false`, the train schedule will not be changed until the train arrives at the depot.
 
-For "just LTN" operations, there is no difference between the two values. However, when adding additional stops at the end of a delivery (e.g. manually or with another mod), this value must be set to `false`, otherwise these schedule changes will be deleted immediately when the train leaves the requester station.
+For "just LTN" operations, the only difference between the two values is that setting it to `true` will make the train choose a depot from the list of depots available in the network while leaving it at `false` will make the train always return to the same depot.
+
+When adding additional stops at the end of a delivery (e.g. manually or with another mod), this value must be set to `false`, otherwise these schedule changes will be deleted immediately when the train leaves the requester station.
 
 ## Finish loading (ltn-dispatcher-finish-loading) - boolean, default is true
 
@@ -114,3 +116,16 @@ Setting this signal to `false` makes LTN to report only the requested cargo on i
 Pre-2.2.0 release, when requesting multiple deliveries to the same station of the same item or fluid, LTN would consider a parked train that is currently unloading and subtract that cargo from the next delivery. This can lead to a delivery not using a full train but just a fraction.
 
 If this setting is `true`, LTN will ignore any currently unloading train and request the full amount for a delivery. This makes bulk deliveries (e.g. fluids or plates) more efficient as there will always be the configured requester size be delivered. For expensive items, this may lead to "over delivery".
+
+## [NEW in 2.3.0] Enable fuel station (ltn-schedule-fuel-station) - boolean, default is false
+
+Setting this value to `true` will enable refueling support using a new "fuel station" signal. In addition to this signal, a stop must receive additional signals to serve as a fuel station:
+
+- A network id signal that describes for which networks this fuel station is valid. Use `-1` for all networks.
+- Fuel signals ('coal', 'wood', 'solid fuel', 'rocket fuel', 'nuclear fuel' in the base game) with a value that is used as the threshold for refueling. A fuel station does not need to send only the signals for fuels that it provides; the signals are used to create the condition for the fuel interrupt.
+
+## [NEW in 2.3.0] Reset Train schedule interrupts (ltn-schedule-reset-interrupts) - boolean, default is false
+
+Setting this value to `true` will restore the pre-2.3.0 behavior of clearing all Train schedule interrupts when a train receives a new schedule. Leaving it at `false` allows other mods to add interrupts to a train schedule and LTN ignore them.
+
+LTN will still manage its own "LTN Fuel" interrupt when enabling fuel stations (see above).
