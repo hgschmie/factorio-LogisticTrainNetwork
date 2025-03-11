@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.0
-Date: ????
+Date: 2025-03-11
   Changes:
     - refactor schedule management with new LuaSchedule API
     - add new station type 'fuel station'
