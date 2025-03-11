@@ -10,6 +10,7 @@ Date: ????
     - [API] add attribute `is_fuel_station` to `ltn.TrainStop` to show whether this is a fuel station
     - [API] add attribute `fuel_signals` to `ltn.TrainStop` for the fuel conditions added to the refuel interrupt
     - trains will reselect a depot in their network when leaving requester and 'delivery ends at requester' is active
+    - Hide LTN internal entities (stop lamp + combinators) from Factoriopedia
 ---------------------------------------------------------------------------------------------------
 Version: 2.2.1
 Date: 2025-02-27
