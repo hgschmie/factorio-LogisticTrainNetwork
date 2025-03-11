@@ -79,8 +79,6 @@ If `true`, a delivery is considered "complete" when the train leaves the request
 
 If `false`, the train schedule will not be changed until the train arrives at the depot.
 
-For "just LTN" operations, the only difference between the two values is that setting it to `true` will make the train choose a depot from the list of depots available in the network while leaving it at `false` will make the train always return to the same depot.
-
 When adding additional stops at the end of a delivery (e.g. manually or with another mod), this value must be set to `false`, otherwise these schedule changes will be deleted immediately when the train leaves the requester station.
 
 ## Finish loading (ltn-dispatcher-finish-loading) - boolean, default is true
@@ -129,3 +127,11 @@ Setting this value to `true` will enable refueling support using a new "fuel sta
 Setting this value to `true` will restore the pre-2.3.0 behavior of clearing all Train schedule interrupts when a train receives a new schedule. Leaving it at `false` allows other mods to add interrupts to a train schedule and LTN ignore them.
 
 LTN will still manage its own "LTN Fuel" interrupt when enabling fuel stations (see above).
+
+## [NEW in 2.3.0] Reselect Depot when delivery is complete (ltn-schedule-reselect-depot) - boolean, default is false
+
+In normal operations, any LTN controlled train always returns to the depot it was assigned to (the depot that the train was sent to to be registered with LTN).
+
+When this setting is enabled *and* Delivery completes at the requester (ltn-dispatcher-requester-delivery-reset is true), then LTN will choose a new depot at random from the current train network.
+
+This setting has the potential to "pile up" trains in a depot that has not enough available stops. It should only be used if you know what you are doing (and most likely any depot can accommodate all trains in a  network). Normally, this should be kept off.

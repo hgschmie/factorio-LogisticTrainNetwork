@@ -35,9 +35,11 @@ LTN refueling is very limited and only looks at the fuel count across all locomo
 
 ### Depot changing (since 2.3.0)
 
-A train that is added to the LTN network will return to a depot when it finishes a delivery. If the 'ltn-dispatcher-requester-delivery-reset` setting is unset, a train will always return to the depot it was assigned to (the depot that it was sent to when it registered with the LTN network).
+A train that is added to the LTN network will return to a depot when it finishes a delivery. If the 'ltn-schedule-reselect-depot' option is disabled, a train will always return to the depot it was assigned to (the depot that it was sent to when sit registered with the LTN network).
 
-If this setting turned on, then LTN will as soon as the train leaves the requester, select one of the depots that accepts trains in the current network at random. Trains may go to a different depot in that case. This is especially important if a depot serves multiple networks. A train that gets sent to a depot that serves multiple networks becomes eligible to requests in those networks (assuming that capacity, length etc. also match).
+If this setting turned on and also 'ltn-dispatcher-requester-delivery-reset' is enabled, then LTN will, as soon as the train leaves the requester, select one of the depots that accepts trains in the current network at random. Trains may go to a different depot in that case. This is especially important if a depot serves multiple networks. A train that gets sent to a depot that serves multiple networks becomes eligible to requests in those networks (assuming that capacity, length etc. also match).
+
+This setting has the potential to pile up trains in depots that are too small to accommodate all trains that are sent there. Use with caution.
 
 ### API
 

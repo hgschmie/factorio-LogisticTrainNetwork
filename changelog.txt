@@ -7,6 +7,7 @@ Date: ????
     - add new virtual signal 'ltn-fuel-station' to declare a stop to be a fuel station
     - add configuration option 'ltn-schedule-fuel-station' to enable/disable fuel station support
     - add configuration option 'ltn-schedule-reset-interrupts' to enable/disable schedule reset
+    - add configuration option 'ltn-schedule-reselect-depot' to enable depot changes within a network
     - [API] add attribute `is_fuel_station` to `ltn.TrainStop` to show whether this is a fuel station
     - [API] add attribute `fuel_signals` to `ltn.TrainStop` for the fuel conditions added to the refuel interrupt
     - trains will reselect a depot in their network when leaving requester and 'delivery ends at requester' is active

@@ -30,6 +30,7 @@ local tools = require('script.tools')
 ---@field requester_ignores_trains boolean
 ---@field enable_fuel_stations boolean
 ---@field reset_interrupts boolean
+---@field reselect_depot boolean
 ---@diagnostic disable-next-line: missing-fields
 LtnSettings = LtnSettings or {}
 
@@ -66,8 +67,8 @@ local change_settings = {
 
     ['ltn-schedule-fuel-station'] = function(ltn_settings, name) ltn_settings.enable_fuel_stations = settings.global[name].value end,
     ['ltn-schedule-reset-interrupts'] = function(ltn_settings, name) ltn_settings.reset_interrupts = settings.global[name].value end,
+    ['ltn-schedule-reselect-depot'] = function(ltn_settings, name) ltn_settings.reselect_depot = settings.global[name].value end,
 }
-
 
 function LtnSettings:init()
     for name in pairs(change_settings) do

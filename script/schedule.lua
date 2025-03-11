@@ -68,10 +68,26 @@ end
 ---@param train LuaTrain
 ---@param network_id integer
 ---@return ltn.TrainStop? train_stop A depot train stop
-function ScheduleManager.findDepot(train, network_id)
+function ScheduleManager:findDepot(train, network_id)
     local all_stops = tools.getAllStops()
     local all_depots = tools.findMatchingStops(tools.getDepots(), network_id)
     if table_size(all_depots) == 0 then return nil end
+
+    if not LtnSettings.reselect_depot then
+        local train_schedule = train.get_schedule()
+        if train_schedule.get_record_count() > 0 then
+            local depot_record = train_schedule.get_record { schedule_index  = 1, }
+            if depot_record and depot_record.station then
+                for _, depot in pairs(all_depots) do
+                    if depot.entity.backer_name == depot_record.station and all_stops[depot.entity.unit_number] then
+                        return all_stops[depot.entity.unit_number]
+                    end
+                end
+            end
+        end
+    end
+
+    -- no depot found / reselection requested
 
     ---@type LuaEntity[]
     local depots = {}

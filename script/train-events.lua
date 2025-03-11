@@ -318,7 +318,7 @@ function TrainLeaves(trainID)
             elseif delivery.to_id == stop.entity.unit_number then
                 -- reset schedule before API events
                 if LtnSettings.requester_delivery_reset then
-                    local depot = schedule.findDepot(leavingTrain.train, delivery.network_id)
+                    local depot = schedule:findDepot(leavingTrain.train, delivery.network_id)
                     if depot then
                         schedule:depotStop(train, depot, LtnSettings.depot_inactivity, true)
                     end
