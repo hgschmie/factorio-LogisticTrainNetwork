@@ -43,7 +43,7 @@ local ltn_stop_in_update = {
     collision_mask = { layers = { rail = true } },                    -- collide only with rail entities
     energy_usage_per_tick = '10W',
     light = { intensity = 1, size = 6 },
-    energy_source = { type = 'void' },
+    energy_source = meld.overwrite { type = 'void' },
     hidden_in_factoriopedia = true,
 }
 
@@ -62,8 +62,9 @@ local ltn_stop_out_update = {
     collision_box = { { -0.15, -0.15 }, { 0.15, 0.15 } },
     collision_mask = { layers = { rail = true } },                     -- collide only with rail entities
     hidden_in_factoriopedia = true,
+    fast_replaceable_group = meld.delete(),
     ---@diagnostic disable-next-line: undefined-global
-    sprites = make_4way_animation_from_spritesheet {
+    sprites = meld.overwrite(make_4way_animation_from_spritesheet {
         layers = {
             {
                 scale = 0.5,
@@ -83,7 +84,7 @@ local ltn_stop_out_update = {
                 draw_as_shadow = true,
             },
         },
-    },
+    }),
 }
 
 ltn_stop_out = meld(ltn_stop_out, ltn_stop_out_update)
@@ -94,25 +95,27 @@ local ltn_lamp_control = data_util.copy_prototype(data.raw['constant-combinator'
 local ltn_lamp_control_update = {
     -- icon = '__LogisticTrainNetwork__/graphics/icons/empty.png',
     -- icon_size = 32,
+    icon = '__core__/graphics/empty.png',
     next_upgrade = meld.delete(),
     minable = meld.delete(),
     selection_box = meld.delete(),
     collision_box = meld.delete(),
     collision_mask = collision_mask_util.new_mask(), -- disable collision
-    flags = {
+    flags = meld.overwrite {
         'placeable-off-grid', 'not-repairable', 'not-on-map', 'not-deconstructable', 'not-blueprintable',
         'hide-alt-info', 'not-flammable', 'not-upgradable', 'not-in-kill-statistics', 'not-in-made-in',
     },
     hidden = true,
     hidden_in_factoriopedia = true,
-    sprites = util.empty_sprite(),
-    activity_led_sprites = util.empty_sprite(),
-    activity_led_light_offsets = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } },
+    sprites = meld.overwrite(util.empty_sprite()),
+    activity_led_sprites = meld.overwrite(util.empty_sprite()),
+    activity_led_light_offsets = meld.overwrite { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } },
     activity_led_light = meld.delete(),
     draw_circuit_wires = false,
     draw_copper_wires = false,
     allow_copy_paste = false,
     selectable_in_game = false,
+    fast_replaceable_group = meld.delete(),
 }
 
 ltn_lamp_control = meld(ltn_lamp_control, ltn_lamp_control_update)
