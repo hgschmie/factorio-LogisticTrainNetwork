@@ -34,6 +34,7 @@ local function initialize(oldVersion, newVersion)
     ---- initialize stops
     storage.LogisticTrainStops = storage.LogisticTrainStops or {}
     storage.FuelStations = storage.FuelStations or {}
+    storage.Depots = storage.Depots or {}
 
     -- table of connections per surface used to decide if providers from another surface are valid sources
     -- { [surface1.index|surface2.index] = { [entity1.unit_number|entity2.unit_number] = { entity1, entity2, network_id } }

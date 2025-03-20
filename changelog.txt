@@ -3,6 +3,7 @@ Version: 2.3.1
 Date: ????
   Bugfixes:
     - Fix the prototype meld statements
+    - Explicitly initialize the storage depot array. Fixes #14, reported by @ITZtephen on github
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.0
 Date: 2025-03-11
