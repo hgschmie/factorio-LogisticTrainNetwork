@@ -2,6 +2,7 @@
 Version: 2.3.2
 Date: ????
   Changes:
+    - Make schedule parsing more robust after someone managed to trigger the `assert(record.provider ~= record.requester)` assert. Reported by @labminto on the mod forum.
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.1
 Date: 2025-03-20

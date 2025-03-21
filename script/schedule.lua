@@ -18,7 +18,7 @@ local ScheduleManager = {}
 function ScheduleManager:analyzeRecord(wait_conditions)
     local result = {}
     for _, wait_condition in pairs(wait_conditions) do
-        if wait_condition.condition and wait_condition.condition.first_signal then
+        if (wait_condition.type == 'item_count' or wait_condition.type == 'fluid_count') and wait_condition.condition and wait_condition.condition.first_signal then
             local record = {
                 name = wait_condition.condition.first_signal.name,
                 type = wait_condition.condition.first_signal.type or 'item',
@@ -28,9 +28,14 @@ function ScheduleManager:analyzeRecord(wait_conditions)
                 count = wait_condition.condition.constant
             }
             assert(record.name)
-            assert(record.provider ~= record.requester)
-            local key = tools.createItemIdentifier(record)
-            result[key] = record
+
+            if record.provider or record.requester then
+                local key = tools.createItemIdentifier(record)
+                result[key] = record
+            else
+                if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-schedule-record', record.name, record.type, record.count } end
+                if debug_log then log(string.format('(AnalyzeRecord) Invalid Schedule Record: %s / %s / %d', record.name, record.type, record.count)) end
+            end
         end
     end
     return result
@@ -76,7 +81,7 @@ function ScheduleManager:findDepot(train, network_id)
     if not LtnSettings.reselect_depot then
         local train_schedule = train.get_schedule()
         if train_schedule.get_record_count() > 0 then
-            local depot_record = train_schedule.get_record { schedule_index  = 1, }
+            local depot_record = train_schedule.get_record { schedule_index = 1, }
             if depot_record and depot_record.station then
                 for _, depot in pairs(all_depots) do
                     if depot.entity.backer_name == depot_record.station and all_stops[depot.entity.unit_number] then
