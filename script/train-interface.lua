@@ -57,7 +57,7 @@ function GetNextLogisticStop(train, schedule_index)
     local record = records[record_index]
     while record do
         local results = schedule:analyzeRecord(record.wait_conditions)
-        local result = results[identifier]
+        local result = results[item]
         if result then
             if record.station == delivery.from and result.provider then
                 return record_index, delivery.from_id, 'provider'
