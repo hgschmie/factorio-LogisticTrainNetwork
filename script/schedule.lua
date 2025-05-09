@@ -260,6 +260,7 @@ function ScheduleManager:depotStop(train, stop, inactivity, reset)
 
     local count = train_schedule.get_record_count()
     if reset or count == 0 then
+        train.group = ''
         train_schedule.clear_records()
 
         train_schedule.add_record {

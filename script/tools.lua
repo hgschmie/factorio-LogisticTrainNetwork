@@ -359,7 +359,7 @@ end
 
 -----------------------------------------------------------------------
 -- Manage dispatcher ticker events
------------------------------------------------------------------------Tools
+-----------------------------------------------------------------------
 function Tools.updateDispatchTicker()
     local stops = Tools.getAllStops()
     if next(stops) then
