@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.3
-Date: ????
+Date: 2025-05-09
   Bugfixes:
     - fix broken GetNextLogisticStop function (Reported by @harag-on-stream on Github, PR #18. Thank you!)
     - when a train is put under LTN control, it is removed from a train group first (Suggested by @wchristian on Github, #17. Thank you!)
