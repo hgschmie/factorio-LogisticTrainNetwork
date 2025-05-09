@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.3
 Date: ????
+  Bugfixes:
+    - fix broken GetNextLogisticStop function (Reported by @harag-on-stream on Github, PR #18. Thank you!)
   Changes:
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.2

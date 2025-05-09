@@ -34,8 +34,8 @@ function GetNextLogisticStop(train, schedule_index)
         return
     end
 
-    local item = next(delivery.shipment)
-    if not item then
+    local identifier = next(delivery.shipment)
+    if not identifier then
         -- this can happen when the train was unable to load anything at the provider
         if debug_log then log(string.format('(GetNextLogisticStop) train [%d] no longer has a shipment list.', train.id)) end
         return
@@ -44,9 +44,6 @@ function GetNextLogisticStop(train, schedule_index)
     -- Comparing stop names is not enough to find the provider and the requester,
     -- they might share names with each other or another stop in the schedule.
     -- So use a heuristic that also looks at the wait conditions
-    local identifier = tools.parseItemIdentifier(item)
-    if not identifier then return end
-
     local records, current = schedule:getSchedule(train)
 
     local record_index = schedule_index or train.schedule.current or 2 -- defaulting to 1 is pointless because that's the depot
@@ -70,8 +67,6 @@ function GetNextLogisticStop(train, schedule_index)
         record = records[record_index]
     end
 end
-
-local temp_wait_condition = { { type = 'time', compare_type = 'and', ticks = 0 } }
 
 ---Ensures the next logistic stop in the schedule has a temporary stop if is on the same surface as the train.
 ---@param train LuaTrain
