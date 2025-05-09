@@ -8,8 +8,6 @@ It can handle multiple train configurations and will pick the best available tra
 
 LTN has been ported to Factorio 2.0. It will get minimal updates (only really glaring bugs). The current plan is to provide a successor that takes advantage of the improved 2.0 trains while maintaining the ease of scheduling and dispatching with LTN.
 
-The most common request for LTN is "please support Factorio 2.0 train interrupts". As much as this is desirable, currently, _there is no Factorio mod API_ to manage interrupts and changing the schedule of a train resets all interrupts. As soon as the Factorio developers add the necessary APIs, LTN will be updated accordingly.
-
 ### Train Schedule Interrupts (since 2.3.0)
 
 Factorio 2.0 trains support "Train Schedule Interrupts" which trigger under certain conditions. Starting with 2.3.0, LTN will not change any interrupts in the train schedule unless explicitly configured with the `ltn-schedule-reset-interrupts` setting.
