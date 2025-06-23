@@ -2,6 +2,7 @@
 Version: 2.3.4
 Date: ????
   Changes:
+    - restore the behavior that the virtual signals for the lamp color are only present on the green wire. Add documentation.
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.3
 Date: 2025-05-09

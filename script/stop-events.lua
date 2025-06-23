@@ -133,7 +133,6 @@ function CreateStop(entity)
     local input_wire_connectors = input.get_wire_connectors(true)
     local lampctrl_wire_connectors = lampctrl.get_wire_connectors(true)
 
-    input_wire_connectors[defines.wire_connector_id.circuit_red].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_red], false, defines.wire_origin.script)
     input_wire_connectors[defines.wire_connector_id.circuit_green].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_green], false, defines.wire_origin.script)
 
     local input_control = input.get_or_create_control_behavior() --[[@as LuaLampControlBehavior ]]
