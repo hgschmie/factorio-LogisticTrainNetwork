@@ -172,6 +172,7 @@ function TrainArrives(train)
                 end
             elseif stop_type == station_type.fuel_stop then
                 -- fuel stop
+                setLamp(stop, 'blue', 1)
             end
         end
 
@@ -377,6 +378,8 @@ function TrainLeaves(trainID)
             end
         end
     elseif stop_type == station_type.fuel_stop then
+        setLamp(stop, 'cyan', 1)
+
         -- temporarily remove the fuel stop, it gets readded at the depot
         -- otherwise the train could end up in an endless refueling loop
         schedule:removeFuelInterrupt(train)

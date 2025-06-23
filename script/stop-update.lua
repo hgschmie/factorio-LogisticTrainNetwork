@@ -199,7 +199,11 @@ function UpdateStop(stopID, stop)
                 setLamp(stop, 'green', 1)
             end
         elseif new_state == station_type.fuel_stop then
-            setLamp(stop, 'cyan', 1)
+            if stop.parked_train_id and stop.parked_train.valid then
+                setLamp(stop, 'blue', 1)
+            else
+                setLamp(stop, 'cyan', 1)
+            end
         else
             -- unknown station type
             setLamp(stop, 'red', 1)
