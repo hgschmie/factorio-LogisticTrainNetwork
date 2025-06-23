@@ -256,7 +256,7 @@ function UpdateStop(stopID, stop)
                         quality = signal.quality or 'normal',
                     },
                     comparator = '<',
-                    constant = count
+                    constant = math.abs(count)
                 })
             end
         end
