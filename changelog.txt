@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.4
-Date: ????
+Date: 2025-06-23
   Changes:
     - restore the behavior that the virtual signals for the lamp color are only present on the green wire. Add documentation.
     - allow negative amount of fuel for refuel station (treat it as positive). Allows using the LTN combinator to provide fuel amounts.
