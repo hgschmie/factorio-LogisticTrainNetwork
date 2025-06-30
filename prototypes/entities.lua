@@ -45,6 +45,7 @@ local ltn_stop_in_update = {
     light = { intensity = 1, size = 6 },
     energy_source = meld.overwrite { type = 'void' },
     hidden_in_factoriopedia = true,
+    hidden = true,
 }
 
 ltn_stop_in = meld(ltn_stop_in, ltn_stop_in_update)
@@ -62,6 +63,7 @@ local ltn_stop_out_update = {
     collision_box = { { -0.15, -0.15 }, { 0.15, 0.15 } },
     collision_mask = { layers = { rail = true } },                     -- collide only with rail entities
     hidden_in_factoriopedia = true,
+    hidden = true,
     fast_replaceable_group = meld.delete(),
     ---@diagnostic disable-next-line: undefined-global
     sprites = meld.overwrite(make_4way_animation_from_spritesheet {
@@ -105,8 +107,8 @@ local ltn_lamp_control_update = {
         'placeable-off-grid', 'not-repairable', 'not-on-map', 'not-deconstructable', 'not-blueprintable',
         'hide-alt-info', 'not-flammable', 'not-upgradable', 'not-in-kill-statistics', 'not-in-made-in',
     },
-    hidden = true,
     hidden_in_factoriopedia = true,
+    hidden = true,
     sprites = meld.overwrite(util.empty_sprite()),
     activity_led_sprites = meld.overwrite(util.empty_sprite()),
     activity_led_light_offsets = meld.overwrite { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } },
