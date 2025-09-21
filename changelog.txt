@@ -2,6 +2,7 @@
 Version: 2.3.5
 Date: ????
   Changes:
+    - When updating the schedule, try to keep the depot stop valid all the time
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.4
 Date: 2025-06-23

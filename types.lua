@@ -37,7 +37,7 @@
 
 ---@alias ltn.ItemFluid ('item'|'fluid')
 
----@alias ltn.InventoryType table<string, ItemWithQualityCounts>
+---@alias ltn.InventoryType table<string, ItemWithQualityCount>
 ---@alias ltn.FluidInventoryType table<string, number>
 
 ---------------------------------------------------------

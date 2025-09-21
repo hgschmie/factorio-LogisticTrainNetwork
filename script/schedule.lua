@@ -257,24 +257,43 @@ end
 ---@param reset boolean?
 function ScheduleManager:depotStop(train, stop, inactivity, reset)
     local train_schedule = train.get_schedule()
-
     local count = train_schedule.get_record_count()
-    if reset or count == 0 then
-        train.group = ''
-        train_schedule.clear_records()
 
-        train_schedule.add_record {
-            station = stop.entity.backer_name,
-            temporary = false,
-            allows_unloading = true,
-            wait_conditions = {
-                {
-                    type = 'inactivity',
-                    ticks = inactivity,
-                }
-            },
-        }
+    -- if the schedule should not be reset and there are stops on the schedule, do nothing
+    if not reset and count > 0 then return end
+
+    train.group = ''
+
+    if count > 0 then
+        -- remove all but the first stop (which is the depot)
+        for index = count, 2, -1 do
+            train_schedule.remove_record { schedule_index = index }
+        end
+        local first_stop = assert(train_schedule.get_record { schedule_index = 1 })
+
+        -- If the stop is the expected depot, do not modify the schedule further
+        -- otherwise, the schedule is invalid enough that other mods will not receive a
+        -- on_train_state_changed with train.state == wait_station event which may throw
+        -- other mods off -- see https://forums.factorio.com/viewtopic.php?t=130803
+        if first_stop.station == stop.entity.backer_name then return end
+
+        -- first station was unexpected. Clear the depot record as well.
+        train_schedule.remove_record { schedule_index = 1 }
     end
+
+    -- schedule was either empty or the depot stop was not the right stop
+    -- add a new depot stop
+    train_schedule.add_record {
+        station = stop.entity.backer_name,
+        temporary = false,
+        allows_unloading = true,
+        wait_conditions = {
+            {
+                type = 'inactivity',
+                ticks = inactivity,
+            }
+        },
+    }
 end
 
 ---@param train LuaTrain
