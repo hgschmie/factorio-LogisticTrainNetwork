@@ -3,6 +3,9 @@ Version: 2.3.5
 Date: ????
   Changes:
     - When updating the schedule, try to keep the depot stop valid all the time
+  Bugfixes:
+    - When a station changes status (depot -> fuel stop or regular stop, fuel stop -> depot etc.),
+      ensure that all status bits are correctly updated. Fixes #28, reported by @Spacey42 on the forum)
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.4
 Date: 2025-06-23

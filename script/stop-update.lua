@@ -212,7 +212,6 @@ function UpdateStop(stopID, stop)
 
     -- check if it's a depot
     if new_state == station_type.depot then
-        stop.is_depot = true
         stop.depot_priority = ltn_state.depot_priority
 
         local depots = tools.getDepots()
@@ -238,8 +237,6 @@ function UpdateStop(stopID, stop)
         end
     elseif ltn_state.is_fuel_station then
         -- manage fuel station
-        stop.is_fuel_station = true
-
         local fuel_prototypes = prototypes.get_item_filtered {
             { filter = 'fuel' },
         }
@@ -266,8 +263,7 @@ function UpdateStop(stopID, stop)
         local fuel_stations = tools.getFuelStations()
         tools.updateStopList(stop, fuel_stations, ltn_state.network_id)
     else
-        -- not a depot > check if the name is unique
-
+        -- not a depot or fuel station -> check if the name is unique
         tools.reduceAvailableCapacity(stop.parked_train_id)
 
         for signal, count in pairs(signals_filtered) do
@@ -393,6 +389,8 @@ function UpdateStop(stopID, stop)
         stop.no_warnings = ltn_state.no_warnings
     end
 
+    stop.is_depot = ltn_state.is_depot
+    stop.is_fuel_station = ltn_state.is_fuel_station
     stop.network_id = ltn_state.network_id
     stop.min_carriages = ltn_state.min_carriages
     stop.max_carriages = ltn_state.max_carriages
