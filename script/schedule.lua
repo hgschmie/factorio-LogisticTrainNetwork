@@ -168,7 +168,7 @@ end
 ---@param train_schedule LuaSchedule
 ---@param name string
 ---@return integer?
-local function find_interupt_index(train_schedule, name)
+local function find_interrupt_index(train_schedule, name)
     for i = 1, train_schedule.interrupt_count do
         local interrupt = train_schedule.get_interrupt(i)
         if interrupt and interrupt.name == name then return i end
@@ -179,7 +179,7 @@ end
 ---@param train LuaTrain
 function ScheduleManager:removeFuelInterrupt(train)
     local train_schedule = train.get_schedule()
-    local interrupt_index = find_interupt_index(train_schedule, LTN_INTERRUPT_NAME)
+    local interrupt_index = find_interrupt_index(train_schedule, LTN_INTERRUPT_NAME)
     if interrupt_index then train_schedule.remove_interrupt(interrupt_index) end
 end
 
@@ -189,7 +189,7 @@ function ScheduleManager:updateFuelInterrupt(train, network_id)
     local fuel_station = self:findFuelStation(train, network_id)
     local train_schedule = train.get_schedule()
 
-    local interrupt_index = find_interupt_index(train_schedule, LTN_INTERRUPT_NAME)
+    local interrupt_index = find_interrupt_index(train_schedule, LTN_INTERRUPT_NAME)
 
     if LtnSettings.enable_fuel_stations and fuel_station then
         assert(fuel_station.fuel_signals)
