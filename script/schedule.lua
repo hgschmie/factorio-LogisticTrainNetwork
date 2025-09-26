@@ -98,7 +98,9 @@ function ScheduleManager:selectDepot(train, network_id)
     ---@type LuaEntity[]
     local depots = {}
     for _, depot in pairs(all_depots) do
-        table.insert(depots, depot.entity)
+        if depot.entity.connected_rail then
+            table.insert(depots, depot.entity)
+        end
     end
 
     local path_results = game.train_manager.request_train_path {
@@ -132,20 +134,20 @@ function ScheduleManager:selectFuelStation(train, network_id)
     ---@type LuaEntity[]
     local stations = {}
     for _, station in pairs(all_fuel_stations) do
-        if station.fuel_signals then -- must provide some threshold signal
+        if station.fuel_signals and station.entity.connected_rail then -- must provide some threshold signal
             table.insert(stations, station.entity)
         end
     end
 
     ---@type TrainPathFinderOneGoalResult
-    local path_result = game.train_manager.request_train_path {
+    local path_results = game.train_manager.request_train_path {
         type = 'any-goal-accessible',
         train = train,
         goals = stations,
     }
 
-    if not path_result.found_path then return nil end
-    return all_stops[stations[path_result.goal_index].unit_number]
+    if not path_results.found_path then return nil end
+    return all_stops[stations[path_results.goal_index].unit_number]
 end
 
 ---@param train LuaTrain
