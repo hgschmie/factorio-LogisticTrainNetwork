@@ -159,7 +159,7 @@ data:extend {
         name = 'ltn-provider-ignore-stopped-train',
         order = 'ec',
         setting_type = 'runtime-global',
-        default_value = true
+        default_value = false
     },
     {
         type = 'bool-setting',

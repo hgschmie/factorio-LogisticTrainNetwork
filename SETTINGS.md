@@ -109,11 +109,13 @@ When a train arrives at the provider station, it is possible to "pick up" additi
 
 Setting this signal to `false` makes LTN to report only the requested cargo on its output signals.
 
-## [NEW in 2.2.0] Requesters ignore stopped trains (ltn-provider-ignore-stopped-train) - boolean, default is true
+## [NEW in 2.2.0, default changed in 2.4.0] Requesters ignore stopped trains (ltn-provider-ignore-stopped-train) - boolean, default is false
 
 Pre-2.2.0 release, when requesting multiple deliveries to the same station of the same item or fluid, LTN would consider a parked train that is currently unloading and subtract that cargo from the next delivery. This can lead to a delivery not using a full train but just a fraction.
 
 If this setting is `true`, LTN will ignore any currently unloading train and request the full amount for a delivery. This makes bulk deliveries (e.g. fluids or plates) more efficient as there will always be the configured requester size be delivered. For expensive items, this may lead to "over delivery".
+
+The pre-2.2.0 default behavior has been restored with 2.4.0 (see https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues/26)
 
 ## [NEW in 2.3.0] Enable fuel station (ltn-schedule-fuel-station) - boolean, default is false
 
