@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.5
-Date: ????
+Date: 2025-09-26
   Changes:
     - When updating the schedule, try to keep the depot stop valid all the time
     - Add setting to choose between refueling with an interrupt or dynamic (LTN controlled) refueling
