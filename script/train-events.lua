@@ -15,169 +15,189 @@ function TrainArrives(train)
 
     local stopID = train.station.unit_number
     local stop = storage.LogisticTrainStops[stopID]
-    if stop then
-        local stop_name = stop.entity.backer_name
-        -- assign main loco name and force
+    if not stop then return end
 
-        ---@type LuaEntity?
-        local loco = tools.getMainLocomotive(train)
-        ---@type LuaForce?
-        local trainForce = loco and loco.force
-        ---@type string?
-        local trainName = loco and loco.backer_name
+    local stop_name = stop.entity.backer_name
+    -- assign main loco name and force
 
-        -- add train to stopped_trains
-        stopped_trains[train.id] = {
-            train = train,
-            name = trainName,
-            force = trainForce,
-            stopID = stopID,
-        }
+    ---@type LuaEntity?
+    local loco = tools.getMainLocomotive(train)
+    ---@type LuaForce?
+    local trainForce = loco and loco.force
+    ---@type string?
+    local trainName = loco and loco.backer_name
 
-        -- add train to storage.LogisticTrainStops
-        stop.parked_train = train
-        stop.parked_train_id = train.id
+    -- add train to stopped_trains
+    stopped_trains[train.id] = {
+        train = train,
+        name = trainName,
+        force = trainForce,
+        stopID = stopID,
+    }
 
-        local frontDistance = tools.getDistance(train.front_stock.position, train.station.position)
-        local backDistance = tools.getDistance(train.back_stock.position, train.station.position)
-        if frontDistance > backDistance then
-            stop.parked_train_faces_stop = false
-        else
-            stop.parked_train_faces_stop = true
-        end
-        local is_provider = false
+    -- add train to storage.LogisticTrainStops
+    stop.parked_train = train
+    stop.parked_train_id = train.id
 
-        -- if message_level >= 3 then tools.printmsg({"ltn-message.train-arrived", tostring(trainName), stop_name}, trainForce, false) end
-        if message_level >= 3 then tools.printmsg({ 'ltn-message.train-arrived', tools.richTextForTrain(train), string.format('[train-stop=%d]', stopID) }, trainForce) end
-        if debug_log then log(string.format('(TrainArrives) Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop)) end
-
-        if stop.error_code == 0 then
-            local stop_type = GetStationType(stop)
-            if stop_type == station_type.depot then
-                local delivery = dispatcher.Deliveries[train.id]
-                if delivery then
-                    -- delivery should have been removed when leaving requester. Handle like delivery timeout.
-                    local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
-                    local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
-
-                    if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-depot', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }, delivery.force) end
-                    if debug_log then log(string.format('(TrainArrives) Train [%d] \"%s\": Entered Depot with active Delivery. Failing Delivery and reseting train.', train.id, trainName)) end
-
-                    ---@type ltn.EventData.on_delivery_failed
-                    local data = {
-                        train_id = train.id,
-                        shipment = delivery.shipment
-                    }
-                    script.raise_event(on_delivery_failed_event, data)
-
-                    RemoveDelivery(train.id)
-                end
-
-                schedule:resetInterrupts(train)
-                schedule:updateFuelInterrupt(train, stop.network_id)
-
-                -- clean fluid residue
-                local train_items = train.get_contents()
-                local train_fluids = train.get_fluid_contents()
-                if table_size(train_fluids) > 0 and LtnSettings.depot_fluid_cleaning > 0 then
-                    for fluid, count in pairs(train_fluids) do
-                        local cleaning_amount = math.ceil(math.min(count, LtnSettings.depot_fluid_cleaning))
-                        local removed = math.ceil(train.remove_fluid({name=fluid, amount=cleaning_amount}))
-                        if debug_log then log(string.format('(TrainArrives) Train \"%s\": Depot fluid removal %s %f/%f', trainName, fluid, removed, count)) end
-                    end
-                    train_fluids = train.get_fluid_contents()
-                end
-
-                -- check for leftover cargo
-                if table_size(train_items) > 0 then
-                    create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name }, trainForce)
-                end
-                if table_size(train_fluids) > 0 then
-                    create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name }, trainForce)
-                end
-
-                tools.increaseAvailableCapacity(train, stop)
-
-                -- reset schedule
-                schedule:depotStop(train, stop, LtnSettings.depot_inactivity, true)
-
-                -- reset filters and bars
-                if LtnSettings.depot_reset_filters and train.cargo_wagons then
-                    for _, wagon in pairs(train.cargo_wagons) do
-                        local inventory = wagon.get_inventory(defines.inventory.cargo_wagon)
-                        if inventory then
-                            if inventory.is_filtered() then
-                                -- log("Cargo-Wagon["..tostring(n).."]: resetting "..tostring(#inventory).." filtered slots.")
-                                for slotIndex = 1, #inventory, 1 do
-                                    inventory.set_filter(slotIndex, nil)
-                                end
-                            end
-                            if inventory.supports_bar and #inventory - inventory.get_bar() > 0 then
-                                -- log("Cargo-Wagon["..tostring(n).."]: resetting "..tostring(#inventory - inventory.get_bar()).." locked slots.")
-                                inventory.set_bar()
-                            end
-                        end
-                    end
-                end
-
-                setLamp(stop, 'blue', 1)
-            elseif stop_type == station_type.station then -- stop is no Depot
-                -- check requester for incorrect shipment
-                local delivery = dispatcher.Deliveries[train.id]
-                if delivery then
-                    is_provider = delivery.from_id == stop.entity.unit_number
-                    if delivery.to_id == stop.entity.unit_number then
-                        local requester_unscheduled_cargo = false
-
-                        ---@type ltn.Shipment
-                        local unscheduled_load = {}
-
-                        for _, cargo in pairs(train.get_contents()) do
-                            local item = tools.createItemIdentifierFromItemWithQualityCounts(cargo)
-                            if not delivery.shipment[item] then
-                                requester_unscheduled_cargo = true
-                                unscheduled_load[item] = cargo.count
-                            end
-                        end
-
-                        for name, cargo in pairs(train.get_fluid_contents()) do
-                            local item = tools.createItemIdentifierFluidName(name)
-                            if not delivery.shipment[item] then
-                                requester_unscheduled_cargo = true
-                                unscheduled_load[item] = math.ceil(cargo)
-                            end
-                        end
-
-                        if requester_unscheduled_cargo then
-                            create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_unscheduled_cargo', trainName, stop_name }, trainForce)
-
-                            ---@type ltn.EventData.unscheduled_cargo
-                            local data = {
-                                train = train,
-                                station = stop.entity,
-                                planned_shipment = delivery.shipment,
-                                unscheduled_load = unscheduled_load
-                            }
-                            script.raise_event(on_requester_unscheduled_cargo_alert, data)
-                        end
-                    end
-                end
-
-                -- set lamp to blue for LTN controlled trains
-                for i = 1, #stop.active_deliveries, 1 do
-                    if stop.active_deliveries[i] == train.id then
-                        setLamp(stop, 'blue', #stop.active_deliveries)
-                        break
-                    end
-                end
-            elseif stop_type == station_type.fuel_stop then
-                -- fuel stop
-                setLamp(stop, 'blue', 1)
-            end
-        end
-
-        UpdateStopOutput(stop, is_provider and not LtnSettings.provider_show_existing_cargo)
+    local frontDistance = tools.getDistance(train.front_stock.position, train.station.position)
+    local backDistance = tools.getDistance(train.back_stock.position, train.station.position)
+    if frontDistance > backDistance then
+        stop.parked_train_faces_stop = false
+    else
+        stop.parked_train_faces_stop = true
     end
+    local is_provider = false
+
+    -- if message_level >= 3 then tools.printmsg({"ltn-message.train-arrived", tostring(trainName), stop_name}, trainForce, false) end
+    if message_level >= 3 then tools.printmsg({ 'ltn-message.train-arrived', tools.richTextForTrain(train), string.format('[train-stop=%d]', stopID) }, trainForce) end
+    if debug_log then log(string.format('(TrainArrives) Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop)) end
+
+    if stop.error_code == 0 then
+        local stop_type = GetStationType(stop)
+
+        if stop_type == station_type.depot then
+            -- ----------------------------------------------------------------------------------------
+            -- Depot Operations
+            -- ----------------------------------------------------------------------------------------
+
+            local delivery = dispatcher.Deliveries[train.id]
+            if delivery then
+                -- delivery should have been removed when leaving requester. Handle like delivery timeout.
+                local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
+                local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
+
+                if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-depot', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }, delivery.force) end
+                if debug_log then log(string.format('(TrainArrives) Train [%d] \"%s\": Entered Depot with active Delivery. Failing Delivery and reseting train.', train.id, trainName)) end
+
+                ---@type ltn.EventData.on_delivery_failed
+                local data = {
+                    train_id = train.id,
+                    shipment = delivery.shipment
+                }
+                script.raise_event(on_delivery_failed_event, data)
+
+                RemoveDelivery(train.id)
+            end
+
+            -- clean fluid residue
+            local train_items = train.get_contents()
+            local train_fluids = train.get_fluid_contents()
+            if table_size(train_fluids) > 0 and LtnSettings.depot_fluid_cleaning > 0 then
+                for fluid, count in pairs(train_fluids) do
+                    local cleaning_amount = math.ceil(math.min(count, LtnSettings.depot_fluid_cleaning))
+                    local removed = math.ceil(train.remove_fluid { name = fluid, amount = cleaning_amount })
+                    if debug_log then log(string.format('(TrainArrives) Train \"%s\": Depot fluid removal %s %f/%f', trainName, fluid, removed, count)) end
+                end
+                train_fluids = train.get_fluid_contents()
+            end
+
+            -- check for leftover cargo
+            if table_size(train_items) > 0 then
+                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name }, trainForce)
+            end
+            if table_size(train_fluids) > 0 then
+                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name }, trainForce)
+            end
+
+            tools.increaseAvailableCapacity(train, stop)
+
+            -- reset schedule
+            schedule:resetInterrupts(train)
+            schedule:resetSchedule(train, stop, LtnSettings.depot_inactivity, true)
+            schedule:updateRefuelSchedule(train, stop.network_id)
+
+            -- reset filters and bars
+            if LtnSettings.depot_reset_filters and train.cargo_wagons then
+                for _, wagon in pairs(train.cargo_wagons) do
+                    local inventory = wagon.get_inventory(defines.inventory.cargo_wagon)
+                    if inventory then
+                        if inventory.is_filtered() then
+                            -- log("Cargo-Wagon["..tostring(n).."]: resetting "..tostring(#inventory).." filtered slots.")
+                            for slotIndex = 1, #inventory, 1 do
+                                inventory.set_filter(slotIndex, nil)
+                            end
+                        end
+                        if inventory.supports_bar and #inventory - inventory.get_bar() > 0 then
+                            -- log("Cargo-Wagon["..tostring(n).."]: resetting "..tostring(#inventory - inventory.get_bar()).." locked slots.")
+                            inventory.set_bar()
+                        end
+                    end
+                end
+            end
+
+            setLamp(stop, 'blue', 1)
+        elseif stop_type == station_type.station then
+            -- ----------------------------------------------------------------------------------------
+            -- Provider / Requester operations
+            -- ----------------------------------------------------------------------------------------
+
+            -- check requester for incorrect shipment
+            local delivery = dispatcher.Deliveries[train.id]
+            if delivery then
+                is_provider = delivery.from_id == stop.entity.unit_number
+                if delivery.to_id == stop.entity.unit_number then
+                    local requester_unscheduled_cargo = false
+
+                    ---@type ltn.Shipment
+                    local unscheduled_load = {}
+
+                    for _, cargo in pairs(train.get_contents()) do
+                        local item = tools.createItemIdentifierFromItemWithQualityCount(cargo)
+                        if not delivery.shipment[item] then
+                            requester_unscheduled_cargo = true
+                            unscheduled_load[item] = cargo.count
+                        end
+                    end
+
+                    for name, cargo in pairs(train.get_fluid_contents()) do
+                        local item = tools.createItemIdentifierFluidName(name)
+                        if not delivery.shipment[item] then
+                            requester_unscheduled_cargo = true
+                            unscheduled_load[item] = math.ceil(cargo)
+                        end
+                    end
+
+                    if requester_unscheduled_cargo then
+                        create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_unscheduled_cargo', trainName, stop_name }, trainForce)
+
+                        ---@type ltn.EventData.unscheduled_cargo
+                        local data = {
+                            train = train,
+                            station = stop.entity,
+                            planned_shipment = delivery.shipment,
+                            unscheduled_load = unscheduled_load
+                        }
+                        script.raise_event(on_requester_unscheduled_cargo_alert, data)
+                    end
+                end
+
+                -- only check dynamic refueling if a delivery exists (which contains the network id)
+                if LtnSettings.enable_fuel_stations then
+                    local fuel_station = schedule:selectFuelStation(train, delivery.network_id)
+                    if fuel_station then
+                        schedule:scheduleDynamicRefueling(train, fuel_station)
+                    end
+                end
+            end
+
+
+            -- set lamp to blue for LTN controlled trains
+            for i = 1, #stop.active_deliveries, 1 do
+                if stop.active_deliveries[i] == train.id then
+                    setLamp(stop, 'blue', #stop.active_deliveries)
+                    break
+                end
+            end
+        elseif stop_type == station_type.fuel_stop then
+            -- ----------------------------------------------------------------------------------------
+            -- Refuel operations
+            -- ----------------------------------------------------------------------------------------
+
+            setLamp(stop, 'blue', 1)
+        end
+    end
+
+    UpdateStopOutput(stop, is_provider and not LtnSettings.provider_show_existing_cargo)
 end
 
 --- update stop output when train leaves stop
@@ -188,7 +208,7 @@ function TrainLeaves(trainID)
     local stopped_trains = tools.getStoppedTrains()
 
     local leavingTrain = stopped_trains[trainID] -- checked before every call of TrainLeaves
-    assert(leavingTrain) -- TODO: test this!
+    assert(leavingTrain)                         -- TODO: test this!
 
     local train = leavingTrain.train
     local stopID = leavingTrain.stopID
@@ -212,8 +232,11 @@ function TrainLeaves(trainID)
 
     local stop_type = GetStationType(stop)
 
-    -- train was stopped at LTN depot
     if stop_type == station_type.depot then
+        -- ----------------------------------------------------------------------------------------
+        -- Depot operations
+        -- ----------------------------------------------------------------------------------------
+
         tools.reduceAvailableCapacity(trainID)
 
         if stop.error_code == 0 then
@@ -221,9 +244,11 @@ function TrainLeaves(trainID)
         end
 
         if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Depot [%d] \"%s\".', trainID, leavingTrain.name, stopID, stop.entity.backer_name)) end
-
-        -- train was stopped at LTN stop
     elseif stop_type == station_type.station then
+        -- ----------------------------------------------------------------------------------------
+        -- Provider / Requester operations
+        -- ----------------------------------------------------------------------------------------
+
         -- remove delivery from stop
         for i = #stop.active_deliveries, 1, -1 do
             if stop.active_deliveries[i] == trainID then
@@ -241,7 +266,7 @@ function TrainLeaves(trainID)
                 local provider_missing_cargo = false
 
                 for _, cargo in pairs(train.get_contents()) do
-                    local item = tools.createItemIdentifierFromItemWithQualityCounts(cargo)
+                    local item = tools.createItemIdentifierFromItemWithQualityCount(cargo)
                     local planned_count = delivery.shipment[item]
                     if planned_count then
                         actual_load[item] = cargo.count -- update shipment to actual inventory
@@ -260,8 +285,8 @@ function TrainLeaves(trainID)
                     local item = tools.createItemIdentifierFluidName(name)
                     local planned_count = delivery.shipment[item]
                     if planned_count then
-                        actual_load[item] = math.ceil(cargo)  -- update shipment actual inventory
-                        if planned_count - cargo > 0.1 then   -- prevent rounding errors
+                        actual_load[item] = math.ceil(cargo) -- update shipment actual inventory
+                        if planned_count - cargo > 0.1 then  -- prevent rounding errors
                             -- underloaded
                             provider_missing_cargo = true
                         end
@@ -315,13 +340,12 @@ function TrainLeaves(trainID)
                 script.raise_event(on_delivery_pickup_complete_event, data)
 
                 delivery.shipment = actual_load
-
             elseif delivery.to_id == stop.entity.unit_number then
                 -- reset schedule before API events
                 if LtnSettings.requester_delivery_reset then
-                    local depot = schedule:findDepot(leavingTrain.train, delivery.network_id)
+                    local depot = schedule:selectDepot(leavingTrain.train, delivery.network_id)
                     if depot then
-                        schedule:depotStop(train, depot, LtnSettings.depot_inactivity, true)
+                        schedule:resetSchedule(train, depot, LtnSettings.depot_inactivity, true)
                     end
                 end
 
@@ -330,7 +354,7 @@ function TrainLeaves(trainID)
 
                 for _, cargo in pairs(train.get_contents()) do
                     -- not fully unloaded
-                    local item = tools.createItemIdentifierFromItemWithQualityCounts(cargo)
+                    local item = tools.createItemIdentifierFromItemWithQualityCount(cargo)
                     requester_left_over_cargo = true
                     remaining_load[item] = cargo.count
                 end
@@ -378,6 +402,10 @@ function TrainLeaves(trainID)
             end
         end
     elseif stop_type == station_type.fuel_stop then
+        -- ----------------------------------------------------------------------------------------
+        -- Fuel station operations
+        -- ----------------------------------------------------------------------------------------
+
         setLamp(stop, 'cyan', 1)
 
         -- temporarily remove the fuel stop, it gets readded at the depot

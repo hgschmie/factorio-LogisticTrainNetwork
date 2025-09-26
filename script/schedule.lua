@@ -70,10 +70,11 @@ function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
     end
 end
 
+--- Selects a depot to send the train to.
 ---@param train LuaTrain
 ---@param network_id integer
 ---@return ltn.TrainStop? train_stop A depot train stop
-function ScheduleManager:findDepot(train, network_id)
+function ScheduleManager:selectDepot(train, network_id)
     local all_stops = tools.getAllStops()
     local all_depots = tools.findMatchingStops(tools.getDepots(), network_id)
     if table_size(all_depots) == 0 then return nil end
@@ -119,10 +120,11 @@ function ScheduleManager:findDepot(train, network_id)
     return accessible_stations[math.random(#accessible_stations)]
 end
 
+--- Selects a fuel station that is appropriate to refuel this train.
 ---@param train LuaTrain
 ---@param network_id integer
 ---@return ltn.TrainStop? train_stop A fuel station train stop
-function ScheduleManager:findFuelStation(train, network_id)
+function ScheduleManager:selectFuelStation(train, network_id)
     local all_stops = tools.getAllStops()
     local all_fuel_stations = tools.findMatchingStops(tools.getFuelStations(), network_id)
     if table_size(all_fuel_stations) == 0 then return nil end
@@ -152,15 +154,14 @@ function ScheduleManager:resetInterrupts(train)
 
     local train_schedule = train.get_schedule()
 
-    if not LtnSettings.enable_fuel_stations then
+    if not (LtnSettings.enable_fuel_stations and LtnSettings.use_fuel_station_interrupt) then
         train_schedule.clear_interrupts()
-        return
-    end
-
-    for i = train_schedule.interrupt_count, 1, -1 do
-        local interrupt = train_schedule.get_interrupt(i)
-        if interrupt and interrupt.name ~= LTN_INTERRUPT_NAME then
-            train_schedule.remove_interrupt(i)
+    else
+        for i = train_schedule.interrupt_count, 1, -1 do
+            local interrupt = train_schedule.get_interrupt(i)
+            if interrupt and interrupt.name ~= LTN_INTERRUPT_NAME then
+                train_schedule.remove_interrupt(i)
+            end
         end
     end
 end
@@ -183,70 +184,163 @@ function ScheduleManager:removeFuelInterrupt(train)
     if interrupt_index then train_schedule.remove_interrupt(interrupt_index) end
 end
 
+--- Checks whether any of the movers needs refueling based on the fuel provided by the
+--- fuel station.
+---@param train LuaTrain
+---@param fuel_signals CircuitCondition[]
+---@return boolean
+local function must_refuel(train, fuel_signals)
+    ---@type table<string, LuaEntity[]>
+    local locomotives = train.locomotives
+    for _, movers in pairs(locomotives) do
+        for _, locomotive in pairs(movers) do
+            ---@type table<string, number>
+            local fuel = {}
+            local fuelInventory = locomotive.get_fuel_inventory()
+            if fuelInventory then
+                for _, item in pairs(fuelInventory.get_contents()) do
+                    local key = tools.createItemIdentifierFromItemWithQualityCount(item)
+                    fuel[key] = (fuel[key] or 0) + item.count
+                end
+            end
+            for _, fuel_signal in pairs(fuel_signals) do
+                assert(fuel_signal.constant)
+                local key = tools.createItemIdentifierFromItemWithQualityCount(fuel_signal.first_signal)
+                if fuel[key] and fuel[key] < fuel_signal.constant then return true end
+            end
+        end
+    end
+
+    return false
+end
+
+---@param train LuaTrain
+---@param fuel_station ltn.TrainStop
+---@return boolean
+local function check_for_stop_in_schedule(train, fuel_station)
+    local schedule = train.get_schedule()
+    local records = schedule.get_records()
+
+    if not records then return false end
+
+    for _, record in pairs(records) do
+        if record.station == fuel_station.entity.backer_name then return true end
+    end
+
+    return false
+end
+
+--- Check if the train needs to be refueled and if necessary, create a dynamic refuel stop
+--- in the schedule.
+---@param train LuaTrain
+---@param fuel_station ltn.TrainStop
+function ScheduleManager:scheduleDynamicRefueling(train, fuel_station)
+    if LtnSettings.use_fuel_station_interrupt then return end
+    assert(fuel_station.fuel_signals)
+
+    if (must_refuel(train, fuel_station.fuel_signals)) then
+        local schedule = train.get_schedule()
+        local records = schedule.get_records()
+        -- need a schedule
+        if not records then return end
+        -- already in the schedule
+        if check_for_stop_in_schedule(train, fuel_station) then return end
+
+        local current_stop = records[schedule.current]
+        -- do not schedule right after a temp stop
+        if current_stop.temporary then return end
+        schedule.add_record {
+            station = fuel_station.entity.backer_name,
+            wait_conditions = {
+                {
+                    type = 'inactivity',
+                    ticks = 120,
+                },
+                {
+                    type = 'fuel_full',
+                    compare_type = 'or',
+                },
+
+            },
+            temporary = true,
+            allows_unloading = false,
+            index = {
+                schedule_index = schedule.current + 1,
+            }
+        }
+    end
+end
+
 ---@param train LuaTrain
 ---@param network_id integer
-function ScheduleManager:updateFuelInterrupt(train, network_id)
-    local fuel_station = self:findFuelStation(train, network_id)
+function ScheduleManager:updateRefuelSchedule(train, network_id)
+    local fuel_station = self:selectFuelStation(train, network_id)
     local train_schedule = train.get_schedule()
-
-    local interrupt_index = find_interrupt_index(train_schedule, LTN_INTERRUPT_NAME)
 
     if LtnSettings.enable_fuel_stations and fuel_station then
         assert(fuel_station.fuel_signals)
 
-        ---@type WaitCondition[]
-        local interrupt_conditions = {}
+        if LtnSettings.use_fuel_station_interrupt then
+            ---@type WaitCondition[]
+            local interrupt_conditions = {}
 
-        for _, circuit_condition in pairs(fuel_station.fuel_signals) do
-            table.insert(interrupt_conditions, {
-                type = 'fuel_item_count_any',
-                condition = util.copy(circuit_condition),
-                compare_type = 'or',
-            })
-            table.insert(interrupt_conditions, {
-                type = 'fuel_item_count_any',
-                condition = {
-                    comparator = '>',
-                    first_signal = util.copy(circuit_condition.first_signal),
-                    constant = 0,
-                },
-                compare_type = 'and',
-            })
-        end
-
-        ---@type ScheduleInterrupt
-        local schedule_interrupt = {
-            name = LTN_INTERRUPT_NAME,
-            inside_interrupt = false,
-            conditions = interrupt_conditions,
-            targets = {
-                {
-                    station = fuel_station.entity.backer_name,
-                    wait_conditions = {
-                        {
-                            type = 'inactivity',
-                            ticks = 120,
-                        },
-                        {
-                            type = 'fuel_full',
-                            compare_type = 'or',
-                        },
-
+            for _, circuit_condition in pairs(fuel_station.fuel_signals) do
+                table.insert(interrupt_conditions, {
+                    type = 'fuel_item_count_any',
+                    condition = util.copy(circuit_condition),
+                    compare_type = 'or',
+                })
+                table.insert(interrupt_conditions, {
+                    type = 'fuel_item_count_any',
+                    condition = {
+                        comparator = '>',
+                        first_signal = util.copy(circuit_condition.first_signal),
+                        constant = 0,
                     },
-                    temporary = true,
-                    allows_unloading = false,
+                    compare_type = 'and',
+                })
+            end
+
+            ---@type ScheduleInterrupt
+            local schedule_interrupt = {
+                name = LTN_INTERRUPT_NAME,
+                inside_interrupt = false,
+                conditions = interrupt_conditions,
+                targets = {
+                    {
+                        station = fuel_station.entity.backer_name,
+                        wait_conditions = {
+                            {
+                                type = 'inactivity',
+                                ticks = 120,
+                            },
+                            {
+                                type = 'fuel_full',
+                                compare_type = 'or',
+                            },
+
+                        },
+                        temporary = true,
+                        allows_unloading = false,
+                    }
                 }
             }
-        }
 
-        if interrupt_index then
-            train_schedule.change_interrupt(interrupt_index, schedule_interrupt)
+            local interrupt_index = find_interrupt_index(train_schedule, LTN_INTERRUPT_NAME)
+
+            if interrupt_index then
+                train_schedule.change_interrupt(interrupt_index, schedule_interrupt)
+            else
+                train_schedule.add_interrupt(schedule_interrupt)
+            end
         else
-            train_schedule.add_interrupt(schedule_interrupt)
+            -- Do not use interrupt, use dynamic fuel scheduling
+            self:removeFuelInterrupt(train)
+            self:scheduleDynamicRefueling(train, fuel_station)
         end
     else
         -- no fuel station in the network
-        if interrupt_index then train_schedule.remove_interrupt(interrupt_index) end
+        self:removeFuelInterrupt(train)
     end
 end
 
@@ -254,20 +348,24 @@ end
 ---@param train LuaTrain
 ---@param stop ltn.TrainStop
 ---@param inactivity number
----@param reset boolean?
-function ScheduleManager:depotStop(train, stop, inactivity, reset)
+---@param force boolean?
+function ScheduleManager:resetSchedule(train, stop, inactivity, force)
     local train_schedule = train.get_schedule()
-    local count = train_schedule.get_record_count()
+    local records = train_schedule.get_records() or {}
 
     -- if the schedule should not be reset and there are stops on the schedule, do nothing
-    if not reset and count > 0 then return end
+    if not force and #records > 0 then return end
 
+    -- remove train from train group before modifying the schedule
     train.group = ''
 
-    if count > 0 then
-        -- remove all but the first stop (which is the depot)
-        for index = count, 2, -1 do
-            train_schedule.remove_record { schedule_index = index }
+    if #records > 0 then
+        -- remove all but the first stop (which should be the depot) and any temporary stops
+        for index = #records, 2, -1 do
+            -- if there is a temporary fuel stop in the schedule, do not touch it
+            if not records[index].temporary then
+                train_schedule.remove_record { schedule_index = index }
+            end
         end
         local first_stop = assert(train_schedule.get_record { schedule_index = 1 })
 
@@ -281,7 +379,7 @@ function ScheduleManager:depotStop(train, stop, inactivity, reset)
         train_schedule.remove_record { schedule_index = 1 }
     end
 
-    -- schedule was either empty or the depot stop was not the right stop
+    -- schedule was either empty or the depot stop was not the right stop:
     -- add a new depot stop
     train_schedule.add_record {
         station = stop.entity.backer_name,
@@ -292,6 +390,9 @@ function ScheduleManager:depotStop(train, stop, inactivity, reset)
                 type = 'inactivity',
                 ticks = inactivity,
             }
+        },
+        index = {
+            schedule_index = 1,
         },
     }
 end

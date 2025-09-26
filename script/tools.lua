@@ -80,10 +80,10 @@ function Tools.createItemIdentifier(signal)
     }, ',')
 end
 
---- Convert a ItemWithQualityCounts into a typed item string
----@param item ItemWithQualityCounts
+--- Convert a ItemWithQualityCount into a typed item string
+---@param item ItemWithQualityCount|SignalID
 ---@return ltn.ItemIdentifier
-function Tools.createItemIdentifierFromItemWithQualityCounts(item)
+function Tools.createItemIdentifierFromItemWithQualityCount(item)
     assert(item)
     return Tools.createItemIdentifier {
         type = 'item',

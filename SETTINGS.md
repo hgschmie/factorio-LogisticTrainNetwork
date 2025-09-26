@@ -135,3 +135,7 @@ In normal operations, any LTN controlled train always returns to the depot it wa
 When this setting is enabled *and* Delivery completes at the requester (ltn-dispatcher-requester-delivery-reset is true), then LTN will choose a new depot at random from the current train network.
 
 This setting has the potential to "pile up" trains in a depot that has not enough available stops. It should only be used if you know what you are doing (and most likely any depot can accommodate all trains in a  network). Normally, this should be kept off.
+
+## [NEW in 2.4.0] Choose whether to use a train interrupt or dynamic scheduling for refueling (ltn-fuel-station-interrupt) - boolean, default is true (use an interrupt)
+
+In normal operation, refueling is controlled by an interrupt (LTN Fuel). There are rare situations where that interrupt triggers in inconvenient moments (e.g. between the arrival of the train at the temporary "pre-stop" and the actual provider or requester). If this causes problems, this setting can be turned off. LTN will now dynamically add temporary refuel stops when arriving at a station or depot with insufficient fuel. Note that this requires a bit more CPU and might have an affect on FPS/UPS. Using an interrupt is preferred and dynamic refueling is considered experimental for now.

@@ -212,6 +212,10 @@ function UpdateStop(stopID, stop)
 
     -- check if it's a depot
     if new_state == station_type.depot then
+        -- ----------------------------------------------------------------------------------------
+        -- Depot Operations
+        -- ----------------------------------------------------------------------------------------
+
         stop.depot_priority = ltn_state.depot_priority
 
         local depots = tools.getDepots()
@@ -235,8 +239,11 @@ function UpdateStop(stopID, stop)
         else
             if debug_log then log(string.format('(UpdateStop) %s {%s}, depot priority: %d, no available train', stop.entity.backer_name, network_id_string, ltn_state.depot_priority)) end
         end
-    elseif ltn_state.is_fuel_station then
-        -- manage fuel station
+    elseif new_state == station_type.fuel_stop then
+        -- ----------------------------------------------------------------------------------------
+        -- Refuel operations
+        -- ----------------------------------------------------------------------------------------
+
         local fuel_prototypes = prototypes.get_item_filtered {
             { filter = 'fuel' },
         }
@@ -262,8 +269,12 @@ function UpdateStop(stopID, stop)
 
         local fuel_stations = tools.getFuelStations()
         tools.updateStopList(stop, fuel_stations, ltn_state.network_id)
-    else
-        -- not a depot or fuel station -> check if the name is unique
+    elseif new_state == station_type.station then
+        -- ----------------------------------------------------------------------------------------
+        -- Provider / Requester operations
+        -- ----------------------------------------------------------------------------------------
+
+        -- check if the name is unique
         tools.reduceAvailableCapacity(stop.parked_train_id)
 
         for signal, count in pairs(signals_filtered) do
