@@ -82,11 +82,15 @@ function TrainArrives(train)
             -- clean fluid residue
             local train_items = train.get_contents()
             local train_fluids = train.get_fluid_contents()
-            if table_size(train_fluids) > 0 and LtnSettings.depot_fluid_cleaning > 0 then
-                for fluid, count in pairs(train_fluids) do
-                    local cleaning_amount = math.ceil(math.min(count, LtnSettings.depot_fluid_cleaning))
-                    local removed = math.ceil(train.remove_fluid { name = fluid, amount = cleaning_amount })
-                    if debug_log then log(string.format('(TrainArrives) Train \"%s\": Depot fluid removal %s %f/%f', trainName, fluid, removed, count)) end
+            if table_size(train_fluids) > 0 then
+                if LtnSettings.depot_fluid_cleaning > 0 then
+                    for fluid, count in pairs(train_fluids) do
+                        local cleaning_amount = math.ceil(math.min(count, LtnSettings.depot_fluid_cleaning))
+                        local removed = math.ceil(train.remove_fluid { name = fluid, amount = cleaning_amount })
+                        if debug_log then log(string.format('(TrainArrives) Train \"%s\": Depot fluid removal %s %f/%f', trainName, fluid, removed, count)) end
+                    end
+                elseif LtnSettings.depot_fluid_cleaning < 0 then
+                    train.clear_fluids_inside()
                 end
                 train_fluids = train.get_fluid_contents()
             end

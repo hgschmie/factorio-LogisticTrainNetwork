@@ -3,7 +3,9 @@ Version: 2.4.1
 Date: ????
   Bugfixes:
     - fix a crash when using a depot or fuel station that is not connected to a rail (reported by @YenzRahbek on the forum)
-    - fix a crash where reading schedule conditions did not contain a constant (reported by @Generalisator on the forum)
+    - fix a crash when reading schedule conditions does not contain a constant (reported by @Generalisator on the forum)
+  Changes:
+    - setting 'ltn-depot-fluid-cleaning' to -1 will always clean all fluids from the train
 ---------------------------------------------------------------------------------------------------
 Version: 2.4.0
 Date: 2025-09-26

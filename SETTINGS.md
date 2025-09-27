@@ -94,6 +94,7 @@ If cargo wagons have filters or stack limitations set, reset those when a train 
 When entering a depot, remove leftover fluid from a train. The fluid is discarded.
 
 Using `0` disables cleaning the fluid.
+Using `-1` removed all fluid from the train.
 
 ## [CHANGED in 2.2.0] Default network ID (ltn-stop-default-network) - integer, default is 0
 

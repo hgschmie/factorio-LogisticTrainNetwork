@@ -138,7 +138,7 @@ data:extend {
         order = 'db',
         setting_type = 'runtime-global',
         default_value = 0,
-        minimum_value = 0
+        minimum_value = -1
     },
     {
         type = 'int-setting',
