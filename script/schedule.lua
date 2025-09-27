@@ -25,7 +25,7 @@ function ScheduleManager:analyzeRecord(wait_conditions)
                 quality = wait_condition.condition.first_signal.quality or 'normal',
                 provider = wait_condition.condition.comparator == '≥',
                 requester = (wait_condition.condition.comparator == '=' and wait_condition.condition.constant == 0),
-                count = wait_condition.condition.constant
+                count = (wait_condition.condition.constant or 0)
             }
             assert(record.name)
 
@@ -65,7 +65,11 @@ function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
                 inventory[result.name] = nil
             end
         elseif result.type == 'fluid' then
-            fluidInventory[result.name] = result.provider and ((fluidInventory[result.name] or 0) + result.count) or -1
+            if result.provider then
+                fluidInventory[result.name] = (fluidInventory[result.name] or 0) + (result.count or 0)
+            else
+                fluidInventory[result.name] = -1 -- this makes no sense. This should be nil but it is -1 ever since 1.10.x
+            end
         end
     end
 end

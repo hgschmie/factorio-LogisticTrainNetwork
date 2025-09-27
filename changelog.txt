@@ -3,6 +3,7 @@ Version: 2.4.1
 Date: ????
   Bugfixes:
     - fix a crash when using a depot or fuel station that is not connected to a rail (reported by @YenzRahbek on the forum)
+    - fix a crash where reading schedule conditions did not contain a constant (reported by @Generalisator on the forum)
 ---------------------------------------------------------------------------------------------------
 Version: 2.4.0
 Date: 2025-09-26
