@@ -8,6 +8,10 @@ local data_util = require('prototypes.data-util')
 
 local icon_encoded_position = { { icon = '__LogisticTrainNetwork__/graphics/icons/encoded-position.png', icon_size = 64, tint = { r = 1, g = 1, b = 1, a = 1 } } }
 
+local function tools_log(level, name, msg, ...)
+    log(('[LTN] (%s) [%d] - %s'):format(name, level, msg:format(...)))
+end
+
 local function create_signal(prototype, order)
     local signal = {
         type = 'virtual-signal',
@@ -45,4 +49,4 @@ for _, wagon in pairs(data.raw['artillery-wagon']) do
     create_signal(wagon, 'd' .. string.format('%02d', wagoncount_artillery))
 end
 
-log(string.format('[LTN] found %d locomotives, %d cargo wagons, %d fluid wagons, %d artillery wagons.', lococount, wagoncount, wagoncount_fluid, wagoncount_artillery))
+tools_log(0, 'data_final_fixes', 'Found %d locomotives, %d cargo wagons, %d fluid wagons, %d artillery wagons.', lococount, wagoncount, wagoncount_fluid, wagoncount_artillery)

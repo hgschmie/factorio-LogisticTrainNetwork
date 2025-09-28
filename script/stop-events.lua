@@ -11,7 +11,7 @@ local tools = require('script.tools')
 function CreateStop(entity)
     if storage.LogisticTrainStops[entity.unit_number] then
         if message_level >= 1 then tools.printmsg({ 'ltn-message.error-duplicated-unit_number', entity.unit_number }, entity.force) end
-        if debug_log then log(string.format('(CreateStop) duplicate stop unit number %d', entity.unit_number)) end
+        if debug_log then tools.log(5, 'CreateStop', 'duplicate stop unit number %d', entity.unit_number) end
 
         return
     end
@@ -49,7 +49,7 @@ function CreateStop(entity)
         }
     else --invalid orientation
         if message_level >= 1 then tools.printmsg({ 'ltn-message.error-stop-orientation', tostring(entity.direction) }, entity.force) end
-        if debug_log then log(string.format('(CreateStop) invalid train stop orientation %d', entity.direction)) end
+        if debug_log then tools.log(5, 'CreateStop', 'invalid train stop orientation %d', entity.direction) end
         entity.destroy()
         return
     end
@@ -199,7 +199,7 @@ function CreateStop(entity)
     -- register events
     tools.updateDispatchTicker()
 
-    if debug_log then log(string.format('(OnEntityCreated) on_nth_tick(%d), on_train_changed_state, on_train_created registered', LtnSettings.dispatcher_nth_tick)) end
+    if debug_log then tools.log(5, 'CreateStop', 'on_nth_tick(%d), on_train_changed_state, on_train_created registered', LtnSettings.dispatcher_nth_tick) end
 end
 
 ---@param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.on_entity_cloned
@@ -264,7 +264,7 @@ function RemoveStop(stopID, create_ghosts)
 
         -- unregister events
         tools.updateDispatchTicker()
-        if debug_log then log('(OnEntityRemoved) Removed last LTN Stop: on_nth_tick, on_train_changed_state, on_train_created unregistered') end
+        if debug_log then tools.log(5, 'RemoveStop', 'Removed last LTN Stop: on_nth_tick, on_train_changed_state, on_train_created unregistered') end
     end
 end
 
@@ -322,7 +322,7 @@ local function renamedStop(targetID, old_name, new_name)
     -- rename deliveries only if no other LTN stop old_name exists
     if not renameDeliveries then return end
 
-    if debug_log then log(string.format('(OnEntityRenamed) last LTN stop %s renamed, updating deliveries to %s.', old_name, new_name)) end
+    if debug_log then tools.log(5, 'renamedStop', 'last LTN stop %s renamed, updating deliveries to %s.', old_name, new_name) end
 
     for _, delivery in pairs(dispatcher.Deliveries) do
         if delivery.to == old_name then

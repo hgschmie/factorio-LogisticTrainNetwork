@@ -64,6 +64,19 @@ function Tools.printmsg(msg, force)
 end
 
 -----------------------------------------------------------------------
+-- logging
+-----------------------------------------------------------------------
+
+---@param level number
+---@param name string?
+---@param msg string
+---@param ... any
+function Tools.log(level, name, msg, ...)
+    if (not LtnSettings.debug_log) or (LtnSettings.debug_log < level) then return end
+    log(('[LTN] (%s) [%d] - %s'):format(name, level, msg:format(...)))
+end
+
+-----------------------------------------------------------------------
 -- Item Identifier management
 -----------------------------------------------------------------------
 

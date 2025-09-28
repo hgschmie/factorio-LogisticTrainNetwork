@@ -53,11 +53,12 @@ data:extend {
         default_value = true
     },
     {
-        type = 'bool-setting',
+        type = 'int-setting',
         name = 'ltn-interface-debug-logfile',
         order = 'ah',
         setting_type = 'runtime-global',
-        default_value = false
+        default_value = 0,
+        allowed_values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 },
     },
     {
         type = 'int-setting',
@@ -89,8 +90,8 @@ data:extend {
         name = 'ltn-dispatcher-depot-inactivity',
         order = 'cb',
         setting_type = 'runtime-global',
-        default_value = 5, --5s
-        minimum_value = 1, --1s
+        default_value = 5,     --5s
+        minimum_value = 1,     --1s
         maximum_value = 36000, -- 10h
     },
     {
@@ -98,8 +99,8 @@ data:extend {
         name = 'ltn-dispatcher-stop-timeout',
         order = 'cc',
         setting_type = 'runtime-global',
-        default_value = 120, --2min
-        minimum_value = 0, --0:off
+        default_value = 120,   --2min
+        minimum_value = 0,     --0:off
         maximum_value = 36000, -- 10h
     },
     {
@@ -107,8 +108,8 @@ data:extend {
         name = 'ltn-dispatcher-delivery-timeout',
         order = 'cd',
         setting_type = 'runtime-global',
-        default_value = 600, --10min
-        minimum_value = 60, -- 1min
+        default_value = 600,   --10min
+        minimum_value = 60,    -- 1min
         maximum_value = 36000, -- 10h
     },
     {

@@ -19,25 +19,25 @@ function GetNextLogisticStop(train, schedule_index)
     local dispatcher = tools.getDispatcher()
 
     if not (train and train.valid) then
-        if debug_log then log('(GetNextLogisticStop) train not valid') end
+        if debug_log then tools.log(5, 'GetNextLogisticStop', 'train not valid') end
         return
     end
 
     if not schedule:hasSchedule(train) then
-        if debug_log then log(string.format('(GetNextLogisticStop) train [%d] has no schedule.', train.id)) end
+        if debug_log then tools.log(5, 'GetNextLogisticStop', 'train [%d] has no schedule.', train.id) end
         return
     end
 
     local delivery = dispatcher.Deliveries[train.id]
     if not delivery then
-        if debug_log then log(string.format('(GetNextLogisticStop) train [%d] not found in deliveries.', train.id)) end
+        if debug_log then tools.log(5, 'GetNextLogisticStop', 'train [%d] not found in deliveries.', train.id) end
         return
     end
 
     local identifier = next(delivery.shipment)
     if not identifier then
         -- this can happen when the train was unable to load anything at the provider
-        if debug_log then log(string.format('(GetNextLogisticStop) train [%d] no longer has a shipment list.', train.id)) end
+        if debug_log then tools.log(5, 'GetNextLogisticStop', 'train [%d] no longer has a shipment list.', train.id) end
         return
     end
 
@@ -79,21 +79,21 @@ function GetOrCreateNextTempStop(train, schedule_index)
     --unlike ProcessDelivery we need to consider that the stop entity might be gone
     local stop = storage.LogisticTrainStops[stop_id]
     if not stop or not stop.entity.valid then
-        if debug_log then log(string.format('(UpdateSchedule) skipping stop [%d] for train [%d], stop-entity not valid', stop_id, train.id)) end
+        if debug_log then tools.log(5, 'GetOrCreateNextTempStop', 'skipping stop [%d] for train [%d], stop-entity not valid', stop_id, train.id) end
         return
     end
 
     local rail = stop.entity.connected_rail
     local rail_direction = stop.entity.connected_rail_direction
     if not rail or not rail_direction then
-        if debug_log then log(string.format('(UpdateSchedule) skipping stop [%d] for train [%d], not connected to a rail', stop_id, train.id)) end
+        if debug_log then tools.log(5, 'GetOrCreateNextTempStop', 'skipping stop [%d] for train [%d], not connected to a rail', stop_id, train.id) end
         return
     end
 
     -- the engine does not allow temp_stops on different surfaces
     -- locomotive might not work here, a new train on another surface could still be incomplete
     if train.carriages[1].surface ~= stop.entity.surface then
-        if debug_log then log(string.format('(UpdateSchedule) stop [%d] is on a different surface than train [%d]', stop_id, train.id)) end
+        if debug_log then tools.log(5, 'GetOrCreateNextTempStop', 'stop [%d] is on a different surface than train [%d]', stop_id, train.id) end
         return
     end
 
@@ -103,7 +103,7 @@ function GetOrCreateNextTempStop(train, schedule_index)
     local previous_record = train_schedule[stop_schedule_index - 1]
     if previous_record and previous_record.temporary then return stop_schedule_index - 1 end -- schedule already up-to-date for stop_position
 
-    if debug_log then log(string.format('(UpdateSchedule) adding new temp-stop before stop [%d] at rail [%d] to train [%d] ', stop_id, rail.unit_number, train.id)) end
+    if debug_log then tools.log(5, 'GetOrCreateNextTempStop', 'adding new temp-stop before stop [%d] at rail [%d] to train [%d] ', stop_id, rail.unit_number, train.id) end
 
     schedule:temporaryStop(train, rail, rail_direction, stop_schedule_index)
 
@@ -119,12 +119,12 @@ function ReassignDelivery(old_train_id, new_train)
 
     -- check if delivery exists for given train id
     if not (old_train_id and dispatcher.Deliveries[old_train_id]) then
-        if debug_log then log(string.format('(ReassignDelivery) train [%d] not found in deliveries.', old_train_id)) end
+        if debug_log then tools.log(5, 'ReassignDelivery', 'train [%d] not found in deliveries.', old_train_id) end
         return false
     end
     -- check if new train is valid
     if not (new_train and new_train.valid and new_train.object_name == 'LuaTrain') then
-        if debug_log then log('(ReassignDelivery) Received new_train was invalid.') end
+        if debug_log then tools.log(5, 'ReassignDelivery', 'Received new_train was invalid.') end
         return false
     end
 

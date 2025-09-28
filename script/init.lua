@@ -92,7 +92,7 @@ local function initialize(oldVersion, newVersion)
         for locoID, delivery in pairs(storage.Dispatcher.Deliveries) do
             local trainID = locoID_to_trainID[locoID]
             if trainID then
-                log('Migrating storage.Dispatcher.Deliveries from [' .. tostring(locoID) .. '] to [' .. tostring(trainID) .. ']')
+                tools.log(0, 'initialize', 'Migrating storage.Dispatcher.Deliveries from [%s] to [%s]', tostring(locoID), tostring(trainID))
                 new_Deliveries[trainID] = delivery
             end
         end
@@ -183,11 +183,11 @@ local function initializeTrainStops()
     -- remove invalidated stops
     for stopID, stop in pairs(storage.LogisticTrainStops) do
         if not stop then
-            log('[LTN] removing empty stop entry ' .. tostring(stopID))
+            tools.log(0, 'initializeTrainStops', 'removing empty stop entry %s', tostring(stopID))
             storage.LogisticTrainStops[stopID] = nil
         elseif not (stop.entity and stop.entity.valid) then
             -- stop entity is corrupt/missing remove I/O entities
-            log('[LTN] removing corrupt stop ' .. tostring(stopID))
+            tools.log(0, 'initializeTrainStops', 'removing corrupt stop %s', tostring(stopID))
             if stop.input and stop.input.valid then
                 stop.input.destroy()
             end
@@ -214,12 +214,12 @@ local function initializeTrainStops()
                             and (ltn_stop.input and ltn_stop.input.valid)
                             and (ltn_stop.lamp_control and ltn_stop.lamp_control.valid) then
                             -- I/O entities are corrupted
-                            log(string.format('[LTN] recreating corrupt stop %s', stop.backer_name))
+                            tools.log(0, 'initializeTrainStops', 'recreating corrupt stop %s', stop.backer_name)
                             storage.LogisticTrainStops[stop.unit_number] = nil
                             CreateStop(stop) -- recreate to spawn missing I/O entities
                         end
                     else
-                        log('[LTN] recreating stop missing from storage.LogisticTrainStops ' .. tostring(stop.backer_name))
+                        tools.log(0, 'initializeTrainStops', 'recreating stop missing from storage.LogisticTrainStops - %s', tostring(stop.backer_name))
                         CreateStop(stop) -- recreate LTN stops missing from storage.LogisticTrainStops
                     end
                 end
@@ -318,7 +318,7 @@ script.on_init(function()
     updateAllTrains()
     registerEvents()
 
-    log(string.format('[LTN] %s %s initialized.', MOD_NAME, newVersionString))
+    tools.log(0, 'on_init', '%s %s initialized.', MOD_NAME, newVersionString)
 end)
 
 script.on_configuration_changed(function(data)
@@ -335,17 +335,17 @@ script.on_configuration_changed(function(data)
         end
 
         if oldVersion and oldVersion < '01.01.01' then
-            log(string.format('[LTN] Migration failed. Migrating from %s to %s not supported.', oldVersionString, newVersionString))
+            tools.log(0, 'on_init', 'Migration failed. Migrating from %s to %s not supported.', oldVersionString, newVersionString)
             tools.printmsg(string.format('[LTN] Error: Direct migration from %s to %s is not supported. Oldest supported version: 1.1.1', oldVersionString, newVersionString))
             return
         else
             initialize(oldVersion, newVersion)
-            log(string.format('[LTN] Migrating from %s to %s complete.', oldVersionString, newVersionString))
+            tools.log(0, 'on_init', 'Migrating from %s to %s complete.', oldVersionString, newVersionString)
             tools.printmsg(string.format('[LTN] Migration from %s to %s complete.', oldVersionString, newVersionString))
         end
     end
     initializeTrainStops()
     updateAllTrains()
     registerEvents()
-    log(string.format('[LTN] %s %s configuration updated.', MOD_NAME, script.active_mods[MOD_NAME]))
+    tools.log(0, 'on_configuration_changed', '%s %s configuration updated.', MOD_NAME, script.active_mods[MOD_NAME])
 end)

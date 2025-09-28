@@ -37,9 +37,9 @@ If `true`, any alert message will be registered as a [Factorio Alert](https://wi
 
 This setting is per-player, so each player can choose whether to receive alerts or not.
 
-## Enable debug log file (ltn-interface-debug-logfile) - boolean, default is false
+## Enable debug log file (ltn-interface-debug-logfile) - number 0 - 10, default is 0
 
-If `true`, write detailed informations into the factorio log file. This should only be turned on for debugging purposes.
+If larger than zero, write detailed information into the factorio log file. This should only be turned on for debugging purposes. The higher the number, the more log information is written. The majority of the existing log statements uses '5' as the priority.
 
 ## Default Request Threshold (ltn-dispatcher-requester-threshold) - integer 1 - max, default is 1000
 

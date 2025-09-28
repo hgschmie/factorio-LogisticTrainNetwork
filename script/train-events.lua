@@ -47,7 +47,7 @@ function TrainArrives(train)
 
     -- if message_level >= 3 then tools.printmsg({"ltn-message.train-arrived", tostring(trainName), stop_name}, trainForce, false) end
     if message_level >= 3 then tools.printmsg({ 'ltn-message.train-arrived', tools.richTextForTrain(train), string.format('[train-stop=%d]', stopID) }, trainForce) end
-    if debug_log then log(string.format('(TrainArrives) Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop)) end
+    if debug_log then tools.log(5, 'TrainArrives', 'Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop) end
 
     if stop.error_code == 0 then
         local stop_type = GetStationType(stop)
@@ -64,7 +64,7 @@ function TrainArrives(train)
                 local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
 
                 if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-depot', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }, delivery.force) end
-                if debug_log then log(string.format('(TrainArrives) Train [%d] \"%s\": Entered Depot with active Delivery. Failing Delivery and reseting train.', train.id, trainName)) end
+                if debug_log then tools.log(5, 'TrainArrives', 'Train [%d] \"%s\": Entered Depot with active Delivery. Failing Delivery and reseting train.', train.id, trainName) end
 
                 ---@type ltn.EventData.on_delivery_failed
                 local data = {
@@ -84,7 +84,7 @@ function TrainArrives(train)
                     for fluid, count in pairs(train_fluids) do
                         local cleaning_amount = math.ceil(math.min(count, LtnSettings.depot_fluid_cleaning))
                         local removed = math.ceil(train.remove_fluid { name = fluid, amount = cleaning_amount })
-                        if debug_log then log(string.format('(TrainArrives) Train \"%s\": Depot fluid removal %s %f/%f', trainName, fluid, removed, count)) end
+                        if debug_log then tools.log(5, 'TrainArrives', 'Train \"%s\": Depot fluid removal %s %f/%f', trainName, fluid, removed, count) end
                     end
                 elseif LtnSettings.depot_fluid_cleaning < 0 then
                     train.clear_fluids_inside()
@@ -215,14 +215,14 @@ function TrainLeaves(trainID)
     local stopID = leavingTrain.stopID
     local stop = storage.LogisticTrainStops[stopID]
     if not stop then
-        if debug_log then log(string.format('(TrainLeaves) Error: StopID [%d] not found in storage.LogisticTrainStops', stopID)) end
+        if debug_log then tools.log(5, 'TrainLeaves', 'Error: StopID [%d] not found in storage.LogisticTrainStops', stopID) end
 
         stopped_trains[trainID] = nil
         return
     end
 
     if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
-        if debug_log then log(string.format('(TrainLeaves) Error: StopID [%d] contains invalid entity. Processing skipped, train inventory not updated.', stopID)) end
+        if debug_log then tools.log(5, 'TrainLeaves', 'Error: StopID [%d] contains invalid entity. Processing skipped, train inventory not updated.', stopID) end
 
         stopped_trains[trainID] = nil
         -- don't call RemoveStop here as RemoveStop calls TrainLeaves again
@@ -244,7 +244,7 @@ function TrainLeaves(trainID)
             setLamp(stop, 'green', 1)
         end
 
-        if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Depot [%d] \"%s\".', trainID, leavingTrain.name, stopID, stop.entity.backer_name)) end
+        if debug_log then tools.log(5, 'TrainLeaves', 'Train [%d] \"%s\": left Depot [%d] \"%s\".', trainID, leavingTrain.name, stopID, stop.entity.backer_name) end
     elseif stop_type == station_type.station then
         -- ----------------------------------------------------------------------------------------
         -- Provider / Requester operations
@@ -300,7 +300,7 @@ function TrainLeaves(trainID)
 
                 delivery.pickupDone = true -- remove reservations from this delivery
 
-                if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Provider [%d] \"%s\"; cargo: %s; unscheduled: %s ', trainID, leavingTrain.name, stopID, stop.entity.backer_name, serpent.line(actual_load), serpent.line(unscheduled_load))) end
+                if debug_log then tools.log(5, 'TrainLeaves', 'Train [%d] \"%s\": left Provider [%d] \"%s\"; cargo: %s; unscheduled: %s ', trainID, leavingTrain.name, stopID, stop.entity.backer_name, serpent.line(actual_load), serpent.line(unscheduled_load)) end
 
                 stopped_trains[trainID] = nil
 
@@ -365,7 +365,7 @@ function TrainLeaves(trainID)
                     remaining_load[item] = cargo
                 end
 
-                if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left Requester [%d] \"%s\" with left over cargo: %s', trainID, leavingTrain.name, stopID, stop.entity.backer_name, serpent.line(remaining_load))) end
+                if debug_log then tools.log(5, 'TrainLeaves', 'Train [%d] \"%s\": left Requester [%d] \"%s\" with left over cargo: %s', trainID, leavingTrain.name, stopID, stop.entity.backer_name, serpent.line(remaining_load)) end
 
                 -- signal completed delivery and remove it
                 if requester_left_over_cargo then
@@ -390,7 +390,7 @@ function TrainLeaves(trainID)
 
                 RemoveDelivery(trainID)
             else
-                if debug_log then log(string.format('(TrainLeaves) Train [%d] \"%s\": left LTN-stop [%d] \"%s\".', trainID, leavingTrain.name, stopID, stop.entity.backer_name)) end
+                if debug_log then tools.log(5, 'TrainLeaves', 'Train [%d] \"%s\": left LTN-stop [%d] \"%s\".', trainID, leavingTrain.name, stopID, stop.entity.backer_name) end
             end
         end
         if stop.error_code == 0 then

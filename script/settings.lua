@@ -10,7 +10,7 @@ local tools = require('script.tools')
 
 ---@class ltn.Settings
 ---@field message_level integer
----@field debug_log boolean
+---@field debug_log ltn.LogType?
 ---@field message_include_gps boolean
 ---@field delivery_timeout integer
 ---@field depot_inactivity integer
@@ -43,7 +43,7 @@ local change_settings = {
     end,
     ['ltn-interface-message-gps'] = function(ltn_settings, name) ltn_settings.message_include_gps = settings.global[name].value end,
     ['ltn-interface-debug-logfile'] = function(ltn_settings, name)
-        ltn_settings.debug_log = settings.global[name].value
+        ltn_settings.debug_log = settings.global[name].value > 0 and settings.global[name].value or nil
         debug_log = ltn_settings.debug_log -- legacy
     end,
     ['ltn-dispatcher-requester-threshold'] = function(ltn_settings, name) ltn_settings.min_requested = settings.global[name].value end,
