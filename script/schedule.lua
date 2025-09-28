@@ -74,28 +74,37 @@ function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
     end
 end
 
+---@param train_schedule LuaSchedule
+local function find_depot_record(train_schedule)
+    for i = 1, train_schedule.get_record_count(), 1 do
+        local record = train_schedule.get_record { schedule_index = i }
+        assert(record)
+        -- return first non-temporary stop.
+        if not record.temporary then return record end
+        if debug_log then log(('(find_depot_record) Skipping temporary stop %s when selecting depot for train %s (%d)'):format(record.station, tools.getTrainName(train_schedule.owner), train_schedule.owner.id)) end
+    end
+    return nil
+end
+
+
 --- Selects a depot to send the train to.
 ---@param train LuaTrain
 ---@param network_id integer
 ---@return ltn.TrainStop? train_stop A depot train stop
 function ScheduleManager:selectDepot(train, network_id)
-    local all_stops = tools.getAllStops()
     local all_depots = tools.findMatchingStops(tools.getDepots(), network_id)
     if table_size(all_depots) == 0 then return nil end
 
     if not LtnSettings.reselect_depot then
-        local train_schedule = train.get_schedule()
-        if train_schedule.get_record_count() > 0 then
-            local depot_record = train_schedule.get_record { schedule_index = 1, }
-            if depot_record and depot_record.station then
-                for _, depot in pairs(all_depots) do
-                    if depot.entity.backer_name == depot_record.station and all_stops[depot.entity.unit_number] then
-                        return all_stops[depot.entity.unit_number]
-                    end
-                end
+        local depot_record = find_depot_record(train.get_schedule())
+        if depot_record and depot_record.station then
+            for _, depot in pairs(all_depots) do
+                if depot.entity.backer_name == depot_record.station then return depot end
             end
         end
     end
+
+    if debug_log then log(('(ScheduleManager::selectDepot) Reselecting depot for train %s (%d)'):format(tools.getTrainName(train), train.id)) end
 
     -- no depot found / reselection requested
 
@@ -107,13 +116,24 @@ function ScheduleManager:selectDepot(train, network_id)
         end
     end
 
+    if table_size(depots) == 0 then
+        if debug_log then log(('(ScheduleManager::selectDepot) No valid depot for train %s (%d) found!'):format(tools.getTrainName(train), train.id)) end
+        return nil
+    end
+
     local path_results = game.train_manager.request_train_path {
         type = 'all-goals-accessible',
         train = train,
         goals = depots,
     }
 
-    if path_results.amount_accessible == 0 then return nil end
+    if path_results.amount_accessible == 0 then
+        if debug_log then log(('(ScheduleManager::selectDepot) No accessible depot for train %s (%d) found!'):format(tools.getTrainName(train), train.id)) end
+        return nil
+    end
+
+    local all_stops = tools.getAllStops()
+
     ---@type ltn.TrainStop[]
     local accessible_stations = {}
 
@@ -123,7 +143,10 @@ function ScheduleManager:selectDepot(train, network_id)
         end
     end
 
-    return accessible_stations[math.random(#accessible_stations)]
+    local depot = accessible_stations[math.random(#accessible_stations)]
+    if debug_log then log(('(ScheduleManager::selectDepot) Selected %s as depot for train %s (%d)'):format(depot.entity.backer_name, tools.getTrainName(train), train.id)) end
+
+    return depot
 end
 
 --- Selects a fuel station that is appropriate to refuel this train.
@@ -350,12 +373,14 @@ function ScheduleManager:updateRefuelSchedule(train, network_id)
     end
 end
 
---- Adds a stop for a depot
+--- Reset the train schedule to get ready for the next delivery.
+--- This moves the depot into the first position, retains potential temporary stops
+--- and reorganizes the schedule to be depot - (temp) - provider - (temp) - requester
 ---@param train LuaTrain
----@param stop ltn.TrainStop
+---@param depot_stop ltn.TrainStop?
 ---@param inactivity number
 ---@param force boolean?
-function ScheduleManager:resetSchedule(train, stop, inactivity, force)
+function ScheduleManager:resetSchedule(train, depot_stop, inactivity, force)
     local train_schedule = train.get_schedule()
     local records = train_schedule.get_records() or {}
 
@@ -365,6 +390,18 @@ function ScheduleManager:resetSchedule(train, stop, inactivity, force)
     -- remove train from train group before modifying the schedule
     train.group = ''
 
+    if not depot_stop then
+        if debug_log then log(('(ScheduleManager::resetSchedule) Schedule reset without a depot for train %s (%d)'):format(tools.getTrainName(train), train.id)) end
+
+        train_schedule.clear_records()
+        train_schedule.clear_interrupts()
+
+        local loco = tools.getMainLocomotive(train)
+
+        if loco then create_alert(loco, 'depot-warning', { 'ltn-message.warning-no-depot-found', loco.backer_name }, loco.force) end
+        return
+    end
+
     if #records > 0 then
         -- remove all but the first stop (which should be the depot) and any temporary stops
         for index = #records, 2, -1 do
@@ -373,22 +410,24 @@ function ScheduleManager:resetSchedule(train, stop, inactivity, force)
                 train_schedule.remove_record { schedule_index = index }
             end
         end
-        local first_stop = assert(train_schedule.get_record { schedule_index = 1 })
+        local first_stop = assert(find_depot_record(train_schedule))
 
         -- If the stop is the expected depot, do not modify the schedule further
         -- otherwise, the schedule is invalid enough that other mods will not receive a
         -- on_train_state_changed with train.state == wait_station event which may throw
         -- other mods off -- see https://forums.factorio.com/viewtopic.php?t=130803
-        if first_stop.station == stop.entity.backer_name then return end
+        if first_stop.station == depot_stop.entity.backer_name then return end
 
-        -- first station was unexpected. Clear the depot record as well.
-        train_schedule.remove_record { schedule_index = 1 }
+        if debug_log then log(('(ScheduleManager::resetSchedule) Unexpected depot stop %s (expected %s) for train %s (%d)'):format(first_stop.station, depot_stop.entity.backer_name, tools.getTrainName(train), train.id)) end
+
+        -- first station was unexpected. Clear the full schedule
+        train_schedule.clear_records()
     end
 
     -- schedule was either empty or the depot stop was not the right stop:
     -- add a new depot stop
     train_schedule.add_record {
-        station = stop.entity.backer_name,
+        station = depot_stop.entity.backer_name,
         temporary = false,
         allows_unloading = true,
         wait_conditions = {
@@ -401,6 +440,8 @@ function ScheduleManager:resetSchedule(train, stop, inactivity, force)
             schedule_index = 1,
         },
     }
+
+    if debug_log then log(('(ScheduleManager::resetSchedule) Added depot stop %s for train %s (%d)'):format(depot_stop.entity.backer_name, tools.getTrainName(train), train.id)) end
 end
 
 ---@param train LuaTrain

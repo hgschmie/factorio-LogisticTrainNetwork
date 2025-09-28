@@ -33,7 +33,7 @@
 
 ---@alias ltn.LoadingList ltn.LoadingElement[]
 
----@alias ltn.AlertType ('cargo-warning'|'cargo-alert'|'deport-warning'|'depot-empty')
+---@alias ltn.AlertType ('cargo-warning'|'cargo-alert'|'depot-warning'|'depot-empty')
 
 ---@alias ltn.ItemFluid ('item'|'fluid')
 

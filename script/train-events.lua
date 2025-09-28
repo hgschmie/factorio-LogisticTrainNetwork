@@ -20,11 +20,8 @@ function TrainArrives(train)
     local stop_name = stop.entity.backer_name
     -- assign main loco name and force
 
-    ---@type LuaEntity?
     local loco = tools.getMainLocomotive(train)
-    ---@type LuaForce?
     local trainForce = loco and loco.force
-    ---@type string?
     local trainName = loco and loco.backer_name
 
     -- add train to stopped_trains
@@ -348,9 +345,7 @@ function TrainLeaves(trainID)
                 -- reset schedule before API events
                 if LtnSettings.requester_delivery_reset then
                     local depot = schedule:selectDepot(leavingTrain.train, delivery.network_id)
-                    if depot then
-                        schedule:resetSchedule(train, depot, LtnSettings.depot_inactivity, true)
-                    end
+                    schedule:resetSchedule(train, depot, LtnSettings.depot_inactivity, true)
                 end
 
                 local remaining_load = {}
