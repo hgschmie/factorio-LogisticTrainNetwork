@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.4.2
-Date: ????
+Date: 2025-09-28
   Changes:
     - debug logging is now controlled by an int setting to provide different levels of logging.
   Bugfixes:
