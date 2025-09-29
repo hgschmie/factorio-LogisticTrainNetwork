@@ -5,6 +5,8 @@ Date: ????
     - debug logging is now controlled by an int setting to provide different levels of logging.
   Bugfixes:
     - fix crash when another mod adds a temporary refueling record at the beginning of the schedule
+    - make sure that any freshly minted train that gets sent to a depot for the first time really gets
+      the wait condition for the depot. Reported by @mikegarrison on the forums
 ---------------------------------------------------------------------------------------------------
 Version: 2.4.1
 Date: 2025-09-27

@@ -75,12 +75,14 @@ function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
 end
 
 ---@param train_schedule LuaSchedule
+---@return ScheduleRecord? depot_record
+---@return integer? depot_record_index
 local function find_depot_record(train_schedule)
     for i = 1, train_schedule.get_record_count(), 1 do
         local record = train_schedule.get_record { schedule_index = i }
         assert(record)
         -- return first non-temporary stop.
-        if not record.temporary then return record end
+        if not record.temporary then return record, i end
 
         if debug_log then
             tools.log(1, 'find_depot_record', 'Skipping temporary stop %s when selecting depot for train %s (%d)',
@@ -93,7 +95,7 @@ local function find_depot_record(train_schedule)
             serpent.line(train_schedule.get_records()), tools.getTrainName(train_schedule.owner), train_schedule.owner.id)
     end
 
-    return nil
+    return nil, nil
 end
 
 
@@ -424,13 +426,23 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
         end
 
         -- find the depot stop in the new schedule
-        local depot_record = find_depot_record(train_schedule)
+        local depot_record, depot_record_index = find_depot_record(train_schedule)
 
         -- If the stop is the expected depot, do not modify the schedule further
         -- otherwise, the schedule is invalid enough that other mods will not receive a
         -- on_train_state_changed with train.state == wait_station event which may throw
         -- other mods off -- see https://forums.factorio.com/viewtopic.php?t=130803
-        if depot_record and depot_record.station == depot_stop.entity.backer_name then return end
+        if depot_record and depot_record.station == depot_stop.entity.backer_name then
+            if #depot_record.wait_conditions > 0 then return end
+            -- the train was just sent into the depot and the schedule record does not yet have the right wait condition.
+            -- use the worst API on LuaSchedule to add one
+            train_schedule.add_wait_condition({ schedule_index = depot_record_index }, 1, 'inactivity')
+            train_schedule.change_wait_condition({ schedule_index = depot_record_index }, 1, {
+                type = 'inactivity',
+                ticks = LtnSettings.depot_inactivity,
+            })
+            return
+        end
 
         if debug_log then
             tools.log(1, 'ScheduleManager:resetSchedule', 'Unexpected depot stop %s (expected %s) for train %s (%d)',
@@ -449,7 +461,7 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
             {
                 type = 'inactivity',
                 ticks = LtnSettings.depot_inactivity,
-            }
+            },
         },
         index = {
             schedule_index = 1,
