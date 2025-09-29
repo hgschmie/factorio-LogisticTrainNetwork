@@ -378,14 +378,13 @@ end
 --- and reorganizes the schedule to be depot - (temp) - provider - (temp) - requester
 ---@param train LuaTrain
 ---@param depot_stop ltn.TrainStop?
----@param inactivity number
----@param force boolean?
-function ScheduleManager:resetSchedule(train, depot_stop, inactivity, force)
+---@param force_reset boolean? If false, only reset schedule when the current schedule is empty
+function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
     local train_schedule = train.get_schedule()
     local records = train_schedule.get_records() or {}
 
     -- if the schedule should not be reset and there are stops on the schedule, do nothing
-    if not force and #records > 0 then return end
+    if not force_reset and #records > 0 then return end
 
     -- remove train from train group before modifying the schedule
     train.group = ''
@@ -433,7 +432,7 @@ function ScheduleManager:resetSchedule(train, depot_stop, inactivity, force)
         wait_conditions = {
             {
                 type = 'inactivity',
-                ticks = inactivity,
+                ticks = LtnSettings.depot_inactivity,
             }
         },
         index = {

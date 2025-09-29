@@ -10,7 +10,7 @@ local tools = require('script.tools')
 
 ---@class ltn.Settings
 ---@field message_level integer
----@field debug_log ltn.LogType?
+---@field debug_log number
 ---@field message_include_gps boolean
 ---@field delivery_timeout integer
 ---@field depot_inactivity integer

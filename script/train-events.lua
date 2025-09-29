@@ -104,7 +104,7 @@ function TrainArrives(train)
 
             -- reset schedule
             schedule:resetInterrupts(train)
-            schedule:resetSchedule(train, stop, LtnSettings.depot_inactivity, true)
+            schedule:resetSchedule(train, stop, true)
             schedule:updateRefuelSchedule(train, stop.network_id)
 
             -- reset filters and bars
@@ -345,7 +345,7 @@ function TrainLeaves(trainID)
                 -- reset schedule before API events
                 if LtnSettings.requester_delivery_reset then
                     local depot = schedule:selectDepot(leavingTrain.train, delivery.network_id)
-                    schedule:resetSchedule(train, depot, LtnSettings.depot_inactivity, true)
+                    schedule:resetSchedule(train, depot, true)
                 end
 
                 local remaining_load = {}

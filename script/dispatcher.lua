@@ -696,7 +696,7 @@ function ProcessRequest(reqIndex, request)
     -- create schedule
     local depot = storage.LogisticTrainStops[selectedTrain.station.unit_number]
 
-    schedule:resetSchedule(selectedTrain, depot, LtnSettings.depot_inactivity)
+    schedule:resetSchedule(selectedTrain, depot)
 
     -- make train go to specific stations by setting a temporary waypoint on the rail the station is connected to
     -- schedules cannot have temporary stops on a different surface, those need to be added when the delivery is updated with a train on a different surface
