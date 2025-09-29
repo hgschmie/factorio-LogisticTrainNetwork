@@ -81,8 +81,18 @@ local function find_depot_record(train_schedule)
         assert(record)
         -- return first non-temporary stop.
         if not record.temporary then return record end
-        if debug_log then tools.log(1, 'find_depot_record', 'Skipping temporary stop %s when selecting depot for train %s (%d)', record.station, tools.getTrainName(train_schedule.owner), train_schedule.owner.id) end
+
+        if debug_log then
+            tools.log(1, 'find_depot_record', 'Skipping temporary stop %s when selecting depot for train %s (%d)',
+                record.station, tools.getTrainName(train_schedule.owner), train_schedule.owner.id)
+        end
     end
+
+    if debug_log then
+        tools.log(1, 'find_depot_record', 'Could not locate a depot stop in schedule (stops: %s) for train %s (%d)',
+            serpent.line(train_schedule.get_records()), tools.getTrainName(train_schedule.owner), train_schedule.owner.id)
+    end
+
     return nil
 end
 
@@ -208,6 +218,8 @@ end
 
 ---@param train LuaTrain
 function ScheduleManager:removeFuelInterrupt(train)
+    -- unconditionally remove fuel interrupt. Do not add a check for use_fuel_interrupt,
+    -- otherwise the interrupt will never get removed when switching to dynamic refueling
     local train_schedule = train.get_schedule()
     local interrupt_index = find_interrupt_index(train_schedule, LTN_INTERRUPT_NAME)
     if interrupt_index then train_schedule.remove_interrupt(interrupt_index) end
@@ -304,72 +316,74 @@ end
 ---@param network_id integer
 function ScheduleManager:updateRefuelSchedule(train, network_id)
     local fuel_station = self:selectFuelStation(train, network_id)
-    local train_schedule = train.get_schedule()
 
-    if LtnSettings.enable_fuel_stations and fuel_station then
-        assert(fuel_station.fuel_signals)
-
-        if LtnSettings.use_fuel_station_interrupt then
-            ---@type WaitCondition[]
-            local interrupt_conditions = {}
-
-            for _, circuit_condition in pairs(fuel_station.fuel_signals) do
-                table.insert(interrupt_conditions, {
-                    type = 'fuel_item_count_any',
-                    condition = util.copy(circuit_condition),
-                    compare_type = 'or',
-                })
-                table.insert(interrupt_conditions, {
-                    type = 'fuel_item_count_any',
-                    condition = {
-                        comparator = '>',
-                        first_signal = util.copy(circuit_condition.first_signal),
-                        constant = 0,
-                    },
-                    compare_type = 'and',
-                })
-            end
-
-            ---@type ScheduleInterrupt
-            local schedule_interrupt = {
-                name = LTN_INTERRUPT_NAME,
-                inside_interrupt = false,
-                conditions = interrupt_conditions,
-                targets = {
-                    {
-                        station = fuel_station.entity.backer_name,
-                        wait_conditions = {
-                            {
-                                type = 'inactivity',
-                                ticks = 120,
-                            },
-                            {
-                                type = 'fuel_full',
-                                compare_type = 'or',
-                            },
-
-                        },
-                        temporary = true,
-                        allows_unloading = false,
-                    }
-                }
-            }
-
-            local interrupt_index = find_interrupt_index(train_schedule, LTN_INTERRUPT_NAME)
-
-            if interrupt_index then
-                train_schedule.change_interrupt(interrupt_index, schedule_interrupt)
-            else
-                train_schedule.add_interrupt(schedule_interrupt)
-            end
-        else
-            -- Do not use interrupt, use dynamic fuel scheduling
-            self:removeFuelInterrupt(train)
-            self:scheduleDynamicRefueling(train, fuel_station)
-        end
-    else
+    if not (LtnSettings.enable_fuel_stations and fuel_station) then
         -- no fuel station in the network
         self:removeFuelInterrupt(train)
+        return
+    end
+
+    assert(fuel_station.fuel_signals)
+
+    if not LtnSettings.use_fuel_station_interrupt then
+        -- Do not use interrupt, use dynamic fuel scheduling
+        self:removeFuelInterrupt(train)
+        self:scheduleDynamicRefueling(train, fuel_station)
+        return
+    end
+
+    ---@type WaitCondition[]
+    local interrupt_conditions = {}
+
+    for _, circuit_condition in pairs(fuel_station.fuel_signals) do
+        table.insert(interrupt_conditions, {
+            type = 'fuel_item_count_any',
+            condition = util.copy(circuit_condition),
+            compare_type = 'or',
+        })
+        table.insert(interrupt_conditions, {
+            type = 'fuel_item_count_any',
+            condition = {
+                comparator = '>',
+                first_signal = util.copy(circuit_condition.first_signal),
+                constant = 0,
+            },
+            compare_type = 'and',
+        })
+    end
+
+    ---@type ScheduleInterrupt
+    local schedule_interrupt = {
+        name = LTN_INTERRUPT_NAME,
+        inside_interrupt = false,
+        conditions = interrupt_conditions,
+        targets = {
+            {
+                station = fuel_station.entity.backer_name,
+                wait_conditions = {
+                    {
+                        type = 'inactivity',
+                        ticks = 120,
+                    },
+                    {
+                        type = 'fuel_full',
+                        compare_type = 'or',
+                    },
+
+                },
+                temporary = true,
+                allows_unloading = false,
+            }
+        }
+    }
+
+    local train_schedule = train.get_schedule()
+    local interrupt_index = find_interrupt_index(train_schedule, LTN_INTERRUPT_NAME)
+
+    if interrupt_index then
+        train_schedule.change_interrupt(interrupt_index, schedule_interrupt)
+    else
+        train_schedule.add_interrupt(schedule_interrupt)
     end
 end
 
