@@ -402,29 +402,31 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
     end
 
     if #records > 0 then
-        -- remove all but the first stop (which should be the depot) and any temporary stops
-        for index = #records, 2, -1 do
-            -- if there is a temporary fuel stop in the schedule, do not touch it
-            if not records[index].temporary then
+        for index = #records, 1, -1 do
+            -- remove all stops that are not the depot stop or any temporary stops
+            if not (records[index].temporary or records[index].station == depot_stop.entity.backer_name) then
                 train_schedule.remove_record { schedule_index = index }
             end
         end
-        local first_stop = assert(find_depot_record(train_schedule))
+
+        -- find the depot stop in the new schedule
+        local depot_record = find_depot_record(train_schedule)
 
         -- If the stop is the expected depot, do not modify the schedule further
         -- otherwise, the schedule is invalid enough that other mods will not receive a
         -- on_train_state_changed with train.state == wait_station event which may throw
         -- other mods off -- see https://forums.factorio.com/viewtopic.php?t=130803
-        if first_stop.station == depot_stop.entity.backer_name then return end
+        if depot_record and depot_record.station == depot_stop.entity.backer_name then return end
 
-        if debug_log then tools.log(1, 'ScheduleManager:resetSchedule', 'Unexpected depot stop %s (expected %s) for train %s (%d)', first_stop.station, depot_stop.entity.backer_name, tools.getTrainName(train), train.id) end
+        if debug_log then
+            tools.log(1, 'ScheduleManager:resetSchedule', 'Unexpected depot stop %s (expected %s) for train %s (%d)',
+                depot_record and depot_record.station or '<unknown>', depot_stop.entity.backer_name, tools.getTrainName(train), train.id)
+        end
 
-        -- first station was unexpected. Clear the full schedule
         train_schedule.clear_records()
     end
 
-    -- schedule was either empty or the depot stop was not the right stop:
-    -- add a new depot stop
+    -- schedule was either empty or the depot stop was not the right stop: add a new depot stop
     train_schedule.add_record {
         station = depot_stop.entity.backer_name,
         temporary = false,
