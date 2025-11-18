@@ -173,7 +173,7 @@ function TrainArrives(train)
                 end
 
                 -- only check dynamic refueling if a delivery exists (which contains the network id)
-                if LtnSettings.enable_fuel_stations then
+                if LtnSettings.enable_fuel_stations and not LtnSettings.use_fuel_station_interrupt then
                     local fuel_station = schedule:selectFuelStation(train, delivery.network_id)
                     if fuel_station then
                         schedule:scheduleDynamicRefueling(train, fuel_station)

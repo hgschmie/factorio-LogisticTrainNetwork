@@ -1,7 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.4.3
 Date: ????
-  Changes:
+  Bugfixes:
+    - remove fuel station and depot status when a stop changes from a depot/fuel station to something else
 ---------------------------------------------------------------------------------------------------
 Version: 2.4.2
 Date: 2025-09-28

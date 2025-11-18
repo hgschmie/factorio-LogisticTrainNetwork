@@ -210,6 +210,15 @@ function UpdateStop(stopID, stop)
         end
     end
 
+    -- Clean up old state, as the actual state has changed
+    if new_state ~= current_state then
+        if current_state == station_type.depot then
+            tools.removeStop(tools.getDepots(), stopID)
+        elseif current_state == station_type.fuel_stop then
+            tools.removeStop(tools.getFuelStations(), stopID)
+        end
+    end
+
     -- check if it's a depot
     if new_state == station_type.depot then
         -- ----------------------------------------------------------------------------------------
@@ -218,8 +227,7 @@ function UpdateStop(stopID, stop)
 
         stop.depot_priority = ltn_state.depot_priority
 
-        local depots = tools.getDepots()
-        tools.updateStopList(stop, depots, ltn_state.network_id)
+        tools.updateStopList(stop, tools.getDepots(), ltn_state.network_id)
 
         -- add parked train to available trains
         if stop.parked_train_id and stop.parked_train.valid then
@@ -267,8 +275,7 @@ function UpdateStop(stopID, stop)
 
         stop.fuel_signals = fuel_signals
 
-        local fuel_stations = tools.getFuelStations()
-        tools.updateStopList(stop, fuel_stations, ltn_state.network_id)
+        tools.updateStopList(stop, tools.getFuelStations(), ltn_state.network_id)
     elseif new_state == station_type.station then
         -- ----------------------------------------------------------------------------------------
         -- Provider / Requester operations
