@@ -119,18 +119,30 @@ function UpdateStop(stopID, stop)
         return
     end
 
-    -- skip deactivated stops
-    local stopCB = stop.entity.get_control_behavior() --[[@as LuaTrainStopControlBehavior ]]
-    if stopCB and stopCB.disabled then
-        stop.error_code = 1
-        tools.reduceAvailableCapacity(stop.parked_train_id)
+    -- also fix up the stop entity itself, in case someone meddled with it
+    stop.entity.trains_limit = nil
 
-        setLamp(stop, ErrorCodes[stop.error_code], 2)
+    local trainstop_control = stop.entity.get_control_behavior() --[[@as LuaTrainStopControlBehavior? ]]
+    if trainstop_control then
+        trainstop_control.send_to_train = true
+        trainstop_control.read_from_train = true
+        trainstop_control.trains_limit_signal = nil
 
-        if debug_log then tools.log(5, 'UpdateStop', 'Circuit deactivated stop: %s', stop.entity.backer_name) end
+        -- skip deactivated stops
+        if trainstop_control.disabled then
+            stop.error_code = 1
+            tools.reduceAvailableCapacity(stop.parked_train_id)
 
-        return
+            setLamp(stop, ErrorCodes[stop.error_code], 1)
+
+            if debug_log then tools.log(5, 'UpdateStop', 'Circuit deactivated stop: %s', stop.entity.backer_name) end
+
+            return
+        end
     end
+
+    local signals = stop.input.get_signals(defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+    if not signals then return end -- either lamp and lampctrl are not connected or lampctrl has no output signal
 
     -- initialize control signal values to defaults
     ---@type ltn.SignalState
@@ -153,9 +165,6 @@ function UpdateStop(stopID, stop)
         locked_slots = 0,
         fuel_signals = nil,
     }
-
-    local signals = stop.input.get_signals(defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
-    if not signals then return end -- either lamp and lampctrl are not connected or lampctrl has no output signal
 
     ---@type table<SignalID, number>
     local signals_filtered = {}
