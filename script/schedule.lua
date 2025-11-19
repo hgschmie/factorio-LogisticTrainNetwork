@@ -173,10 +173,13 @@ function ScheduleManager:selectFuelStation(train, network_id)
     ---@type LuaEntity[]
     local stations = {}
     for _, station in pairs(all_fuel_stations) do
-        if station.fuel_signals and station.entity.connected_rail then -- must provide some threshold signal
-            table.insert(stations, station.entity)
+        assert(station.fuel_signals)
+        if #station.fuel_signals > 0 and station.entity.connected_rail then -- must provide some threshold signal
+             table.insert(stations, station.entity)
         end
     end
+
+    if #stations == 0 then return nil end
 
     ---@type TrainPathFinderOneGoalResult
     local path_results = game.train_manager.request_train_path {
