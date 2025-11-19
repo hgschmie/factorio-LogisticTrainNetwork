@@ -6,6 +6,7 @@ Date: ????
     - when enabling detailed messages, report if a station uses the default network id (not receiving a
       network id signal)
     - remove train limit from LTN stops and remove any signal to change train limits
+    - upper limit for refuel interrupt now uses <=, this allows setting '1' as a value.
 ---------------------------------------------------------------------------------------------------
 Version: 2.4.3
 Date: 2025-11-17
