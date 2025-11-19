@@ -138,7 +138,8 @@ function UpdateStop(stopID, stop)
         is_depot = false,
         is_fuel_station = false,
         depot_priority = 0,
-        network_id = LtnSettings.default_network,
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        network_id = nil, -- marker that network was not set by virtual signal
         min_carriages = 0,
         max_carriages = 0,
         max_trains = 0,
@@ -167,6 +168,12 @@ function UpdateStop(stopID, stop)
         elseif (signal_type == 'item' or signal_type == 'fluid') then
             signals_filtered[v.signal] = v.count
         end
+    end
+
+    if not ltn_state.network_id then
+        ltn_state.network_id = LtnSettings.default_network
+
+        if message_level >= 3 then tools.printmsg { 'ltn-message.stop-uses-default-network', tools.richTextForStop(stop.entity) or stop.entity.backer_name } end
     end
 
     local network_id_string = string.format('0x%x', bit32.band(ltn_state.network_id))

@@ -2,6 +2,8 @@
 Version: 2.4.4
 Date: ????
   Changes:
+    - when enabling detailed messages, report if a station uses the default network id (not receiving a
+      network id signal)
 ---------------------------------------------------------------------------------------------------
 Version: 2.4.3
 Date: 2025-11-17
