@@ -41,7 +41,7 @@ E.g. a station that receives 'wood' = 250 and 'rocket-fuel' = 200 for network id
 
 If a station receives both the depot and the fuel station signal, it is considered a depot and will not be used as a fuel station.
 
-A fuel station has a cyan-colored station lamp to signify that it is a fuel station.
+A fuel station has a cyan-colored station lamp to signify that it is a fuel station. Starting with 2.5.0, if a fuel station has no actual fuel signal, it will turn its lamp grey.
 
 Trains arriving at a fuel station will leave if either all locomotives are fully fueled or there are 120 ticks (two seconds) of inactivity. When a train leaves a fuel station, the refuel interrupt is temporarily removed (it gets re-added when the train arrives at a depot that is part of a network that supports refueling).
 

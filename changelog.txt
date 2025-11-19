@@ -1,7 +1,8 @@
 ---------------------------------------------------------------------------------------------------
-Version: 2.4.4
+Version: 2.5.0
 Date: ????
   Changes:
+    - when a refuel station has no fuel signals, turn its lamp gray, not cyan
     - when enabling detailed messages, report if a station uses the default network id (not receiving a
       network id signal)
 ---------------------------------------------------------------------------------------------------

@@ -208,8 +208,11 @@ function UpdateStop(stopID, stop)
         elseif new_state == station_type.fuel_stop then
             if stop.parked_train_id and stop.parked_train.valid then
                 setLamp(stop, 'blue', 1)
-            else
+            elseif #stop.fuel_signals > 0 then
                 setLamp(stop, 'cyan', 1)
+            else
+                stop.error_code = 3
+                setLamp(stop, ErrorCodes[stop.error_code], 3)
             end
         else
             -- unknown station type
@@ -281,6 +284,11 @@ function UpdateStop(stopID, stop)
         end
 
         stop.fuel_signals = fuel_signals
+
+        if #fuel_signals == 0 then
+            stop.error_code = 3
+            setLamp(stop, ErrorCodes[stop.error_code], 3)
+        end
 
         tools.updateStopList(stop, tools.getFuelStations(), ltn_state.network_id)
     elseif new_state == station_type.station then
