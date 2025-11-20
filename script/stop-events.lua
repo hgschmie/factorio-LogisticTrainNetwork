@@ -195,6 +195,7 @@ function CreateStop(entity)
         providing_threshold_stacks = 0,
         provider_priority = 0,
         locked_slots = 0,
+        fuel_signals = {},
     }
 
     UpdateStopOutput(storage.LogisticTrainStops[entity.unit_number])

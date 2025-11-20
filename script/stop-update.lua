@@ -163,7 +163,7 @@ function UpdateStop(stopID, stop)
         providing_threshold_stacks = 0,
         provider_priority = 0,
         locked_slots = 0,
-        fuel_signals = nil,
+        fuel_signals = {},
     }
 
     ---@type table<SignalID, number>

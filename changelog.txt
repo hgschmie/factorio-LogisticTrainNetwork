@@ -7,6 +7,8 @@ Date: ????
       network id signal)
     - remove train limit from LTN stops and remove any signal to change train limits
     - upper limit for refuel interrupt now uses <=, this allows setting '1' as a value.
+  Bugfixes:
+    - fix crash with fuel station not having fuel signals right after construction
 ---------------------------------------------------------------------------------------------------
 Version: 2.4.3
 Date: 2025-11-17
