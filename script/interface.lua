@@ -21,6 +21,8 @@ on_delivery_pickup_complete_event = script.generate_event_name()
 on_delivery_completed_event = script.generate_event_name()
 ---@type defines.events
 on_delivery_failed_event = script.generate_event_name()
+---@type defines.events
+on_delivery_reassigned_event = script.generate_event_name()
 
 ---@type defines.events
 on_provider_missing_cargo_alert = script.generate_event_name()
@@ -47,6 +49,7 @@ remote.add_interface('logistic-train-network', {
     -- update for completing deliveries
     on_delivery_completed = function() return on_delivery_completed_event end,
     on_delivery_failed = function() return on_delivery_failed_event end,
+    on_delivery_reassigned = function() return on_delivery_reassigned_event end,
 
     -- alerts
     on_provider_missing_cargo = function() return on_provider_missing_cargo_alert end,

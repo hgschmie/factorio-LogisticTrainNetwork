@@ -234,6 +234,12 @@
 ---@field train_id         number        The Train Id that failed the delivery
 ---@field shipment         ltn.Shipment  The failed shipment
 
+--- Event raised when a delivery is reassigned from one train to another
+---@class ltn.EventData.on_delivery_reassigned
+---@field old_train_id     number         Old train id
+---@field new_train_id     number         New train id
+---@field shipment         ltn.Shipment   The shipment which got moved
+
 ---@class ltn.EventData.provider_missing_cargo
 ---@field train            LuaTrain
 ---@field station          LuaEntity

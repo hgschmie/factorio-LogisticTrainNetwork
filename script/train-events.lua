@@ -435,7 +435,10 @@ function OnTrainStateChanged(event)
     end
 end
 
--- updates or removes delivery references
+--- updates or removes delivery references
+---@param old_train_id number
+---@param new_train LuaTrain
+---@return ltn.Delivery? The moved delivery, if any.
 function Update_Delivery(old_train_id, new_train)
     local dispatcher = tools.getDispatcher()
     local stopped_trains = tools.getStoppedTrains()
@@ -476,6 +479,16 @@ function Update_Delivery(old_train_id, new_train)
 
     dispatcher.Deliveries[old_train_id] = nil
 
+    if delivery then
+        ---@type ltn.EventData.on_delivery_reassigned
+        local data = {
+            old_train_id = old_train_id,
+            new_train_id = new_train.id,
+            shipment = delivery.shipment
+        }
+        script.raise_event(on_delivery_reassigned_event, data)
+    end
+
     return delivery
 end
 
@@ -484,11 +497,6 @@ function OnTrainCreated(event)
     -- log("(on_train_created) Train name: "..tostring(tools.getTrainName(event.train))..", train.id:"..tostring(event.train.id)..", .old_train_id_1:"..tostring(event.old_train_id_1)..", .old_train_id_2:"..tostring(event.old_train_id_2)..", state: "..tostring(event.train.state))
     -- on_train_created always sets train.state to 9 manual, scripts have to set the train back to its former state.
 
-    if event.old_train_id_1 then
-        Update_Delivery(event.old_train_id_1, event.train)
-    end
-
-    if event.old_train_id_2 then
-        Update_Delivery(event.old_train_id_2, event.train)
-    end
+    if event.old_train_id_1 then Update_Delivery(event.old_train_id_1, event.train) end
+    if event.old_train_id_2 then Update_Delivery(event.old_train_id_2, event.train) end
 end

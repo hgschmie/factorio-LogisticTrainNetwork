@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.5.0
 Date: ????
+  Minor Features:
+    - add new event, `on_delivery_reassigned`; gets raised when a delivery moves from one train to another.
   Changes:
     - when a refuel station has no fuel signals, turn its lamp gray, not cyan
     - when enabling detailed messages, report if a station uses the default network id (not receiving a

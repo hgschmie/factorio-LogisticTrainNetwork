@@ -114,6 +114,10 @@ Raised when a dropoff is complete and a train leaves the requester stop. Sends o
 
 Raised when a delivery has failed (e.g. train gets removed, the delivery timed out, train enters depot stop with active delivery). Sends out a `ltn.EventData.on_delivery_failed` payload.
 
+### on_delivery_reassigned (since 2.5.0)
+
+Raised when a delivery is reassigned from one train to another. Sends out a `ltn.EventData.on_delivery_reassigned` payload.
+
 ### Alerts
 
 Each of the alert events is sent in addition to the normal delivery events.
