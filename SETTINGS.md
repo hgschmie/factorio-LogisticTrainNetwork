@@ -142,3 +142,11 @@ This setting has the potential to "pile up" trains in a depot that has not enoug
 ## [NEW in 2.4.0] Choose whether to use a train interrupt or dynamic scheduling for refueling (ltn-fuel-station-interrupt) - boolean, default is true (use an interrupt)
 
 In normal operation, refueling is controlled by an interrupt (LTN Fuel). There are rare situations where that interrupt triggers in inconvenient moments (e.g. between the arrival of the train at the temporary "pre-stop" and the actual provider or requester). If this causes problems, this setting can be turned off. LTN will now dynamically add temporary refuel stops when arriving at a station or depot with insufficient fuel. Note that this requires a bit more CPU and might have an affect on FPS/UPS. Using an interrupt is preferred and dynamic refueling is considered experimental for now.
+
+## [NEW in 2.5.0] Advanced Cross-Surface Delivery (ltn-advanced-cross-surface-delivery) - boolean, default is false
+
+*This setting is only relevant if you build a cross-surface train network (e.g. using the Space Exploration Space Elevator). It requires additional support from the mods that make LTN compatible with cross-surface train networks. Do not turn on unless you have verified that these mods are compatible, otherwise your trains WILL stall with "can not find a path" errors.*
+
+Normally, LTN will only schedule cross-surface deliveries between provider and requester. The train picking up from the provider is selected from a depot on the same surface and will return to that surface. For any provider, there must be at least one train in a depot to pick up the delivery.
+
+When turning this setting on, LTN will also consider trains to go to another surface first to bring a delivery to a requester on the same surface as the depot and might even schedule a delivery where both provider and requester are on a different surface before the train returns to its depot.

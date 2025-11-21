@@ -190,4 +190,11 @@ data:extend {
         setting_type = 'runtime-global',
         default_value = false,
     },
+    {
+        type = 'bool-setting',
+        name = 'ltn-advanced-cross-surface-delivery',
+        order = 'eh',
+        setting_type = 'runtime-global',
+        default_value = false,
+    },
 }

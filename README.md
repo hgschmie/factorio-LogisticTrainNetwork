@@ -20,6 +20,19 @@ If you run a relatively simple setup (only a single LTN network) and do not have
 
 If all your stations have an explicit network id provided (e.g. through LTN Combinators), the default of "0" is correct and will avoid that new stations mess up your train schedule.
 
+### What is 'Advanced Cross-Surface Delivery'?
+
+If you are not using a mod like [Space Exploration](https://mods.factorio.com/mod/space-exploration) and the [Space Exploration LTN integration](https://mods.factorio.com/mod/se-ltn-glue) mod, this setting is not for you and you should simply leave it off.
+
+This setting is for games where the train network stretches across multiple surfaces *that are connected*. This is not true if you e.g. use the same network id on two planets (e.g. Gleba and Nauvis) that are not connected.
+
+If you have a network across multiple surfaces, then normally a train can be dispatched to a provider on the same surface as the depot, go through the space elevator into orbit and deliver to a requester on a different surface, then return back to the depot on the original surface. LTN will not schedule anything else, the provider *must* be on the same surface as the depot.
+
+With this setting, LTN will schedule trains to go through the space elevator first if necessary to pick up a delivery from a different surface. It may even schedule a delivery where both provider and requester are on a different surface as the depot. The train will still return to its original depot.
+
+Cross-surface delivery is a glorious hack and at least for Space Exploration, the [Space Exploration LTN integration](https://mods.factorio.com/mod/se-ltn-glue) mod needs to support advanced scheduling. Do *NOT* turn this setting on before you verified that it is supported, otherwise your trains will stall with "No path found".
+
+
 ## Factorio 2.0 Updates
 
 LTN has been ported to Factorio 2.0. It will get minimal updates (only really glaring bugs). The current plan is to provide a successor that takes advantage of the improved 2.0 trains while maintaining the ease of scheduling and dispatching with LTN.

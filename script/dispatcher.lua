@@ -378,19 +378,38 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                     dest_network_id_string, trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, getStationDistance(trainData.train.station, nextStop.stop.entity))
             end
 
+            -- preselection based on train properties
             if inventorySize > 0                                                                                                                                -- sending trains without inventory on deliveries would be pointless
                 and trainData.force == nextStop.stop.entity.force                                                                                               -- forces match
-                and trainData.surface == nextStop.stop.entity.surface                                                                                           -- pathing between surfaces is impossible
                 and bit32.btest(trainData.network_id, nextStop.network_id)                                                                                      -- depot is in the same network as requester and provider
                 and (min_carriages == 0 or #trainData.train.carriages >= min_carriages) and (max_carriages == 0 or #trainData.train.carriages <= max_carriages) -- train length fits requester and provider limitations
             then
-                local distance = getStationDistance(trainData.train.station, nextStop.stop.entity)
-                table.insert(filtered_trains, {
-                    train = trainData.train,
-                    inventory_size = inventorySize,
-                    depot_priority = trainData.depot_priority,
-                    provider_distance = distance,
-                })
+                -- train is on the same surface as the next stop
+                if trainData.surface == nextStop.stop.entity.surface then
+                    local distance = getStationDistance(trainData.train.station, nextStop.stop.entity)
+                    table.insert(filtered_trains, {
+                        train = trainData.train,
+                        inventory_size = inventorySize,
+                        depot_priority = trainData.depot_priority,
+                        provider_distance = distance,
+                    })
+                elseif LtnSettings.advanced_cross_surface_delivery then
+                    local matched_networks = bit32.band(trainData.network_id, nextStop.network_id)
+                    -- check if surface transition is possible
+                    local surface_connections = find_surface_connections(trainData.train.station.surface, nextStop.stop.entity.surface, trainData.force, matched_networks)
+
+                    -- train can switch to the other surface to reach the provider
+                    if surface_connections then
+                        -- switching surface
+                        table.insert(filtered_trains, {
+                            train = trainData.train,
+                            surface = trainData.surface,
+                            inventory_size = inventorySize,
+                            depot_priority = trainData.depot_priority,
+                            surface_connections = surface_connections,
+                        })
+                    end
+                end
             end
         else
             -- remove invalid train from dispatcher availableTrains
@@ -401,9 +420,18 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
     -- return nil instead of empty table
     if next(filtered_trains) == nil then return nil end
 
+    local stop_surface_index = nextStop.stop.entity.surface.index
+
     -- sort best matching train to top
     table.sort(filtered_trains, function(a, b)
-        if a.depot_priority ~= b.depot_priority then
+        -- if A is on the same surface as the stop and B is not, return true
+        if a.surface.index == stop_surface_index and b.surface.index ~= stop_surface_index then
+            return true
+            -- if B is on the same surface as the stop and A is not, return false
+        elseif b.surface.index == stop_surface_index and a.surface.index ~= stop_surface_index then
+            return false
+            -- else do normal checks (either both stops are on the same or on a different surface)
+        elseif a.depot_priority ~= b.depot_priority then
             --sort by priority
             return a.depot_priority > b.depot_priority
         elseif a.inventory_size ~= b.inventory_size and a.inventory_size >= size then
@@ -415,7 +443,10 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
             -- return not(b.inventory_size >= size or b.inventory_size > a.inventory_size)
             return b.inventory_size < size and b.inventory_size < a.inventory_size
         else
-            -- sort by distance to provider
+            -- if one stop is on the same surface and the other is not, return
+            if not a.provider_distance then return false end
+            if a.provider_distance and not b.provider_distance then return true end
+
             return a.provider_distance < b.provider_distance
         end
     end)
@@ -636,6 +667,13 @@ function ProcessRequest(reqIndex, request)
 
         dispatcher.Requests_by_Stop[toID][item] = count -- add removed item back to list of requested items.
         return nil
+    end
+
+    if free_trains[1].surface_connections then
+        for _, surface_connection in pairs(free_trains[1].surface_connections) do
+            table.insert(providerData.surface_connections, surface_connection)
+        end
+        providerData.surface_connections_count = #providerData.surface_connections
     end
 
     local selectedTrain = free_trains[1].train

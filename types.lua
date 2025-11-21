@@ -158,10 +158,12 @@
 ---@field surface_connections_count   number
 
 ---@class ltn.FreeTrain
----@field train             LuaTrain
----@field inventory_size    number
----@field depot_priority    number
----@field provider_distance number
+---@field train                 LuaTrain
+---@field surface               LuaSurface
+---@field inventory_size        number
+---@field depot_priority        number
+---@field provider_distance     number?
+---@field surface_connections   ltn.SurfaceConnection[]
 
 ---@class ltn.ItemLoadingElement
 ---@field item      SignalID
