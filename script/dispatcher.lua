@@ -225,22 +225,18 @@ end
 ---@param force LuaForce
 ---@param network_id number
 ---@return ltn.SurfaceConnection[]?
----@return number?
 local function find_surface_connections(surface1, surface2, force, network_id)
-    if surface1 == surface2 then return {}, 0 end
+    if surface1 == surface2 then return {} end
 
     local surface_pair_key = SurfaceInterface.SortedPair(surface1.index, surface2.index)
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
     if not surface_connections then return nil end
 
     local matching_connections = {}
-    local count = 0
     for entity_pair_key, connection in pairs(surface_connections) do
         if connection.entity1.valid and connection.entity2.valid then
-            if bit32.btest(network_id, connection.network_id)
-                and connection.entity1.force == force and connection.entity2.force == force then
-                count = count + 1
-                matching_connections[count] = connection
+            if bit32.btest(network_id, connection.network_id) and connection.entity1.force == force and connection.entity2.force == force then
+                table.insert(matching_connections, connection)
             end
         else
             if debug_log then tools.log(5, 'find_surface_connections', 'removing invalid surface connection ' .. entity_pair_key .. ' between surfaces ' .. surface_pair_key) end
@@ -249,11 +245,7 @@ local function find_surface_connections(surface1, surface2, force, network_id)
         end
     end
 
-    if count > 0 then
-        return matching_connections, count
-    else
-        return nil, nil
-    end
+    return #matching_connections > 0 and matching_connections or nil
 end
 
 -- return a list ordered priority > #active_deliveries > item-count of {entity, network_id, priority, activeDeliveryCount, item, count, providing_threshold, providing_threshold_stacks, min_carriages, max_carriages, locked_slots, surface_connections}
@@ -289,9 +281,8 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
                 local activeDeliveryCount = #stop.active_deliveries
                 if activeDeliveryCount and (stop.max_trains == 0 or activeDeliveryCount < stop.max_trains) then
                     -- check if surface transition is possible
-                    local surface_connections, surface_connections_count = find_surface_connections(surface, stop.entity.surface, force, matched_networks)
+                    local surface_connections = find_surface_connections(surface, stop.entity.surface, force, matched_networks)
                     if surface_connections then -- for same surfaces surface_connections = {}
-                        assert(surface_connections_count)
 
                         if debug_log then
                             local from_network_id_string = string.format('0x%x', bit32.band(stop.network_id))
@@ -312,7 +303,7 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
                             max_carriages = stop.max_carriages,
                             locked_slots = stop.locked_slots,
                             surface_connections = surface_connections,
-                            surface_connections_count = surface_connections_count,
+                            surface_connections_count = #surface_connections,
                         })
                     end
                 end
