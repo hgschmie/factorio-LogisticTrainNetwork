@@ -8,14 +8,15 @@ local tools = require('script.tools')
 
 local schedule = require('script.schedule')
 
+local TrainInterface = {}
 
 ---Finds the next logistic stop in the schedule of the given train. Returns nil if the train is not executing a delivery or has no further logistic stops in its schedule.
 ---@param train LuaTrain
 ---@param schedule_index integer? the index in the schedule to search from, `schedule.current` if omitted. Starts from the next position if the train is currently stopping at that station.
 ---@return integer? schedule_index the index of next logistic stop in the schedule or nil
 ---@return integer? id the unit_number of the logistic stop
----@return "provider"|"requester"|nil type
-function GetNextLogisticStop(train, schedule_index)
+---@return ("provider"|"requester")? type
+function TrainInterface.GetNextLogisticStop(train, schedule_index)
     local dispatcher = tools.getDispatcher()
 
     if not (train and train.valid) then
@@ -72,8 +73,8 @@ end
 ---@param train LuaTrain
 ---@param schedule_index integer? the index in the schedule to search from, `schedule.current` if omitted. Starts from the next index if the train is currently stopping at that station.
 ---@return integer? stop_position index of created or existing temporary stop for next found logistic stop that was handled, nil if there is no further logistic stop or the next logistic stop is not on the same surface.
-function GetOrCreateNextTempStop(train, schedule_index)
-    local stop_schedule_index, stop_id = GetNextLogisticStop(train, schedule_index)
+function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
+    local stop_schedule_index, stop_id = TrainInterface.GetNextLogisticStop(train, schedule_index)
     if not stop_schedule_index then return end
 
     --unlike ProcessDelivery we need to consider that the stop entity might be gone
@@ -114,7 +115,7 @@ end
 ---@param old_train_id integer
 ---@param new_train LuaTrain
 ---@return boolean reassigned true if the old train was executing a delivery, false otherwise
-function ReassignDelivery(old_train_id, new_train)
+function TrainInterface.ReassignDelivery(old_train_id, new_train)
     local dispatcher = tools.getDispatcher()
 
     -- check if delivery exists for given train id
@@ -131,3 +132,5 @@ function ReassignDelivery(old_train_id, new_train)
     local delivery = Update_Delivery(old_train_id, new_train)
     return delivery and true or false
 end
+
+return TrainInterface

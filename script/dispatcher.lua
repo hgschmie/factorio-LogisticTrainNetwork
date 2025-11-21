@@ -6,6 +6,7 @@
 
 local tools = require('script.tools')
 local schedule = require('script.schedule')
+local SurfaceInterface = require('script.surface-interface')
 
 -- update dispatcher Deliveries.force when forces are removed/merged
 script.on_event(defines.events.on_forces_merging, function(event)
@@ -216,11 +217,6 @@ end
 
 ---- ProcessRequest ----
 
--- returns the string "number1|number2" in consistent order: the smaller number is always placed first
-local function sorted_pair(number1, number2)
-    return (number1 < number2) and (number1 .. '|' .. number2) or (number2 .. '|' .. number1)
-end
-
 --- Return a list of matching { entity1, entity2, network_id } each connecting the two surfaces.
 --- The list will be empty if surface1 == surface2 and it will be nil if there are no matching connections.
 --- The second return value will be the number of entries in the list.
@@ -233,7 +229,7 @@ end
 local function find_surface_connections(surface1, surface2, force, network_id)
     if surface1 == surface2 then return {}, 0 end
 
-    local surface_pair_key = sorted_pair(surface1.index, surface2.index)
+    local surface_pair_key = SurfaceInterface.SortedPair(surface1.index, surface2.index)
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
     if not surface_connections then return nil end
 

@@ -4,6 +4,9 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
+local SurfaceInterface = require('script.surface-interface')
+local TrainInterface = require('script.train-interface')
+
 ---@type defines.events
 on_stops_updated_event = script.generate_event_name()
 ---@type defines.events
@@ -52,12 +55,12 @@ remote.add_interface('logistic-train-network', {
     on_requester_remaining_cargo = function() return on_requester_remaining_cargo_alert end,
 
     -- surface connections
-    connect_surfaces = ConnectSurfaces,     -- function(entity1 :: LuaEntity, entity2 :: LuaEntity, network_id :: int32)
-    disconnect_surfaces = DisconnectSurfaces, -- function(entity1 :: LuaEntity, entity2 :: LuaEntity)
-    clear_all_surface_connections = ClearAllSurfaceConnections,
+    connect_surfaces = SurfaceInterface.ConnectSurfaces,     -- function(entity1 :: LuaEntity, entity2 :: LuaEntity, network_id :: int32)
+    disconnect_surfaces = SurfaceInterface.DisconnectSurfaces, -- function(entity1 :: LuaEntity, entity2 :: LuaEntity)
+    clear_all_surface_connections = SurfaceInterface.ClearAllSurfaceConnections,
 
     -- Re-assigns a delivery to a different train.
-    reassign_delivery = ReassignDelivery,                 -- function(old_train_id :: uint, new_train :: LuaTrain) :: bool
-    get_or_create_next_temp_stop = GetOrCreateNextTempStop, -- function(train :: LuaTrain, schedule_index :: uint?) :: uint
-    get_next_logistic_stop = GetNextLogisticStop,         -- function(train :: LuaTrain, schedule_index :: uint?) :: uint?, uint?, string?
+    reassign_delivery = TrainInterface.ReassignDelivery,                 -- function(old_train_id :: uint, new_train :: LuaTrain) :: bool
+    get_or_create_next_temp_stop = TrainInterface.GetOrCreateNextTempStop, -- function(train :: LuaTrain, schedule_index :: uint?) :: uint
+    get_next_logistic_stop = TrainInterface.GetNextLogisticStop,         -- function(train :: LuaTrain, schedule_index :: uint?) :: uint?, uint?, string?
 })

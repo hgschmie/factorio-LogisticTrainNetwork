@@ -1,7 +1,9 @@
 local tools = require('script.tools')
 
+local SurfaceInterface = {}
+
 -- removes all data about surface connections; connection owners won't be notified
-function ClearAllSurfaceConnections()
+function SurfaceInterface.ClearAllSurfaceConnections()
     storage.ConnectedSurfaces = {}
 end
 
@@ -9,14 +11,14 @@ end
 ---@param number1 number
 ---@param number2 number
 ---@return ltn.EntityPairKey
-local function sorted_pair(number1, number2)
+function SurfaceInterface.SortedPair(number1, number2)
     return (number1 < number2) and (number1 .. '|' .. number2) or (number2 .. '|' .. number1)
 end
 
 --- removes the surface connection between the given entities from storage.SurfaceConnections. Does nothing if the connection doesn't exist.
 ---@param entity1 LuaEntity
 ---@param entity2 LuaEntity
-function DisconnectSurfaces(entity1, entity2)
+function SurfaceInterface.DisconnectSurfaces(entity1, entity2)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
         if debug_log then tools.log(5, 'DisconnectSurfaces', 'Received entity1 was invalid.') end
@@ -27,13 +29,13 @@ function DisconnectSurfaces(entity1, entity2)
         return
     end
 
-    local surface_pair_key = sorted_pair(entity1.surface.index, entity2.surface.index)
+    local surface_pair_key = SurfaceInterface.SortedPair(entity1.surface.index, entity2.surface.index)
 
     ---@type table<ltn.EntityPairKey, ltn.SurfaceConnection>?
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
 
     if surface_connections then
-        local entity_pair_key = sorted_pair(entity1.unit_number, entity2.unit_number)
+        local entity_pair_key = SurfaceInterface.SortedPair(entity1.unit_number, entity2.unit_number)
         if debug_log then tools.log(5, 'DisconnectSurfaces', 'removing surface connection for entities ' .. entity_pair_key .. ' between surfaces ' .. surface_pair_key) end
         surface_connections[entity_pair_key] = nil
     end
@@ -43,7 +45,7 @@ end
 ---@param entity1 LuaEntity
 ---@param entity2 LuaEntity
 ---@param network_id string|number
-function ConnectSurfaces(entity1, entity2, network_id)
+function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
         if debug_log then tools.log(5, 'ConnectSurfaces', 'Received entity1 was invalid.') end
@@ -63,13 +65,13 @@ function ConnectSurfaces(entity1, entity2, network_id)
         return
     end
 
-    local surface_pair_key = sorted_pair(entity1.surface.index, entity2.surface.index)
+    local surface_pair_key = SurfaceInterface.SortedPair(entity1.surface.index, entity2.surface.index)
 
     storage.ConnectedSurfaces[surface_pair_key] = storage.ConnectedSurfaces[surface_pair_key] or {}
     ---@type table<ltn.EntityPairKey, ltn.SurfaceConnection>
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
 
-    local entity_pair_key = sorted_pair(entity1.unit_number, entity2.unit_number)
+    local entity_pair_key = SurfaceInterface.SortedPair(entity1.unit_number, entity2.unit_number)
 
     if debug_log then tools.log(5, 'ConnectSurfaces', 'Creating surface connection between [%d] on %s [%d] and [%d] on %s [%d].', entity1.unit_number, entity1.surface.name, entity1.surface.index, entity2.unit_number, entity2.surface.name, entity2.surface.index) end
 
@@ -83,7 +85,7 @@ end
 
 --- remove entity references when deleting surfaces
 ---@param event EventData.on_pre_surface_cleared
-function OnSurfaceRemoved(event)
+function SurfaceInterface.OnSurfaceRemoved(event)
     -- stop references
     local surfaceID = event.surface_index
     tools.log(5, 'OnSurfaceRemoved', 'Removing LTN stops and surface connections on surface [%d].', surfaceID)
@@ -113,3 +115,5 @@ function OnSurfaceRemoved(event)
         end
     end
 end
+
+return SurfaceInterface
