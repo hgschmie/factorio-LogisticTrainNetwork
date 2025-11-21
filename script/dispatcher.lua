@@ -351,7 +351,7 @@ end
 ---@param nextStop ltn.Provider
 ---@param min_carriages number
 ---@param max_carriages number
----@param type string
+---@param type ltn.ItemFluid
 ---@param size number
 ---@return ltn.FreeTrain[]?
 local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
@@ -613,7 +613,6 @@ function ProcessRequest(reqIndex, request)
         end
     end
 
-    -- find train
     local free_trains = getFreeTrains(providerData, min_carriages, max_carriages, item_info.type, totalStacks)
     if not free_trains then
         create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.no-train-found', from, to, matched_network_id_string, tostring(min_carriages), tostring(max_carriages) }, requestForce)
