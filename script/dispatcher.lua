@@ -389,6 +389,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                     local distance = getStationDistance(trainData.train.station, nextStop.stop.entity)
                     table.insert(filtered_trains, {
                         train = trainData.train,
+                        surface = trainData.surface,
                         inventory_size = inventorySize,
                         depot_priority = trainData.depot_priority,
                         provider_distance = distance,
