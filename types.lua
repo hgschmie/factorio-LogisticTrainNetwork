@@ -163,7 +163,7 @@
 ---@field inventory_size        number
 ---@field depot_priority        number
 ---@field provider_distance     number?
----@field surface_connections   ltn.SurfaceConnection[]
+---@field surface_connections   (ltn.SurfaceConnection[])?
 
 ---@class ltn.ItemLoadingElement
 ---@field item      SignalID

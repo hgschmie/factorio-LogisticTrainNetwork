@@ -387,12 +387,15 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                 -- train is on the same surface as the next stop
                 if trainData.surface == nextStop.stop.entity.surface then
                     local distance = getStationDistance(trainData.train.station, nextStop.stop.entity)
-                    table.insert(filtered_trains, {
+                    ---@type ltn.FreeTrain
+                    local free_train = {
                         train = trainData.train,
+                        surface = trainData.surface,
                         inventory_size = inventorySize,
                         depot_priority = trainData.depot_priority,
                         provider_distance = distance,
-                    })
+                    }
+                    table.insert(filtered_trains, free_train)
                 elseif LtnSettings.advanced_cross_surface_delivery then
                     local matched_networks = bit32.band(trainData.network_id, nextStop.network_id)
                     -- check if surface transition is possible
@@ -400,14 +403,16 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
 
                     -- train can switch to the other surface to reach the provider
                     if surface_connections then
-                        -- switching surface
-                        table.insert(filtered_trains, {
+                        ---@type ltn.FreeTrain
+                        local free_train = {
                             train = trainData.train,
                             surface = trainData.surface,
                             inventory_size = inventorySize,
                             depot_priority = trainData.depot_priority,
                             surface_connections = surface_connections,
-                        })
+                        }
+                        -- switching surface
+                        table.insert(filtered_trains, free_train)
                     end
                 end
             end
