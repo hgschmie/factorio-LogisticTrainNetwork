@@ -121,6 +121,10 @@ function TrainInterface.ReassignDelivery(old_train_id, new_train)
     -- check if delivery exists for given train id
     if not (old_train_id and dispatcher.Deliveries[old_train_id]) then
         if debug_log then tools.log(5, 'ReassignDelivery', 'train [%d] not found in deliveries.', old_train_id) end
+
+        -- no freight. Still need to reassign the internal train record state
+        tools.reassignTrainRecord(old_train_id, new_train)
+
         return false
     end
     -- check if new train is valid

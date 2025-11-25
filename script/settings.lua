@@ -33,6 +33,7 @@ local tools = require('script.tools')
 ---@field reset_interrupts boolean
 ---@field reselect_depot boolean
 ---@field advanced_cross_surface_delivery boolean
+---@field depot_fudge_factor integer
 ---@diagnostic disable-next-line: missing-fields
 LtnSettings = LtnSettings or {}
 
@@ -72,6 +73,7 @@ local change_settings = {
     ['ltn-schedule-reset-interrupts'] = function(ltn_settings, name) ltn_settings.reset_interrupts = settings.global[name].value end,
     ['ltn-schedule-reselect-depot'] = function(ltn_settings, name) ltn_settings.reselect_depot = settings.global[name].value end,
     ['ltn-advanced-cross-surface-delivery'] = function(ltn_settings, name) ltn_settings.advanced_cross_surface_delivery = settings.global[name].value end,
+    ['ltn-depot-fudge-factor'] = function(ltn_settings, name) ltn_settings.depot_fudge_factor = settings.global[name].value end,
 }
 
 function LtnSettings:init()

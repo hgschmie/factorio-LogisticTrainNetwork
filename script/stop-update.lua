@@ -253,13 +253,14 @@ function UpdateStop(stopID, stop)
             if dispatcher.Deliveries[stop.parked_train_id] then
                 if debug_log then tools.log(5, 'UpdateStop', '%s {%s}, depot priority: %d, assigned train.id: %d', stop.entity.backer_name, network_id_string, ltn_state.depot_priority, stop.parked_train_id) end
             else
-                if not dispatcher.availableTrains[stop.parked_train_id] then
+                local train_info = tools.isTrainAvailable(stop.parked_train_id)
+                if not train_info then
                     -- full arrival handling in case ltn-depot signal was turned on with an already parked train
                     TrainArrives(stop.parked_train)
                 else
                     -- update properties from depot
-                    dispatcher.availableTrains[stop.parked_train_id].network_id = ltn_state.network_id
-                    dispatcher.availableTrains[stop.parked_train_id].depot_priority = ltn_state.depot_priority
+                    train_info.network_id = ltn_state.network_id
+                    train_info.depot_priority = ltn_state.depot_priority
                 end
                 if debug_log then tools.log(5, 'UpdateStop', '%s {%s}, depot priority: %d, available train.id: %d', stop.entity.backer_name, network_id_string, ltn_state.depot_priority, stop.parked_train_id) end
             end

@@ -393,6 +393,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                         inventory_size = inventorySize,
                         depot_priority = trainData.depot_priority,
                         provider_distance = distance,
+                        select_count = trainData.select_count or 0,
                     }
                     table.insert(filtered_trains, free_train)
                 elseif LtnSettings.advanced_cross_surface_delivery then
@@ -409,6 +410,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                             inventory_size = inventorySize,
                             depot_priority = trainData.depot_priority,
                             surface_connections = surface_connections,
+                            select_count = trainData.select_count or 0,
                         }
                         -- switching surface
                         table.insert(filtered_trains, free_train)
@@ -425,6 +427,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
     if next(filtered_trains) == nil then return nil end
 
     local stop_surface_index = nextStop.stop.entity.surface.index
+    local fudge_factor = LtnSettings.depot_fudge_factor or 0
 
     -- sort best matching train to top
     table.sort(filtered_trains, function(a, b)
@@ -451,7 +454,11 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
             if not a.provider_distance then return false end
             if a.provider_distance and not b.provider_distance then return true end
 
-            return a.provider_distance < b.provider_distance
+            if math.abs(a.provider_distance - b.provider_distance) >= fudge_factor then
+                return a.provider_distance < b.provider_distance
+            end
+
+            return a.select_count < b.select_count
         end
     end)
 
@@ -675,15 +682,17 @@ function ProcessRequest(reqIndex, request)
         return nil
     end
 
-    if free_trains[1].surface_connections then
+    local freeTrain = free_trains[1]
+
+    if freeTrain.surface_connections then
         for _, surface_connection in pairs(free_trains[1].surface_connections) do
             table.insert(providerData.surface_connections, surface_connection)
         end
         providerData.surface_connections_count = #providerData.surface_connections
     end
 
-    local selectedTrain = free_trains[1].train
-    local trainInventorySize = free_trains[1].inventory_size
+    local selectedTrain = freeTrain.train
+    local trainInventorySize = freeTrain.inventory_size
 
     if message_level >= 3 then tools.printmsg({ 'ltn-message.train-found', from_gps, to_gps, matched_network_id_string, tostring(trainInventorySize), tostring(totalStacks) }, requestForce) end
     if debug_log then tools.log(5, 'ProcessRequest', 'Train to transport %d/%d stacks from %s to %s in network %s found in Depot.', trainInventorySize, totalStacks, from, to, matched_network_id_string) end

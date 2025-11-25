@@ -24,6 +24,7 @@ local function initialize(oldVersion, newVersion)
     storage.Dispatcher.availableTrains = storage.Dispatcher.availableTrains or {}
     storage.Dispatcher.availableTrains_total_capacity = storage.Dispatcher.availableTrains_total_capacity or 0
     storage.Dispatcher.availableTrains_total_fluid_capacity = storage.Dispatcher.availableTrains_total_fluid_capacity or 0
+    storage.Dispatcher.knownTrains = storage.Dispatcher.knownTrains or {}
     storage.Dispatcher.Provided = storage.Dispatcher.Provided or {}                 -- dictionary [type,name] used to quickly find available items
     storage.Dispatcher.Provided_by_Stop = storage.Dispatcher.Provided_by_Stop or {} -- dictionary [stopID]; used only by interface
     storage.Dispatcher.Requests = storage.Dispatcher.Requests or {}                 -- array of requests sorted by priority and age; used to loop over all requests
@@ -238,6 +239,7 @@ local function updateAllTrains()
     storage.Dispatcher.availableTrains_total_capacity = 0
     storage.Dispatcher.availableTrains_total_fluid_capacity = 0
     storage.Dispatcher.availableTrains = {}
+    storage.Dispatcher.knownTrains = {}
 
     -- remove all parked train from logistic stops
     for _, stop in pairs(storage.LogisticTrainStops) do

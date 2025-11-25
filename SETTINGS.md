@@ -150,3 +150,11 @@ In normal operation, refueling is controlled by an interrupt (LTN Fuel). There a
 Normally, LTN will only schedule cross-surface deliveries between provider and requester. The train picking up from the provider is selected from a depot on the same surface and will return to that surface. For any provider, there must be at least one train in a depot to pick up the delivery.
 
 When turning this setting on, LTN will also consider trains to go to another surface first to bring a delivery to a requester on the same surface as the depot and might even schedule a delivery where both provider and requester are on a different surface before the train returns to its depot.
+
+## [NEW in 2.6.0] Depot fudge factor (ltn-depot-fudge-factor) - integer, default is 0
+
+[This setting solely exists to scratch an itch where LTN seems to select specific trains over and over again because they keep ending up at the same depot stops. If you are fine with the current behavior, leave this setting at 0.]
+
+Have you ever had the suspicion that LTN seems to prefer some trains from the depot? You are correct. LTN selects trains based on the distance from the depot stop to the provider. So any train that is closer to the depot exit will be selected over any other train in the depot. The further away a train is from the exit, the less likely is it to be chosen.
+
+As this is unfair to the trains (and they also wear out at a different rate), it is possible to enter a "fudge factor" here, which is the amount by which the path from the depot to the provider can differ while still considered "equal". LTN tracks for each train the number of times it was selected and in case that two stops are considered equal, it will then choose the train that was selected fewer times.

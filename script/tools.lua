@@ -281,6 +281,14 @@ function Tools.reduceAvailableCapacity(trainId)
 
     if not dispatcher.availableTrains[trainId] then return false end
 
+    dispatcher.knownTrains[trainId] = dispatcher.knownTrains[trainId] or {
+        train = dispatcher.availableTrains[trainId].train,
+        select_count = 0,
+    }
+
+    -- select the current train
+    dispatcher.knownTrains[trainId].select_count = dispatcher.knownTrains[trainId].select_count + 1
+
     dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[trainId].capacity
     dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainId].fluid_capacity
     dispatcher.availableTrains[trainId] = nil
@@ -304,6 +312,11 @@ function Tools.increaseAvailableCapacity(train, stop)
 
     local capacity, fluid_capacity = Tools.getTrainCapacity(train)
 
+    dispatcher.knownTrains[train.id] = dispatcher.knownTrains[train.id] or {
+        train = train,
+        select_count = 0,
+    }
+
     dispatcher.availableTrains[train.id] = {
         train = train,
         surface = stop.entity.surface,
@@ -311,11 +324,35 @@ function Tools.increaseAvailableCapacity(train, stop)
         depot_priority = stop.depot_priority,
         network_id = stop.network_id,
         capacity = capacity,
-        fluid_capacity = fluid_capacity
+        fluid_capacity = fluid_capacity,
+        select_count = dispatcher.knownTrains[train.id].select_count,
     }
 
     dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity + capacity
     dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity + fluid_capacity
+
+    return true
+end
+
+---@param train_id integer
+---@return ltn.Train? The train information if the train is available
+function Tools.isTrainAvailable(train_id)
+    local dispatcher = Tools.getDispatcher()
+    return dispatcher.availableTrains[train_id]
+end
+
+--- @param old_train_id integer? old train id
+--- @param new_train LuaTrain? new train object
+--- @return boolean success
+function Tools.reassignTrainRecord(old_train_id, new_train)
+    local dispatcher = Tools.getDispatcher()
+
+    if not old_train_id or not (new_train and new_train.valid) then return false end
+
+    dispatcher.knownTrains[new_train.id] = {
+        train = new_train,
+        select_count = dispatcher.knownTrains[old_train_id] and dispatcher.knownTrains[old_train_id].select_count or 0,
+    }
 
     return true
 end

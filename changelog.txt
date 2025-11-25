@@ -1,7 +1,10 @@
 ---------------------------------------------------------------------------------------------------
-Version: 2.5.2
+Version: 2.6.0
 Date: ????
   Changes:
+    - Implement a fairer train selection algorithm that does not select by path length. This
+      is controlled by the `ltn-depot-fudge-factor` setting. If the setting is 0, the old, distance-based
+      algorithm is still used.
 ---------------------------------------------------------------------------------------------------
 Version: 2.5.1
 Date: 2025-11-24

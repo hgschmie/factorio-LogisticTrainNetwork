@@ -479,6 +479,8 @@ function Update_Delivery(old_train_id, new_train)
 
     dispatcher.Deliveries[old_train_id] = nil
 
+    tools.reassignTrainRecord(old_train_id, new_train)
+
     if delivery then
         ---@type ltn.EventData.on_delivery_reassigned
         local data = {

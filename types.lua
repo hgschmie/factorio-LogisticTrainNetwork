@@ -56,6 +56,7 @@
 ---@field RequestAge                           table<string, number>
 ---@field Deliveries                           table<number, ltn.Delivery>
 ---@field new_Deliveries                       number[]
+---@field knownTrains                          table<number, ltn.KnownTrain>
 
 --- LTN stop information
 ---@class ltn.TrainStop
@@ -94,6 +95,13 @@
 ---@field surface           LuaSurface
 ---@field depot_priority    number
 ---@field network_id        number
+---@field select_count      number     How often the train was selected for a delivery
+
+--- LTN Train memory
+---@class ltn.KnownTrain
+---@field train             LuaTrain
+---@field select_count      number?    How often the train was selected for a delivery
+
 
 --- LTN Train information
 ---@class ltn.StoppedTrain
@@ -164,6 +172,7 @@
 ---@field depot_priority        number
 ---@field provider_distance     number?
 ---@field surface_connections   (ltn.SurfaceConnection[])?
+---@field select_count          integer
 
 ---@class ltn.ItemLoadingElement
 ---@field item      SignalID
