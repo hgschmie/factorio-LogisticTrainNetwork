@@ -283,11 +283,10 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
                     -- check if surface transition is possible
                     local surface_connections = find_surface_connections(surface, stop.entity.surface, force, matched_networks)
                     if surface_connections then -- for same surfaces surface_connections = {}
-
                         if debug_log then
                             local from_network_id_string = string.format('0x%x', bit32.band(stop.network_id))
-                            tools.log(5, 'GetProviders', 'found %d(%d)/%d %s at %s {%s}, priority: %s, active Deliveries: %d, min_carriages: %d, max_carriages: %d, locked Slots: %d, #surface_connections: %d', count, stop.providing_threshold, req_count, item, stop.entity.backer_name, from_network_id_string,
-                                stop.provider_priority, activeDeliveryCount, stop.min_carriages, stop.max_carriages, stop.locked_slots, surface_connections_count)
+                            tools.log(5, 'GetProviders', 'found %d(%d)/%d %s at %s {%s}, priority: %s, active Deliveries: %d, min_carriages: %d, max_carriages: %d, locked Slots: %d, #surface_connections: %d', count, stop.providing_threshold, req_count, item, stop.entity.backer_name,
+                                from_network_id_string, stop.provider_priority, activeDeliveryCount, stop.min_carriages, stop.max_carriages, stop.locked_slots, #surface_connections)
                         end
 
                         table.insert(stations, {
@@ -490,8 +489,10 @@ function ProcessRequest(reqIndex, request)
     local min_carriages = requestStation.min_carriages
     local requestForce = requestStation.entity.force
 
-    if debug_log then tools.log(5, 'ProcessRequest', 'request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d', reqIndex, #dispatcher.Requests, count, requestStation.requesting_threshold, item, requestStation.entity.backer_name, to_network_id_string, request.priority, min_carriages,
-            max_carriages) end
+    if debug_log then
+        tools.log(5, 'ProcessRequest', 'request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d', reqIndex,
+            #dispatcher.Requests, count, requestStation.requesting_threshold, item, requestStation.entity.backer_name, to_network_id_string, request.priority, min_carriages, max_carriages)
+    end
 
     if not (dispatcher.Requests_by_Stop[toID] and dispatcher.Requests_by_Stop[toID][item]) then
         if debug_log then tools.log(5, 'ProcessRequest', 'Skipping request %s: %s. Item has already been processed.', requestStation.entity.backer_name, item) end
