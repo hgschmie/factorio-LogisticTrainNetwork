@@ -46,7 +46,7 @@ function TrainArrives(train)
     local is_provider = false
 
     -- if message_level >= 3 then tools.printmsg({"ltn-message.train-arrived", tostring(trainName), stop_name}, trainForce, false) end
-    if message_level >= 3 then tools.printmsg({ 'ltn-message.train-arrived', tools.richTextForTrain(train), string.format('[train-stop=%d]', stopID) }, trainForce) end
+    if message_level >= 3 then tools.printmsg({ 'ltn-message.train-arrived', tools.richTextForTrain(train), tools.richTextForStop(train.station) }, trainForce) end
     if debug_log then tools.log(5, 'TrainArrives', 'Train [%d] \"%s\": arrived at LTN-stop [%d] \"%s\"; train_faces_stop: %s', train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop) end
 
     if stop.error_code == 0 then
@@ -416,7 +416,7 @@ function TrainLeaves(trainID)
     stop.parked_train = nil
     stop.parked_train_id = nil
     -- if message_level >= 3 then tools.printmsg({"ltn-message.train-left", tostring(leavingTrain.name), stop.entity.backer_name}, leavingTrain.force) end
-    if message_level >= 3 then tools.printmsg({ 'ltn-message.train-left', tools.richTextForTrain(train, leavingTrain.name), string.format('[train-stop=%d]', stopID) }, leavingTrain.force) end
+    if message_level >= 3 then tools.printmsg({ 'ltn-message.train-left', tools.richTextForTrain(train, leavingTrain.name), tools.richTextForStop(stop.entity) }, leavingTrain.force) end
 
     UpdateStopOutput(stop)
 

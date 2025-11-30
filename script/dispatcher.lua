@@ -497,8 +497,8 @@ function ProcessRequest(reqIndex, request)
     local requestForce = requestStation.entity.force
 
     if debug_log then
-        tools.log(5, 'ProcessRequest', 'request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d', reqIndex,
-            #dispatcher.Requests, count, requestStation.requesting_threshold, item, requestStation.entity.backer_name, to_network_id_string, request.priority, min_carriages, max_carriages)
+        tools.log(5, 'ProcessRequest', 'request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d', reqIndex, #dispatcher.Requests, count,
+            requestStation.requesting_threshold, item, requestStation.entity.backer_name, to_network_id_string, request.priority, min_carriages, max_carriages)
     end
 
     if not (dispatcher.Requests_by_Stop[toID] and dispatcher.Requests_by_Stop[toID][item]) then
@@ -726,9 +726,9 @@ function ProcessRequest(reqIndex, request)
     -- create delivery
     if message_level >= 2 then
         if #loadingList == 1 then
-            tools.printmsg({ 'ltn-message.creating-delivery', from_gps, to_gps, loadingList[1].count, tools.prettyPrint(loadingList[1].item) }, requestForce)
+            tools.printmsg({ 'ltn-message.creating-delivery', from_gps, to_gps, loadingList[1].count, tools.prettyPrint(loadingList[1].item), tools.richTextForTrain(selectedTrain) }, requestForce)
         else
-            tools.printmsg({ 'ltn-message.creating-delivery-merged', from_gps, to_gps, totalStacks }, requestForce)
+            tools.printmsg({ 'ltn-message.creating-delivery-merged', from_gps, to_gps, totalStacks, tools.richTextForTrain(selectedTrain) }, requestForce)
         end
     end
 
