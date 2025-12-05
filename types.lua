@@ -6,9 +6,9 @@
 
 --- storage layout
 ---@class ltn.Storage
----@field tick_state            number
+---@field tick_state            ltn.TickState
 ---@field tick_interval_start   number
----@field tick_stop_index       number?
+---@field tick_stop_index       integer?
 ---@field Dispatcher            ltn.Dispatcher
 ---@field LogisticTrainStops    table<integer, ltn.TrainStop>
 ---@field ConnectedSurfaces     table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>

@@ -5,6 +5,16 @@
 ---@class ltn.Tools
 local Tools = {}
 
+---@enum ltn.TickState
+ltn_tick_state = {
+    reset = 0,
+    update_stops = 1,
+    update_deliveries = 2,
+    dispatch_trains = 3,
+    api_events = 4,
+    cleanup = 5,
+}
+
 -----------------------------------------------------------------------
 -- typed accessors to storage
 -----------------------------------------------------------------------

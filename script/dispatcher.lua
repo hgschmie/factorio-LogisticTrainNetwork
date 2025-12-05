@@ -19,173 +19,253 @@ script.on_event(defines.events.on_forces_merging, function(event)
     end
 end)
 
+---------------------------------- MAIN LOOP STAGES ----------------------------------
+
+---@param event EventData.on_tick
+---@return ltn.TickState?
+local function DispatcherReset(event)
+    local dispatcher = tools.getDispatcher()
+
+    -- update stops
+    storage.tick_stop_index = nil
+
+    -- update deliveries
+    storage.tick_request_index = nil
+
+    storage.tick_interval_start = event.tick
+
+    -- clear Dispatcher.Storage
+    dispatcher.Provided = {}
+    dispatcher.Requests = {}
+    dispatcher.Provided_by_Stop = {}
+    dispatcher.Requests_by_Stop = {}
+    dispatcher.new_Deliveries = {}
+
+    return nil
+end
+
+----------------------------------------------------------------------------------------
+
+---@param event EventData.on_tick
+---@return ltn.TickState?
+local function DispatcherUpdateStops(event)
+    ---@type integer?
+    local stopID = storage.tick_stop_index
+
+    if stopID and not storage.LogisticTrainStops[stopID] then
+        if message_level >= 2 then tools.printmsg { 'ltn-message.error-invalid-stop-index', storage.tick_stop_index } end
+        tools.log(6, 'OnTick', 'Invalid storage.tick_stop_index %d in storage.LogisticTrainStops. Removing stop and starting over.', storage.tick_stop_index)
+
+        RemoveStop(stopID)
+        return ltn_tick_state.reset
+    end
+
+    local stop_count = LtnSettings:getUpdatesPerTick()
+
+    if stop_count > 0 then
+        ---@type ltn.TrainStop
+        local stop
+        repeat
+            stopID, stop = next(storage.LogisticTrainStops, storage.tick_stop_index)
+            if stopID then
+                if debug_log then tools.log(6, 'OnTick', '%d updating stopID %d', event.tick, stopID) end
+                UpdateStop(stopID, stop)
+            end
+            stop_count = stop_count - 1
+        until stop_count == 0 or not stopID
+
+        storage.tick_stop_index = stopID
+    end
+
+    -- if there are more stops, stay in the current state, otherwise switch to next state
+    return stopID and ltn_tick_state.update_stops or nil
+end
+
+----------------------------------------------------------------------------------------
+
+---@param event EventData.on_tick
+---@return ltn.TickState?
+local function DispatcherUpdateDeliveries(event)
+    local dispatcher = tools.getDispatcher()
+
+    -- clean up deliveries in case train was destroyed or removed
+    local activeDeliveryTrains = ''
+
+    for trainID, delivery in pairs(dispatcher.Deliveries) do
+        if not (delivery.train and delivery.train.valid) then
+            local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
+            local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
+
+            if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-train-invalid', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }, delivery.force) end
+            if debug_log then tools.log(6, 'OnTick', 'Delivery from %s to %s removed. Train no longer valid.', delivery.from, delivery.to) end
+
+            ---@type ltn.EventData.on_delivery_failed
+            local data = {
+                train_id = trainID,
+                shipment = delivery.shipment
+            }
+            script.raise_event(on_delivery_failed_event, data)
+
+            RemoveDelivery(trainID)
+        elseif event.tick - delivery.started > LtnSettings.delivery_timeout then
+            local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
+            local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
+
+            if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-timeout', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to, event.tick - delivery.started }, delivery.force) end
+            if debug_log then tools.log(6, 'OnTick', 'Delivery from %s to %s removed. Timed out after %d/%d ticks.', delivery.from, delivery.to, event.tick - delivery.started, LtnSettings.delivery_timeout) end
+
+            ---@type ltn.EventData.on_delivery_failed
+            local data = {
+                train_id = trainID,
+                shipment = delivery.shipment
+            }
+            script.raise_event(on_delivery_failed_event, data)
+
+            RemoveDelivery(trainID)
+        else
+            activeDeliveryTrains = activeDeliveryTrains .. ' ' .. trainID
+        end
+    end
+
+    if debug_log then tools.log(6, 'OnTick', 'Trains on deliveries: %s', activeDeliveryTrains) end
+
+    -- remove no longer active requests from dispatcher RequestAge[stopID]
+    local newRequestAge = {}
+    for _, request in pairs(dispatcher.Requests) do
+        local ageIndex = request.item .. ',' .. request.stopID
+        local age = dispatcher.RequestAge[ageIndex]
+        if age then
+            newRequestAge[ageIndex] = age
+        end
+    end
+    dispatcher.RequestAge = newRequestAge
+
+    -- sort requests by priority and age
+    table.sort(dispatcher.Requests, function(a, b)
+        if a.priority ~= b.priority then
+            return a.priority > b.priority
+        else
+            return a.age < b.age
+        end
+    end)
+
+    return nil
+end
+
+----------------------------------------------------------------------------------------
+
+---@param event EventData.on_tick
+---@return ltn.TickState?
+local function DispatcherDispatchTrains(event)
+    local dispatcher = tools.getDispatcher()
+
+    ---@type integer?
+    local request_index = storage.tick_request_index
+
+    if LtnSettings.dispatcher_enabled then
+        if debug_log then tools.log(6, 'OnTick', 'Available train capacity: %d item stacks, %d fluid capacity.', dispatcher.availableTrains_total_capacity, dispatcher.availableTrains_total_fluid_capacity) end
+
+        -- reset on invalid index
+        if request_index and not dispatcher.Requests[request_index] then
+            if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-request-index', storage.tick_request_index } end
+            tools.log(6, 'OnTick', 'Invalid storage.tick_request_index %s in dispatcher Requests. Starting over.', tostring(storage.tick_request_index))
+
+            return ltn_tick_state.reset
+        end
+
+        local request_count = LtnSettings:getUpdatesPerTick()
+
+        if request_count > 0 then
+            ---@type ltn.Request
+            local request
+            repeat
+                request_index, request = next(dispatcher.Requests, request_index)
+                if request_index and request then
+                    if debug_log then tools.log(6, 'OnTick', '%d parsing request %d/%d', event.tick, request_index, #dispatcher.Requests) end
+                    ProcessRequest(request_index, request)
+                end
+                request_count = request_count - 1
+            until request_count == 0 or not request_index
+
+            storage.tick_request_index = request_index
+        end
+    else
+        if message_level >= 1 then tools.printmsg { 'ltn-message.warning-dispatcher-disabled' } end
+        if debug_log then tools.log(6, 'OnTick', 'Dispatcher disabled.') end
+
+        storage.tick_request_index = nil
+    end
+
+    -- if there are more requests, stay in the current state, otherwise switch to next state
+    return request_index and ltn_tick_state.dispatch_trains or nil
+end
+
+----------------------------------------------------------------------------------------
+
+--- raise events for mod API
+---@param event EventData.on_tick
+---@return ltn.TickState?
+local function DispatcherApiEvents(event)
+    local dispatcher = tools.getDispatcher()
+
+    ---@type ltn.EventData.on_stops_updated
+    local stops_data = {
+        logistic_train_stops = storage.LogisticTrainStops,
+    }
+    script.raise_event(on_stops_updated_event, stops_data)
+
+    ---@type ltn.EventData.on_dispatcher_updated
+    local dispatcher_data = {
+        update_interval = event.tick - storage.tick_interval_start,
+        provided_by_stop = dispatcher.Provided_by_Stop,
+        requests_by_stop = dispatcher.Requests_by_Stop,
+        new_deliveries = dispatcher.new_Deliveries,
+        deliveries = dispatcher.Deliveries,
+        available_trains = dispatcher.availableTrains,
+    }
+    script.raise_event(on_dispatcher_updated_event, dispatcher_data)
+
+    return nil
+end
+
+----------------------------------------------------------------------------------------
+
+---@param event EventData.on_tick
+---@return ltn.TickState?
+local function DispatcherCleanup()
+    local dispatcher = tools.getDispatcher()
+
+    for index, train in pairs(dispatcher.knownTrains) do
+        if not (train.train and train.train.valid) then
+            dispatcher.knownTrains[index] = nil
+        end
+    end
+
+    return nil
+end
+
 ---------------------------------- MAIN LOOP ----------------------------------
+
+--- @type table<ltn.TickState, fun(event: EventData.on_tick): ltn.TickState?>
+local dispatcher_stages = {
+    [ltn_tick_state.reset] = DispatcherReset,
+    [ltn_tick_state.update_stops] = DispatcherUpdateStops,
+    [ltn_tick_state.update_deliveries] = DispatcherUpdateDeliveries,
+    [ltn_tick_state.dispatch_trains] = DispatcherDispatchTrains,
+    [ltn_tick_state.api_events] = DispatcherApiEvents,
+    [ltn_tick_state.cleanup] = DispatcherCleanup,
+}
 
 ---@param event EventData.on_tick
 function OnTick(event)
-    local dispatcher = tools.getDispatcher()
+    -- log("DEBUG: (OnTick) "..event.tick.." storage.tick_state: "..tostring(storage.tick_state).." storage.tick_stop_index: "..tostring(storage.tick_stop_index).." storage.tick_request_index: "..tostring(storage.tick_request_index) )
+    local current_tick_state = storage.tick_state or ltn_tick_state.reset
 
-    local tick = event.tick
-    -- log("DEBUG: (OnTick) "..tick.." storage.tick_state: "..tostring(storage.tick_state).." storage.tick_stop_index: "..tostring(storage.tick_stop_index).." storage.tick_request_index: "..tostring(storage.tick_request_index) )
+    storage.tick_state = assert(dispatcher_stages[current_tick_state])(event) or storage.tick_state + 1
+    if dispatcher_stages[storage.tick_state] then return end
 
-    if storage.tick_state == 1 then -- update stops
-        for i = 1, LtnSettings:getUpdatesPerTick(), 1 do
-            -- reset on invalid index
-            if storage.tick_stop_index and not storage.LogisticTrainStops[storage.tick_stop_index] then
-                storage.tick_state = 0
-
-                if message_level >= 2 then tools.printmsg { 'ltn-message.error-invalid-stop-index', storage.tick_stop_index } end
-                tools.log(6, 'OnTick', 'Invalid storage.tick_stop_index %d in storage.LogisticTrainStops. Removing stop and starting over.', storage.tick_stop_index)
-
-                RemoveStop(storage.tick_stop_index)
-                return
-            end
-
-            ---@type number, ltn.TrainStop
-            local stopID, stop = next(storage.LogisticTrainStops, storage.tick_stop_index)
-            if stopID then
-                storage.tick_stop_index = stopID
-
-                if debug_log then tools.log(6, 'OnTick', '%d updating stopID %d', tick, stopID) end
-
-                UpdateStop(stopID, stop)
-            else -- stop updates complete, moving on
-                storage.tick_stop_index = nil
-                storage.tick_state = 2
-                return
-            end
-        end
-    elseif storage.tick_state == 2 then -- clean up and sort lists
-        storage.tick_state = 3
-
-        -- clean up deliveries in case train was destroyed or removed
-        local activeDeliveryTrains = ''
-        for trainID, delivery in pairs(dispatcher.Deliveries) do
-            if not (delivery.train and delivery.train.valid) then
-                local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
-                local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
-
-                if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-train-invalid', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }, delivery.force) end
-                if debug_log then tools.log(6, 'OnTick', 'Delivery from %s to %s removed. Train no longer valid.', delivery.from, delivery.to) end
-
-                ---@type ltn.EventData.on_delivery_failed
-                local data = {
-                    train_id = trainID,
-                    shipment = delivery.shipment
-                }
-                script.raise_event(on_delivery_failed_event, data)
-
-                RemoveDelivery(trainID)
-            elseif tick - delivery.started > LtnSettings.delivery_timeout then
-                local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
-                local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
-
-                if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-timeout', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to, tick - delivery.started }, delivery.force) end
-                if debug_log then tools.log(6, 'OnTick', 'Delivery from %s to %s removed. Timed out after %d/%d ticks.', delivery.from, delivery.to, tick - delivery.started, LtnSettings.delivery_timeout) end
-
-                ---@type ltn.EventData.on_delivery_failed
-                local data = {
-                    train_id = trainID,
-                    shipment = delivery.shipment
-                }
-                script.raise_event(on_delivery_failed_event, data)
-
-                RemoveDelivery(trainID)
-            else
-                activeDeliveryTrains = activeDeliveryTrains .. ' ' .. trainID
-            end
-        end
-
-        if debug_log then tools.log(6, 'OnTick', 'Trains on deliveries: %s', activeDeliveryTrains) end
-
-        -- remove no longer active requests from dispatcher RequestAge[stopID]
-        local newRequestAge = {}
-        for _, request in pairs(dispatcher.Requests) do
-            local ageIndex = request.item .. ',' .. request.stopID
-            local age = dispatcher.RequestAge[ageIndex]
-            if age then
-                newRequestAge[ageIndex] = age
-            end
-        end
-        dispatcher.RequestAge = newRequestAge
-
-        -- sort requests by priority and age
-        table.sort(dispatcher.Requests, function(a, b)
-            if a.priority ~= b.priority then
-                return a.priority > b.priority
-            else
-                return a.age < b.age
-            end
-        end)
-    elseif storage.tick_state == 3 then -- parse requests and dispatch trains
-        if LtnSettings.dispatcher_enabled then
-            if debug_log then tools.log(6, 'OnTick', 'Available train capacity: %d item stacks, %d fluid capacity.', dispatcher.availableTrains_total_capacity, dispatcher.availableTrains_total_fluid_capacity) end
-
-            for i = 1, LtnSettings:getUpdatesPerTick(), 1 do
-                -- reset on invalid index
-                if storage.tick_request_index and not dispatcher.Requests[storage.tick_request_index] then
-                    storage.tick_state = 0
-
-                    if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-request-index', storage.tick_request_index } end
-                    tools.log(6, 'OnTick', 'Invalid storage.tick_request_index %s in dispatcher Requests. Starting over.', tostring(storage.tick_request_index))
-
-                    return
-                end
-
-                local request_index, request = next(dispatcher.Requests, storage.tick_request_index)
-                if request_index and request then
-                    storage.tick_request_index = request_index
-
-                    if debug_log then tools.log(6, 'OnTick', '%d parsing request %d/%d', tick, request_index, #dispatcher.Requests) end
-
-                    ProcessRequest(request_index, request)
-                else -- request updates complete, moving on
-                    storage.tick_request_index = nil
-                    storage.tick_state = 4
-                    return
-                end
-            end
-        else
-            if message_level >= 1 then tools.printmsg { 'ltn-message.warning-dispatcher-disabled' } end
-            if debug_log then tools.log(6, 'OnTick', 'Dispatcher disabled.') end
-
-            storage.tick_request_index = nil
-            storage.tick_state = 4
-            return
-        end
-    elseif storage.tick_state == 4 then -- raise API events
-        storage.tick_state = 0
-        -- raise events for mod API
-
-        ---@type ltn.EventData.on_stops_updated
-        local stops_data = {
-            logistic_train_stops = storage.LogisticTrainStops,
-        }
-        script.raise_event(on_stops_updated_event, stops_data)
-
-        ---@type ltn.EventData.on_dispatcher_updated
-        local dispatcher_data = {
-            update_interval = tick - storage.tick_interval_start,
-            provided_by_stop = dispatcher.Provided_by_Stop,
-            requests_by_stop = dispatcher.Requests_by_Stop,
-            new_deliveries = dispatcher.new_Deliveries,
-            deliveries = dispatcher.Deliveries,
-            available_trains = dispatcher.availableTrains,
-        }
-        script.raise_event(on_dispatcher_updated_event, dispatcher_data)
-    else -- reset
-        storage.tick_stop_index = nil
-        storage.tick_request_index = nil
-
-        storage.tick_state = 1
-        storage.tick_interval_start = tick
-        -- clear Dispatcher.Storage
-        dispatcher.Provided = {}
-        dispatcher.Requests = {}
-        dispatcher.Provided_by_Stop = {}
-        dispatcher.Requests_by_Stop = {}
-        dispatcher.new_Deliveries = {}
-    end
+    -- no next stage, go back to reset
+    storage.tick_state = ltn_tick_state.reset
 end
 
 ---------------------------------- DISPATCHER FUNCTIONS ----------------------------------
