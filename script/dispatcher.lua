@@ -408,20 +408,45 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
     return stations
 end
 
+local DISTANCE_CACHE_LIFETIME = 60 * 60 * 2 -- 2 minutes
+
 ---@param stationA LuaEntity
 ---@param stationB LuaEntity
----@return number
-local function getStationDistance(stationA, stationB)
+---@return number?
+local function get_station_distance(stationA, stationB)
+    if stationA.surface_index ~= stationB.surface_index then return nil end
+
     local stationPair = stationA.unit_number .. ',' .. stationB.unit_number
-    if storage.StopDistances[stationPair] then
-        --log(stationPair.." found, distance: "..storage.StopDistances[stationPair])
-        return storage.StopDistances[stationPair]
-    else
-        local dist = tools.getDistance(stationA.position, stationB.position)
-        storage.StopDistances[stationPair] = dist
-        --log(stationPair.." calculated, distance: "..dist)
-        return dist
+    ---@type ltn.StopDistance?
+    local stop_distance = storage.StopDistances[stationPair]
+
+    if type(stop_distance) ~= 'table' then stop_distance = nil end
+
+    if stop_distance and stop_distance.tick > game.tick then
+        --log(stationPair.." found, distance: ".. serpent.line(storage.StopDistances[stationPair]))
+        return stop_distance.distance
     end
+
+    local result = game.train_manager.request_train_path {
+        type = 'path',
+        starts = {
+            {
+                rail = stationA.connected_rail,
+                direction = stationA.connected_rail_direction,
+            }
+        },
+        goals = { stationB, },
+    }
+
+    if not result.found_path then return nil end
+
+    local distance = (result.total_length or 0) + (result.penalty or 0)
+
+    storage.StopDistances[stationPair] = {
+        distance = distance,
+        tick = game.tick + DISTANCE_CACHE_LIFETIME,
+    }
+    return distance
 end
 
 --- returns: available trains in depots or nil
@@ -454,7 +479,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                 local dest_network_id_string = string.format('0x%x', bit32.band(nextStop.network_id))
 
                 tools.log(5, 'getFreeTrains', 'checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %d', tools.getTrainName(trainData.train), trainData.force.name, nextStop.stop.entity.force.name, depot_network_id_string,
-                    dest_network_id_string, trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, getStationDistance(trainData.train.station, nextStop.stop.entity))
+                    dest_network_id_string, trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, get_station_distance(trainData.train.station, nextStop.stop.entity))
             end
 
             -- preselection based on train properties
@@ -465,17 +490,20 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
             then
                 -- train is on the same surface as the next stop
                 if trainData.surface == nextStop.stop.entity.surface then
-                    local distance = getStationDistance(trainData.train.station, nextStop.stop.entity)
-                    ---@type ltn.FreeTrain
-                    local free_train = {
-                        train = trainData.train,
-                        surface = trainData.surface,
-                        inventory_size = inventorySize,
-                        depot_priority = trainData.depot_priority,
-                        provider_distance = distance,
-                        select_count = trainData.select_count or 0,
-                    }
-                    table.insert(filtered_trains, free_train)
+                    local distance = get_station_distance(trainData.train.station, nextStop.stop.entity)
+                    -- if distance is nil but the surface is the same, there is no path for the train.
+                    if distance then
+                        ---@type ltn.FreeTrain
+                        local free_train = {
+                            train = trainData.train,
+                            surface = trainData.surface,
+                            inventory_size = inventorySize,
+                            depot_priority = trainData.depot_priority,
+                            provider_distance = distance,
+                            select_count = trainData.select_count or 0,
+                        }
+                        table.insert(filtered_trains, free_train)
+                    end
                 elseif LtnSettings.advanced_cross_surface_delivery then
                     local matched_networks = bit32.band(trainData.network_id, nextStop.network_id)
                     -- check if surface transition is possible
@@ -532,7 +560,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
         else
             -- if one stop is on the same surface and the other is not, return
             if not a.provider_distance then return false end
-            if a.provider_distance and not b.provider_distance then return true end
+            if not b.provider_distance then return true end
 
             if math.abs(a.provider_distance - b.provider_distance) >= fudge_factor then
                 return a.provider_distance < b.provider_distance

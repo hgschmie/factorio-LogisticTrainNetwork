@@ -13,7 +13,7 @@
 ---@field LogisticTrainStops    table<integer, ltn.TrainStop>
 ---@field ConnectedSurfaces     table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
 ---@field StoppedTrains         table<number, ltn.StoppedTrain>
----@field StopDistances         table<string, number>
+---@field StopDistances         table<string, ltn.StopDistance>
 ---@field WagonCapacity         table<string, number>
 ---@field FuelStations          ltn.TrainStop[][]
 ---@field Depots                ltn.TrainStop[][]
@@ -145,6 +145,10 @@
 ---@field entity1    LuaEntity
 ---@field entity2    LuaEntity
 ---@field network_id number
+
+---@class ltn.StopDistance
+---@field distance number
+---@field tick integer
 
 ---------------------------------------------------------
 --- Internal types used in various methods

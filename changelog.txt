@@ -5,6 +5,7 @@ Date: ????
     - Implement a fairer train selection algorithm that does not select by path length. This
       is controlled by the `ltn-depot-fudge-factor` setting. If the setting is 0, the old, distance-based
       algorithm is still used.
+    - Use train_manager to compute travel distance between stations, replace the simple 'shortest path as the crow flies' algorithm
 ---------------------------------------------------------------------------------------------------
 Version: 2.5.1
 Date: 2025-11-24
