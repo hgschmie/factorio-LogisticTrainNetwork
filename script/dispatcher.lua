@@ -39,6 +39,7 @@ local function DispatcherReset(event)
     dispatcher.Requests = {}
     dispatcher.Provided_by_Stop = {}
     dispatcher.Requests_by_Stop = {}
+    dispatcher.Pending_Requests = {}
     dispatcher.new_Deliveries = {}
 
     return nil
@@ -609,7 +610,7 @@ function ProcessRequest(reqIndex, request)
             requestStation.requesting_threshold, item, requestStation.entity.backer_name, to_network_id_string, request.priority, min_carriages, max_carriages)
     end
 
-    if not (dispatcher.Requests_by_Stop[toID] and dispatcher.Requests_by_Stop[toID][item]) then
+    if (dispatcher.Pending_Requests[toID] and dispatcher.Pending_Requests[toID][item]) then
         if debug_log then tools.log(5, 'ProcessRequest', 'Skipping request %s: %s. Item has already been processed.', requestStation.entity.backer_name, item) end
         return nil
     end
@@ -717,7 +718,8 @@ function ProcessRequest(reqIndex, request)
         min_carriages = providerData.min_carriages
     end
 
-    dispatcher.Requests_by_Stop[toID][item] = nil -- remove before merge so it's not added twice
+    dispatcher.Pending_Requests[toID] = dispatcher.Pending_Requests[toID] or {}
+    dispatcher.Pending_Requests[toID][item] = true -- mark as pending before merge so it's not added twice
 
     ---@type ltn.ItemLoadingElement[]
     local loadingList = {
@@ -735,31 +737,34 @@ function ProcessRequest(reqIndex, request)
     -- find possible mergeable items, fluids can't be merged in a sane way
     if item_info.type == 'item' then
         for merge_item, merge_count_req in pairs(dispatcher.Requests_by_Stop[toID]) do
-            local merge_item_info = tools.parseItemIdentifier(merge_item)
-            if merge_item_info and merge_item_info.type == 'item' then
-                assert(prototypes.item[merge_item_info.name], 'item prototype undefined!', merge_item_info)
-                local merge_localname = prototypes.item[merge_item_info.name].localised_name
-                -- get current provider for requested item
-                if dispatcher.Provided[merge_item] and dispatcher.Provided[merge_item][fromID] then
-                    -- set delivery Size and stacks
-                    local merge_count_prov = dispatcher.Provided[merge_item][fromID]
-                    local merge_deliverySize = merge_count_req
-                    if merge_count_req > merge_count_prov then
-                        merge_deliverySize = merge_count_prov
+            -- only merge non-pending requests
+            if not dispatcher.Pending_Requests[toID][merge_item] then
+                local merge_item_info = tools.parseItemIdentifier(merge_item)
+                if merge_item_info and merge_item_info.type == 'item' then
+                    assert(prototypes.item[merge_item_info.name], 'item prototype undefined!', merge_item_info)
+                    local merge_localname = prototypes.item[merge_item_info.name].localised_name
+                    -- get current provider for requested item
+                    if dispatcher.Provided[merge_item] and dispatcher.Provided[merge_item][fromID] then
+                        -- set delivery Size and stacks
+                        local merge_count_prov = dispatcher.Provided[merge_item][fromID]
+                        local merge_deliverySize = merge_count_req
+                        if merge_count_req > merge_count_prov then
+                            merge_deliverySize = merge_count_prov
+                        end
+                        local merge_stacks = math.ceil(merge_deliverySize / prototypes.item[merge_item_info.name].stack_size) -- calculate amount of stacks item count will occupy
+
+                        -- add to loading list
+                        table.insert(loadingList, {
+                            item = merge_item_info,
+                            localname = merge_localname,
+                            count = merge_deliverySize,
+                            stacks = merge_stacks
+                        } --[[@as ltn.ItemLoadingElement ]])
+
+                        totalStacks = totalStacks + merge_stacks
+
+                        if debug_log then tools.log(5, 'ProcessRequest', 'inserted into order %s >> %s: %d %s in %d/%d stacks.', from, to, merge_deliverySize, merge_item, merge_stacks, totalStacks) end
                     end
-                    local merge_stacks = math.ceil(merge_deliverySize / prototypes.item[merge_item_info.name].stack_size) -- calculate amount of stacks item count will occupy
-
-                    -- add to loading list
-                    table.insert(loadingList, {
-                        item = merge_item_info,
-                        localname = merge_localname,
-                        count = merge_deliverySize,
-                        stacks = merge_stacks
-                    } --[[@as ltn.ItemLoadingElement ]])
-
-                    totalStacks = totalStacks + merge_stacks
-
-                    if debug_log then tools.log(5, 'ProcessRequest', 'inserted into order %s >> %s: %d %s in %d/%d stacks.', from, to, merge_deliverySize, merge_item, merge_stacks, totalStacks) end
                 end
             end
         end
@@ -786,7 +791,7 @@ function ProcessRequest(reqIndex, request)
 
         script.raise_event(on_dispatcher_no_train_found_event, data)
 
-        dispatcher.Requests_by_Stop[toID][item] = count -- add removed item back to list of requested items.
+        dispatcher.Pending_Requests[toID][item] = False -- remove failed request from pending list, as it's not being delivered.
         return nil
     end
 
@@ -891,9 +896,15 @@ function ProcessRequest(reqIndex, request)
             dispatcher.Provided_by_Stop[fromID][loadingListItem] = nil
         end
 
-        -- remove Request and reset age
-        dispatcher.Requests_by_Stop[toID][loadingListItem] = nil
-        dispatcher.RequestAge[loadingListItem .. ',' .. toID] = nil
+        -- reset (age) if request fully fulfilled, else subtract Request.
+        if dispatcher.Requests_by_Stop[toID][loadingListItem] <= shipment[loadingListItem] then
+            dispatcher.Requests_by_Stop[toID][loadingListItem] = nil
+            dispatcher.RequestAge[loadingListItem .. ',' .. toID] = nil
+            -- can reach 0 if item is fully processed by the merge functionality, in which case, mark as pending to skip when specifically adressed.
+            dispatcher.Pending_Requests[toID][loadingListItem] = true
+        else
+            dispatcher.Requests_by_Stop[toID][loadingListItem] =  dispatcher.Requests_by_Stop[toID][loadingListItem] - shipment[loadingListItem]
+        end
 
         if debug_log then tools.log(5, 'ProcessRequest', '  %s, %d in %d stacks', loadingListItem, loadingList[i].count, loadingList[i].stacks) end
     end

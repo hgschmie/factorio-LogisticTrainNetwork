@@ -53,6 +53,7 @@
 ---@field Provided_by_Stop                     table<number, ltn.Shipment> -- stop id -> request-type -> count
 ---@field Requests                             ltn.Request[]
 ---@field Requests_by_Stop                     table<number, ltn.Shipment>
+---@field Pending_Requests                     table<number, ltn.Shipment>
 ---@field RequestAge                           table<string, number>
 ---@field Deliveries                           table<number, ltn.Delivery>
 ---@field new_Deliveries                       number[]
