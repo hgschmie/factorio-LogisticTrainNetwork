@@ -896,10 +896,11 @@ function ProcessRequest(reqIndex, request)
             dispatcher.Provided_by_Stop[fromID][loadingListItem] = nil
         end
 
-        -- reset (age) if request fully fulfilled, else subtract Request.
+        -- reset age after servicing a request to ensure round robin behavior within same priority
+        dispatcher.RequestAge[loadingListItem .. ',' .. toID] = nil
+        -- clear if request fully fulfilled, else subtract Request.
         if dispatcher.Requests_by_Stop[toID][loadingListItem] <= shipment[loadingListItem] then
             dispatcher.Requests_by_Stop[toID][loadingListItem] = nil
-            dispatcher.RequestAge[loadingListItem .. ',' .. toID] = nil
             -- can reach 0 if item is fully processed by the merge functionality, in which case, mark as pending to skip when specifically adressed.
             dispatcher.Pending_Requests[toID][loadingListItem] = true
         else
