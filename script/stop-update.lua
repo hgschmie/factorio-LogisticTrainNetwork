@@ -119,9 +119,6 @@ function UpdateStop(stopID, stop)
         return
     end
 
-    -- also fix up the stop entity itself, in case someone meddled with it
-    stop.entity.trains_limit = nil
-
     local trainstop_control = stop.entity.get_control_behavior() --[[@as LuaTrainStopControlBehavior? ]]
     if trainstop_control then
         trainstop_control.send_to_train = true
@@ -246,6 +243,12 @@ function UpdateStop(stopID, stop)
 
         stop.depot_priority = ltn_state.depot_priority
 
+        if ltn_state.max_trains > 0 then
+            stop.entity.trains_limit = ltn_state.max_trains
+        else
+            stop.entity.trains_limit = 1
+        end
+
         tools.updateStopList(stop, tools.getDepots(), ltn_state.network_id)
 
         -- add parked train to available trains
@@ -271,6 +274,8 @@ function UpdateStop(stopID, stop)
         -- ----------------------------------------------------------------------------------------
         -- Refuel operations
         -- ----------------------------------------------------------------------------------------
+
+        stop.entity.trains_limit = nil
 
         local fuel_prototypes = prototypes.get_item_filtered {
             { filter = 'fuel' },
@@ -305,6 +310,8 @@ function UpdateStop(stopID, stop)
         -- ----------------------------------------------------------------------------------------
         -- Provider / Requester operations
         -- ----------------------------------------------------------------------------------------
+
+        stop.entity.trains_limit = nil
 
         -- check if the name is unique
         tools.reduceAvailableCapacity(stop.parked_train_id)
