@@ -10,6 +10,8 @@ local schedule = require('script.schedule')
 -- update stop output when train enters stop
 ---@param train LuaTrain
 function TrainArrives(train)
+    assert(train.valid)
+
     local dispatcher = tools.getDispatcher()
     local stopped_trains = tools.getStoppedTrains()
 
@@ -211,7 +213,8 @@ function TrainLeaves(trainID)
     local leavingTrain = stopped_trains[trainID] -- checked before every call of TrainLeaves
     assert(leavingTrain)                         -- TODO: test this!
 
-    local train = leavingTrain.train
+    local train = leavingTrain.train.valid and leavingTrain.train or nil
+
     local stopID = leavingTrain.stopID
     local stop = storage.LogisticTrainStops[stopID]
     if not stop then
@@ -258,7 +261,7 @@ function TrainLeaves(trainID)
         end
 
         local delivery = dispatcher.Deliveries[trainID]
-        if train.valid and delivery then
+        if train and delivery then
             if delivery.from_id == stop.entity.unit_number then
                 -- update delivery counts to train inventory
                 local actual_load = {}
@@ -409,14 +412,14 @@ function TrainLeaves(trainID)
 
         -- temporarily remove the fuel stop, it gets readded at the depot
         -- otherwise the train could end up in an endless refueling loop
-        schedule:removeFuelInterrupt(train)
+        if train then schedule:removeFuelInterrupt(train) end
     end
 
     -- remove train reference
     stop.parked_train = nil
     stop.parked_train_id = nil
     -- if message_level >= 3 then tools.printmsg({"ltn-message.train-left", tostring(leavingTrain.name), stop.entity.backer_name}, leavingTrain.force) end
-    if message_level >= 3 then tools.printmsg({ 'ltn-message.train-left', tools.richTextForTrain(train, leavingTrain.name), tools.richTextForStop(stop.entity) }, leavingTrain.force) end
+    if train and message_level >= 3 then tools.printmsg({ 'ltn-message.train-left', tools.richTextForTrain(train, leavingTrain.name), tools.richTextForStop(stop.entity) }, leavingTrain.force) end
 
     UpdateStopOutput(stop)
 

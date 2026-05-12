@@ -223,6 +223,8 @@ end
 
 ---@param train LuaTrain
 function ScheduleManager:removeFuelInterrupt(train)
+    assert(train and train.valid)
+
     -- unconditionally remove fuel interrupt. Do not add a check for use_fuel_interrupt,
     -- otherwise the interrupt will never get removed when switching to dynamic refueling
     local train_schedule = train.get_schedule()
