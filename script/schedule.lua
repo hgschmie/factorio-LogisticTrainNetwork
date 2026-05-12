@@ -60,7 +60,7 @@ function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
                     count = 0,
                 }
 
-                inventory[result.name].count = inventory[result.name].count + result.count
+                inventory[result.name].count = (inventory[result.name].count or 0) + result.count
             else
                 inventory[result.name] = nil
             end
