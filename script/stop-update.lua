@@ -85,7 +85,8 @@ function UpdateStop(stopID, stop)
         storage.LogisticTrainStops[stopID].parked_train_id = nil
     end
 
-    -- remove invalid active_deliveries -- shouldn't be necessary
+    -- remove invalid active_deliveries
+    -- shouldn't be necessary
     for i = #stop.active_deliveries, 1, -1 do
         if not dispatcher.Deliveries[stop.active_deliveries[i]] then
             table.remove(stop.active_deliveries, i)
@@ -123,7 +124,7 @@ function UpdateStop(stopID, stop)
     -- also fix up the stop entity itself, in case someone meddled with it
     stop.entity.trains_limit = nil
 
-    local trainstop_control = stop.entity.get_control_behavior() --[[@as LuaTrainStopControlBehavior? ]]
+    local trainstop_control = stop.entity.get_or_create_control_behavior() --[[@as LuaTrainStopControlBehavior? ]]
     if trainstop_control then
         trainstop_control.send_to_train = true
         trainstop_control.read_from_train = true
@@ -575,8 +576,6 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
             end
         end -- station
     end
-    -- will reset if called with no parked train
-    -- log("[LTN] "..tostring(trainStop.entity.backer_name).. " displaying "..#signals.."/"..tostring(trainStop.output.get_control_behavior().signals_count).." signals.")
 
     local outputControl = trainStop.output.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
     assert(outputControl)
