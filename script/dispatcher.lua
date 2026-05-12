@@ -477,8 +477,9 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
                 local depot_network_id_string = string.format('0x%x', bit32.band(trainData.network_id))
                 local dest_network_id_string = string.format('0x%x', bit32.band(nextStop.network_id))
 
-                tools.log(5, 'getFreeTrains', 'checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %d', tools.getTrainName(trainData.train), trainData.force.name, nextStop.stop.entity.force.name, depot_network_id_string,
-                    dest_network_id_string, trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, get_station_distance(trainData.train.station, nextStop.stop.entity))
+                tools.log(5, 'getFreeTrains', 'checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %s',
+                    tools.getTrainName(trainData.train), trainData.force.name, nextStop.stop.entity.force.name, depot_network_id_string, dest_network_id_string,
+                    trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, get_station_distance(trainData.train.station, nextStop.stop.entity) or '<no path found>')
             end
 
             -- preselection based on train properties
