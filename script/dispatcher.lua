@@ -409,15 +409,22 @@ end
 
 local DISTANCE_CACHE_LIFETIME = 60 * 60 * 2 -- 2 minutes
 
----@param current_station LuaEntity
+---@param train LuaTrain
 ---@param next_station ltn.TrainStop
 ---@return number?
-local function get_station_distance(current_station, next_station)
-    if not (tools.isStopValid(current_station) and tools.isStopValid(next_station)) then
+local function get_station_distance(train, next_station)
+    if not (train.valid and tools.isStopValid(train.station) and tools.isStopValid(next_station)) then
         return nil
     end
 
+    local current_station = assert(train.station)
+
     if current_station.surface_index ~= next_station.entity.surface_index then return nil end
+
+    local needs_front_path = (#train.locomotives.front_movers > 0)
+    local needs_back_path = (#train.locomotives.back_movers > 0)
+
+    if not (needs_front_path or needs_back_path) then return nil end
 
     local stationPair = current_station.unit_number .. ',' .. next_station.entity.unit_number
     ---@type ltn.StopDistance?
@@ -429,7 +436,7 @@ local function get_station_distance(current_station, next_station)
         return stop_distance.distance
     end
 
-    local result = game.train_manager.request_train_path {
+    local front_result = needs_front_path and game.train_manager.request_train_path {
         type = 'path',
         starts = {
             {
@@ -438,16 +445,37 @@ local function get_station_distance(current_station, next_station)
             }
         },
         goals = { next_station.entity, },
-    }
+    } or nil
 
-    if not result.found_path then return nil end
+    local back_result = needs_back_path and game.train_manager.request_train_path {
+        type = 'path',
+        starts = {
+            {
+                rail = current_station.connected_rail,
+                -- opposite direction for back path
+                direction = (current_station.connected_rail_direction == defines.rail_direction.front) and defines.rail_direction.back or defines.rail_direction.front,
+            }
+        },
+        goals = { next_station.entity, },
+    } or nil
 
-    local distance = (result.total_length or 0) + (result.penalty or 0)
+    local distance = nil
+    if front_result and front_result.found_path then
+        distance = (front_result.total_length or 0) + (front_result.penalty or 0)
+    end
+
+    if back_result and back_result.found_path then
+        local back_distance = (back_result.total_length or 0) + (back_result.penalty or 0)
+        if (not distance) or back_distance < distance then distance = back_distance end
+    end
+
+    if not distance then return nil end
 
     storage.StopDistances[stationPair] = {
         distance = distance,
         tick = game.tick + DISTANCE_CACHE_LIFETIME,
     }
+
     return distance
 end
 
@@ -482,7 +510,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
 
                 tools.log(5, 'getFreeTrains', 'checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %s',
                     tools.getTrainName(trainData.train), trainData.force.name, nextStop.stop.entity.force.name, depot_network_id_string, dest_network_id_string,
-                    trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, get_station_distance(trainData.train.station, nextStop.stop) or '<no path found>')
+                    trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, get_station_distance(trainData.train, nextStop.stop) or '<no path found>')
             end
 
             -- preselection based on train properties
@@ -493,7 +521,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
             then
                 -- train is on the same surface as the next stop
                 if trainData.surface == nextStop.stop.entity.surface then
-                    local distance = get_station_distance(trainData.train.station, nextStop.stop)
+                    local distance = get_station_distance(trainData.train, nextStop.stop)
                     -- if distance is nil but the surface is the same, there is no path for the train.
                     if distance then
                         ---@type ltn.FreeTrain
@@ -661,6 +689,7 @@ function ProcessRequest(reqIndex, request)
             if debug_log then tools.log(5, 'ProcessRequest', 'Skipping request %s {%s}: %s. No trains available.', to, to_network_id_string, item) end
 
             ---@type ltn.EventData.no_train_found_item
+
             local data = {
                 to = to,
                 to_id = toID,
