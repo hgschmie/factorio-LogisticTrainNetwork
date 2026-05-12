@@ -273,7 +273,7 @@ function UpdateStop(stopID, stop)
         -- ----------------------------------------------------------------------------------------
 
         local fuel_prototypes = prototypes.get_item_filtered {
-            { filter = 'fuel' },
+            { filter = 'fuel', },
         }
 
         ---@type CircuitCondition[]
