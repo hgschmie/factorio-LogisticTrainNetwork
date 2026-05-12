@@ -106,6 +106,7 @@ function UpdateStop(stopID, stop)
     stop.provider_priority = 0
     stop.locked_slots = 0
     stop.depot_priority = 0
+    stop.fuel_signals = stop.fuel_signals or {}
 
     -- skip short circuited stops
     if detectShortCircuit(stop) then
