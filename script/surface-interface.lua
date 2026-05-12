@@ -85,7 +85,7 @@ end
 
 --- remove entity references when deleting surfaces
 ---@param event EventData.on_pre_surface_cleared
-function SurfaceInterface.OnSurfaceRemoved(event)
+function OnSurfaceRemoved(event)
     -- stop references
     local surfaceID = event.surface_index
     tools.log(5, 'OnSurfaceRemoved', 'Removing LTN stops and surface connections on surface [%d].', surfaceID)
