@@ -180,7 +180,7 @@ end
 --- @param train LuaTrain
 --- @return LuaEntity? locomotive The primary locomotive entity or `nil` when no locomotive was found
 function Tools.getMainLocomotive(train)
-    if not train.valid then return end
+    if not (train and train.valid) then return end
     return train.locomotives.front_movers and train.locomotives.front_movers[1] or train.locomotives.back_movers[1]
 end
 
@@ -276,6 +276,32 @@ function Tools.richTextForTrain(train, train_name)
     else
         return string.format('[train=%d] %s', train.id, train_name)
     end
+end
+
+-----------------------------------------------------------------------
+-- Validation
+-----------------------------------------------------------------------
+
+--- Returns True if the stop exists, its main entity is valid and has a rail connected.
+--- This is good enough to e.g. determine whether a stop can be used in schedule (delivery, fuel station, depot)
+---@param stop (ltn.TrainStop|LuaEntity)?
+---@return boolean is_valid
+function Tools.isStopValid(stop)
+    if not stop then return false end
+    local entity = type(stop) == 'userdata' and stop or stop.entity
+    return entity.valid and entity.connected_rail and true or false
+end
+
+--- Returns True if the internal state of the train stop is consistent. Checks that all internal entities are 
+--- valid and functioning.
+---@param stop ltn.TrainStop
+---@return boolean is_consistent
+function Tools.isStopConsistent(stop)
+    assert(stop)
+    return (stop.entity and stop.entity.valid)
+        and (stop.input and stop.input.valid)
+        and (stop.output and stop.output.valid)
+        and (stop.lamp_control and stop.lamp_control.valid)
 end
 
 -----------------------------------------------------------------------
@@ -397,7 +423,7 @@ function Tools.findMatchingStops(stop_list, network_id, available)
             for stop_id in pairs(stop_list[i]) do
                 -- check if the station id is still valid
                 local stop = all_stops[stop_id]
-                if stop then
+                if Tools.isStopValid(stop) then
                     result[stop_id] = stop
                 else
                     stop_list[i][stop_id] = nil
@@ -420,6 +446,7 @@ end
 -----------------------------------------------------------------------
 -- Manage dispatcher ticker events
 -----------------------------------------------------------------------
+
 function Tools.updateDispatchTicker()
     local stops = Tools.getAllStops()
     if next(stops) then

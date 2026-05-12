@@ -79,17 +79,14 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
 
     --unlike ProcessDelivery we need to consider that the stop entity might be gone
     local stop = storage.LogisticTrainStops[stop_id]
-    if not stop or not stop.entity.valid then
+    if not tools.isStopValid(stop) then
         if debug_log then tools.log(5, 'GetOrCreateNextTempStop', 'skipping stop [%d] for train [%d], stop-entity not valid', stop_id, train.id) end
         return
     end
 
-    local rail = stop.entity.connected_rail
+    -- isStopValid has validated that a rail is connected
+    local rail = assert(stop.entity.connected_rail)
     local rail_direction = stop.entity.connected_rail_direction
-    if not rail or not rail_direction then
-        if debug_log then tools.log(5, 'GetOrCreateNextTempStop', 'skipping stop [%d] for train [%d], not connected to a rail', stop_id, train.id) end
-        return
-    end
 
     -- the engine does not allow temp_stops on different surfaces
     -- locomotive might not work here, a new train on another surface could still be incomplete

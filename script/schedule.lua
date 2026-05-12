@@ -123,9 +123,7 @@ function ScheduleManager:selectDepot(train, network_id)
     ---@type LuaEntity[]
     local depots = {}
     for _, depot in pairs(all_depots) do
-        if depot.entity.connected_rail then
-            table.insert(depots, depot.entity)
-        end
+        table.insert(depots, depot.entity)
     end
 
     if table_size(depots) == 0 then
@@ -150,7 +148,7 @@ function ScheduleManager:selectDepot(train, network_id)
     local accessible_stations = {}
 
     for idx, accessible in pairs(path_results.accessible) do
-        if accessible then
+        if accessible and tools.isStopValid(all_stops[depots[idx].unit_number]) then
             table.insert(accessible_stations, all_stops[depots[idx].unit_number])
         end
     end
@@ -166,7 +164,6 @@ end
 ---@param network_id integer
 ---@return ltn.TrainStop? train_stop A fuel station train stop
 function ScheduleManager:selectFuelStation(train, network_id)
-    local all_stops = tools.getAllStops()
     local all_fuel_stations = tools.findMatchingStops(tools.getFuelStations(), network_id)
     if table_size(all_fuel_stations) == 0 then return nil end
 
@@ -174,7 +171,7 @@ function ScheduleManager:selectFuelStation(train, network_id)
     local stations = {}
     for _, station in pairs(all_fuel_stations) do
         assert(station.fuel_signals)
-        if #station.fuel_signals > 0 and station.entity.connected_rail then -- must provide some threshold signal
+        if #station.fuel_signals > 0 then -- must provide some threshold signal
              table.insert(stations, station.entity)
         end
     end
@@ -189,7 +186,10 @@ function ScheduleManager:selectFuelStation(train, network_id)
     }
 
     if not path_results.found_path then return nil end
-    return all_stops[stations[path_results.goal_index].unit_number]
+
+    local all_stops = tools.getAllStops()
+    local fuel_station = all_stops[stations[path_results.goal_index].unit_number]
+    return tools.isStopValid(fuel_station) and fuel_station or nil
 end
 
 ---@param train LuaTrain

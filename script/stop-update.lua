@@ -72,7 +72,7 @@ function UpdateStop(stopID, stop)
     dispatcher.Requests_by_Stop[stopID] = nil
 
     -- remove invalid stops
-    if not stop or not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
+    if not (stop and tools.isStopConsistent(stop)) then
         if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-stop', stopID } end
         if debug_log then tools.log(5, 'UpdateStop', 'Removing invalid stop: [%d]', stopID) end
         RemoveStop(stopID)

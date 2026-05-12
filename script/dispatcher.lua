@@ -276,7 +276,7 @@ function RemoveDelivery(trainID)
     local dispatcher = tools.getDispatcher()
 
     for stopID, stop in pairs(storage.LogisticTrainStops) do
-        if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
+        if not tools.isStopConsistent(stop) then
             RemoveStop(stopID)
         else
             for i = #stop.active_deliveries, 1, -1 do --trainID should be unique => checking matching stop name not required
@@ -347,7 +347,7 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
 
     for stopID, count in pairs(providers) do
         local stop = storage.LogisticTrainStops[stopID]
-        if stop and stop.entity.valid then
+        if tools.isStopValid(stop) then
             local matched_networks = bit32.band(requestStation.network_id, stop.network_id)
             -- log("DEBUG: comparing 0x"..format("%x", bit32.band(requestStation.network_id)).." & 0x"..format("%x", bit32.band(stop.network_id)).." = 0x"..format("%x", bit32.band(matched_networks)) )
 
@@ -409,20 +409,23 @@ end
 
 local DISTANCE_CACHE_LIFETIME = 60 * 60 * 2 -- 2 minutes
 
----@param stationA LuaEntity
----@param stationB LuaEntity
+---@param current_station LuaEntity
+---@param next_station ltn.TrainStop
 ---@return number?
-local function get_station_distance(stationA, stationB)
-    if stationA.surface_index ~= stationB.surface_index then return nil end
+local function get_station_distance(current_station, next_station)
+    if not (tools.isStopValid(current_station) and tools.isStopValid(next_station)) then
+        return nil
+    end
 
-    local stationPair = stationA.unit_number .. ',' .. stationB.unit_number
+    if current_station.surface_index ~= next_station.entity.surface_index then return nil end
+
+    local stationPair = current_station.unit_number .. ',' .. next_station.entity.unit_number
     ---@type ltn.StopDistance?
     local stop_distance = storage.StopDistances[stationPair]
 
     if type(stop_distance) ~= 'table' then stop_distance = nil end
 
     if stop_distance and stop_distance.tick > game.tick then
-        --log(stationPair.." found, distance: ".. serpent.line(storage.StopDistances[stationPair]))
         return stop_distance.distance
     end
 
@@ -430,11 +433,11 @@ local function get_station_distance(stationA, stationB)
         type = 'path',
         starts = {
             {
-                rail = stationA.connected_rail,
-                direction = stationA.connected_rail_direction,
+                rail = current_station.connected_rail,
+                direction = current_station.connected_rail_direction,
             }
         },
-        goals = { stationB, },
+        goals = { next_station.entity, },
     }
 
     if not result.found_path then return nil end
@@ -479,7 +482,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
 
                 tools.log(5, 'getFreeTrains', 'checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %s',
                     tools.getTrainName(trainData.train), trainData.force.name, nextStop.stop.entity.force.name, depot_network_id_string, dest_network_id_string,
-                    trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, get_station_distance(trainData.train.station, nextStop.stop.entity) or '<no path found>')
+                    trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size, get_station_distance(trainData.train.station, nextStop.stop) or '<no path found>')
             end
 
             -- preselection based on train properties
@@ -490,7 +493,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
             then
                 -- train is on the same surface as the next stop
                 if trainData.surface == nextStop.stop.entity.surface then
-                    local distance = get_station_distance(trainData.train.station, nextStop.stop.entity)
+                    local distance = get_station_distance(trainData.train.station, nextStop.stop)
                     -- if distance is nil but the surface is the same, there is no path for the train.
                     if distance then
                         ---@type ltn.FreeTrain
@@ -587,9 +590,7 @@ function ProcessRequest(reqIndex, request)
     local toID = request.stopID
     local requestStation = storage.LogisticTrainStops[toID]
 
-    if not requestStation or not (requestStation.entity and requestStation.entity.valid) then
-        return nil
-    end
+    if not tools.isStopValid(requestStation) then return nil end
 
     local surface_name = requestStation.entity.surface.name
     local to = requestStation.entity.backer_name
@@ -685,10 +686,11 @@ function ProcessRequest(reqIndex, request)
 
     local providerData = providers[1] -- only one delivery/request is created so use only the best provider
 
-    local fromID = providerData.stop.entity.unit_number
+    -- getProviders only returns valid stops with connected rails
+    local fromID = assert(providerData.stop.entity).unit_number
     assert(fromID)
 
-    local from_rail = providerData.stop.entity.connected_rail
+    local from_rail = assert(providerData.stop.entity.connected_rail)
     local from_rail_direction = providerData.stop.entity.connected_rail_direction
     local from = providerData.stop.entity.backer_name
     local from_gps = tools.richTextForStop(providerData.stop.entity) or from

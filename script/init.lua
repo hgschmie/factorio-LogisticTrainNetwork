@@ -189,15 +189,9 @@ local function initializeTrainStops()
         elseif not (stop.entity and stop.entity.valid) then
             -- stop entity is corrupt/missing remove I/O entities
             tools.log(0, 'initializeTrainStops', 'removing corrupt stop %s', tostring(stopID))
-            if stop.input and stop.input.valid then
-                stop.input.destroy()
-            end
-            if stop.output and stop.output.valid then
-                stop.output.destroy()
-            end
-            if stop.lamp_control and stop.lamp_control.valid then
-                stop.lamp_control.destroy()
-            end
+            if stop.input and stop.input.valid then stop.input.destroy() end
+            if stop.output and stop.output.valid then stop.output.destroy() end
+            if stop.lamp_control and stop.lamp_control.valid then stop.lamp_control.destroy() end
             storage.LogisticTrainStops[stopID] = nil
         end
     end
@@ -211,9 +205,7 @@ local function initializeTrainStops()
                 if ltn_stop_entity_names[stop.name] then
                     local ltn_stop = storage.LogisticTrainStops[stop.unit_number]
                     if ltn_stop then
-                        if not (ltn_stop.output and ltn_stop.output.valid)
-                            and (ltn_stop.input and ltn_stop.input.valid)
-                            and (ltn_stop.lamp_control and ltn_stop.lamp_control.valid) then
+                        if not tools.isStopConsistent(ltn_stop) then
                             -- I/O entities are corrupted
                             tools.log(0, 'initializeTrainStops', 'recreating corrupt stop %s', stop.backer_name)
                             storage.LogisticTrainStops[stop.unit_number] = nil

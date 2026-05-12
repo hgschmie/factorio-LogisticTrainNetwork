@@ -224,7 +224,7 @@ function TrainLeaves(trainID)
         return
     end
 
-    if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
+    if not tools.isStopConsistent(stop) then
         if debug_log then tools.log(5, 'TrainLeaves', 'Error: StopID [%d] contains invalid entity. Processing skipped, train inventory not updated.', stopID) end
 
         stopped_trains[trainID] = nil
@@ -450,7 +450,7 @@ function Update_Delivery(old_train_id, new_train)
 
     -- expanded RemoveDelivery(old_train_id) to also update
     for stopID, stop in pairs(storage.LogisticTrainStops) do
-        if not stop.entity.valid or not stop.input.valid or not stop.output.valid or not stop.lamp_control.valid then
+        if not tools.isStopConsistent(stop) then
             RemoveStop(stopID)
         else
             for i = #stop.active_deliveries, 1, -1 do --trainID should be unique => checking matching stop name not required
