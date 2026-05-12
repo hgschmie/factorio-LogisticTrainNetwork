@@ -230,7 +230,6 @@ end
 
 ----------------------------------------------------------------------------------------
 
----@param event EventData.on_tick
 ---@return ltn.TickState?
 local function DispatcherCleanup()
     local dispatcher = tools.getDispatcher()
