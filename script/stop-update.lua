@@ -73,10 +73,14 @@ function UpdateStop(stopID, stop)
 
     -- remove invalid stops
     if not (stop and tools.isStopConsistent(stop)) then
-        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-stop', stopID } end
+        tools.printmsg(1, function()
+            return { 'ltn-message.error-invalid-stop', stopID }
+        end)
+
         tools.log(5, 'UpdateStop', 'Removing invalid stop: [%d]', function()
             return stopID
         end)
+
         RemoveStop(stopID)
         return
     end
@@ -93,7 +97,10 @@ function UpdateStop(stopID, stop)
         if not dispatcher.Deliveries[stop.active_deliveries[i]] then
             table.remove(stop.active_deliveries, i)
 
-            if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-delivery', stop.entity.backer_name } end
+            tools.printmsg(1, function()
+                return { 'ltn-message.error-invalid-delivery', stop.entity.backer_name }
+            end)
+
             tools.log(5, 'UpdateStop', "(UpdateStop) Removing invalid delivery from stop '%s': %s", function()
                 return stop.entity.backer_name, tostring(stop.active_deliveries[i])
             end)
@@ -192,7 +199,9 @@ function UpdateStop(stopID, stop)
     if not ltn_state.network_id then
         ltn_state.network_id = LtnSettings.default_network
 
-        if message_level >= 3 then tools.printmsg { 'ltn-message.stop-uses-default-network', tools.richTextForStop(stop.entity) or stop.entity.backer_name } end
+        tools.printmsg(3, function()
+            return { 'ltn-message.stop-uses-default-network', tools.richTextForStop(stop.entity) or stop.entity.backer_name }
+        end)
     end
 
     local network_id_string = string.format('0x%x', bit32.band(ltn_state.network_id))
@@ -531,7 +540,10 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                             encoded_positions_by_type[signal_type] = 2 ^ (i - 1)
                         end
                     else
-                        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-position-signal', signal_type } end
+                        tools.printmsg(1, function()
+                            return { 'ltn-message.error-invalid-position-signal', signal_type }
+                        end)
+
                         tools.log(5, 'UpdateStopOutput', 'Error: signal "%s" not found!', function()
                             return signal_type
                         end)
@@ -544,7 +556,10 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                             encoded_positions_by_name[signal_name] = 2 ^ (i - 1)
                         end
                     else
-                        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-position-signal', signal_name } end
+                        tools.printmsg(1, function()
+                            return { 'ltn-message.error-invalid-position-signal', signal_name }
+                        end)
+
                         tools.log(5, 'UpdateStopOutput', 'Error: signal "%s" not found!', function()
                             return signal_name
                         end)
@@ -561,7 +576,10 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                             encoded_positions_by_type[signal_type] = 2 ^ n
                         end
                     else
-                        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-position-signal', signal_type } end
+                        tools.printmsg(1, function()
+                            return { 'ltn-message.error-invalid-position-signal', signal_type }
+                        end)
+
                         tools.log(5, 'UpdateStopOutput', 'Error: signal "%s" not found!', function()
                             return signal_type
                         end)
@@ -574,7 +592,10 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                             encoded_positions_by_name[signal_name] = 2 ^ n
                         end
                     else
-                        if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-position-signal', signal_name } end
+                        tools.printmsg(1, function()
+                            return { 'ltn-message.error-invalid-position-signal', signal_name }
+                        end)
+
                         tools.log(5, 'UpdateStopOutput', 'Error: signal "%s" not found!', function()
                             return signal_name
                         end)

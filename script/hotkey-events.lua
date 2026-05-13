@@ -15,10 +15,14 @@ local function handle_ltn_toggle_dispatcher(event)
     local enabled = settings.global['ltn-dispatcher-enabled'].value
     if enabled then
         settings.global['ltn-dispatcher-enabled'] = { value = false }
-        tools.printmsg { 'ltn-message.dispatcher-disabled', player.name }
+        tools.printmsg(0, function()
+            return { 'ltn-message.dispatcher-disabled', player.name }
+        end)
     else
         settings.global['ltn-dispatcher-enabled'] = { value = true }
-        tools.printmsg { 'ltn-message.dispatcher-enabled', player.name }
+        tools.printmsg(0, function()
+            return { 'ltn-message.dispatcher-enabled', player.name }
+        end)
     end
 end
 

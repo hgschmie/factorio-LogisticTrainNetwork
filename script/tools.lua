@@ -65,9 +65,12 @@ local settings = {
 ---@alias msg_func fun():LocalisedString
 
 --- write msg to console for all member of force or all players
----@param msg LocalisedString
+---@param level number
+---@param msg_func msg_func
 ---@param force LuaForce?
-function Tools.printmsg(msg_func, force)
+function Tools.printmsg(level, msg_func, force)
+    if LtnSettings and ((not LtnSettings.message_level) or (LtnSettings.message_level < level)) then return end
+
     if force and force.valid then
         force.print(msg_func(), settings)
     else

@@ -9,7 +9,9 @@
 local tools = require('script.tools')
 
 local function initialize(oldVersion, newVersion)
-    --log("oldVersion: "..tostring(oldVersion)..", newVersion: "..tostring(newVersion))
+    tools.log(0, 'initialize', 'oldVersion: %s, newVersion: %s', function()
+        return tostring(oldVersion), tostring(newVersion)
+    end)
 
     ---- always start with stop updated after a config change, ensure consistent data and filled tables
     storage.tick_state = 0 -- index determining on_tick update mode 0: init, 1: stop update, 2: sort requests, 3: parse requests, 4: raise API update events
@@ -88,7 +90,10 @@ local function initialize(oldVersion, newVersion)
                 end
             end
         end
-        -- log("locoID_to_trainID: "..serpent.block(locoID_to_trainID))
+
+        tools.log(0, '1.6.1', 'locoID_to_trainID: %s', function()
+            return serpent.block(locoID_to_trainID)
+        end)
 
         for locoID, delivery in pairs(storage.Dispatcher.Deliveries) do
             local trainID = locoID_to_trainID[locoID]
@@ -99,7 +104,6 @@ local function initialize(oldVersion, newVersion)
                 new_Deliveries[trainID] = delivery
             end
         end
-        -- log("new_Deliveries: "..serpent.dump(new_Deliveries))
         storage.Dispatcher.Deliveries = new_Deliveries
     end
 
@@ -344,14 +348,22 @@ script.on_configuration_changed(function(data)
             tools.log(0, 'on_init', 'Migration failed. Migrating from %s to %s not supported.', function()
                 return oldVersionString, newVersionString
             end)
-            tools.printmsg(string.format('[LTN] Error: Direct migration from %s to %s is not supported. Oldest supported version: 1.1.1', oldVersionString, newVersionString))
+
+            tools.printmsg(0, function()
+                return string.format('[LTN] Error: Direct migration from %s to %s is not supported. Oldest supported version: 1.1.1', oldVersionString, newVersionString)
+            end)
+
             return
         else
             initialize(oldVersion, newVersion)
+
             tools.log(0, 'on_init', 'Migrating from %s to %s complete.', function()
                 return oldVersionString, newVersionString
             end)
-            tools.printmsg(string.format('[LTN] Migration from %s to %s complete.', oldVersionString, newVersionString))
+
+            tools.printmsg(0, function()
+                return string.format('[LTN] Migration from %s to %s complete.', oldVersionString, newVersionString)
+            end)
         end
     end
     initializeTrainStops()

@@ -33,7 +33,10 @@ function ScheduleManager:analyzeRecord(wait_conditions)
                 local key = tools.createItemIdentifier(record)
                 result[key] = record
             else
-                if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-schedule-record', record.name, record.type, record.count } end
+                tools.printmsg(1, function()
+                    return { 'ltn-message.error-invalid-schedule-record', record.name, record.type, record.count }
+                end)
+
                 tools.log(1, 'analyzeRecord', 'Invalid Schedule Record: %s / %s / %d', function()
                     return record.name, record.type, record.count
                 end)

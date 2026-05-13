@@ -47,8 +47,10 @@ function TrainArrives(train)
     end
     local is_provider = false
 
-    -- if message_level >= 3 then tools.printmsg({"ltn-message.train-arrived", tostring(trainName), stop_name}, trainForce, false) end
-    if message_level >= 3 then tools.printmsg({ 'ltn-message.train-arrived', tools.richTextForTrain(train), tools.richTextForStop(train.station) }, trainForce) end
+    tools.printmsg(3, function()
+        return { 'ltn-message.train-arrived', tools.richTextForTrain(train), tools.richTextForStop(train.station) }
+    end, trainForce)
+
     tools.log(5, 'TrainArrives', 'Train [%d] "%s": arrived at LTN-stop [%d] "%s"; train_faces_stop: %s', function()
         return train.id, trainName, stopID, stop_name, stop.parked_train_faces_stop
     end)
@@ -67,7 +69,10 @@ function TrainArrives(train)
                 local from_entity = storage.LogisticTrainStops[delivery.from_id] and storage.LogisticTrainStops[delivery.from_id].entity
                 local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
 
-                if message_level >= 1 then tools.printmsg({ 'ltn-message.delivery-removed-depot', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }, delivery.force) end
+                tools.printmsg(1, function()
+                    return { 'ltn-message.delivery-removed-depot', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }
+                end, delivery.force)
+
                 tools.log(5, 'TrainArrives', 'Train [%d] "%s": Entered Depot with active Delivery. Failing Delivery and reseting train.', function()
                     return train.id, trainName
                 end)
@@ -121,13 +126,11 @@ function TrainArrives(train)
                     local inventory = wagon.get_inventory(defines.inventory.cargo_wagon)
                     if inventory then
                         if inventory.is_filtered() then
-                            -- log("Cargo-Wagon["..tostring(n).."]: resetting "..tostring(#inventory).." filtered slots.")
                             for slotIndex = 1, #inventory, 1 do
                                 inventory.set_filter(slotIndex, nil)
                             end
                         end
                         if inventory.supports_bar and #inventory - inventory.get_bar() > 0 then
-                            -- log("Cargo-Wagon["..tostring(n).."]: resetting "..tostring(#inventory - inventory.get_bar()).." locked slots.")
                             inventory.set_bar()
                         end
                     end
@@ -436,8 +439,12 @@ function TrainLeaves(trainID)
     -- remove train reference
     stop.parked_train = nil
     stop.parked_train_id = nil
-    -- if message_level >= 3 then tools.printmsg({"ltn-message.train-left", tostring(leavingTrain.name), stop.entity.backer_name}, leavingTrain.force) end
-    if train and message_level >= 3 then tools.printmsg({ 'ltn-message.train-left', tools.richTextForTrain(train, leavingTrain.name), tools.richTextForStop(stop.entity) }, leavingTrain.force) end
+
+    if train then
+        tools.printmsg(3, function()
+            return { 'ltn-message.train-left', tools.richTextForTrain(train, leavingTrain.name), tools.richTextForStop(stop.entity) }
+        end, leavingTrain.force)
+    end
 
     UpdateStopOutput(stop)
 
@@ -447,7 +454,6 @@ end
 function OnTrainStateChanged(event)
     local stopped_trains = tools.getStoppedTrains()
 
-    -- log(game.tick.." (OnTrainStateChanged) Train name: "..tostring(tools.getTrainName(event.train))..", train.id:"..tostring(event.train.id).." stop: "..tostring(event.train.station and event.train.station.backer_name)..", state: "..reverse_defines.train_state[event.old_state].." > "..reverse_defines.train_state[event.train.state] )
     local train = event.train
     if train.state == defines.train_state.wait_station and train.station ~= nil and ltn_stop_entity_names[train.station.name] then
         TrainArrives(train)
@@ -517,9 +523,11 @@ end
 
 ---@param event EventData.on_train_created
 function OnTrainCreated(event)
-    -- log("(on_train_created) Train name: "..tostring(tools.getTrainName(event.train))..", train.id:"..tostring(event.train.id)..", .old_train_id_1:"..tostring(event.old_train_id_1)..", .old_train_id_2:"..tostring(event.old_train_id_2)..", state: "..tostring(event.train.state))
-    -- on_train_created always sets train.state to 9 manual, scripts have to set the train back to its former state.
+    tools.log(7, 'on_train_created', 'train name: %s, train id: %s, old_train_id_1: %s, old_train_id_2: %s, state: %s', function()
+        return tostring(tools.getTrainName(event.train)), tostring(event.train.id), tostring(event.old_train_id_1), tostring(event.old_train_id_2), tostring(event.train.state)
+    end)
 
+    -- on_train_created always sets train.state to 9 manual, scripts have to set the train back to its former state.
     if event.old_train_id_1 then Update_Delivery(event.old_train_id_1, event.train) end
     if event.old_train_id_2 then Update_Delivery(event.old_train_id_2, event.train) end
 end

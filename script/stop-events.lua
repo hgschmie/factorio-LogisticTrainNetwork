@@ -10,7 +10,10 @@ local tools = require('script.tools')
 ---@param entity LuaEntity
 function CreateStop(entity)
     if storage.LogisticTrainStops[entity.unit_number] then
-        if message_level >= 1 then tools.printmsg({ 'ltn-message.error-duplicated-unit_number', entity.unit_number }, entity.force) end
+        tools.printmsg(1, function()
+            return { 'ltn-message.error-duplicated-unit_number', entity.unit_number }
+        end, entity.force)
+
         tools.log(5, 'CreateStop', 'duplicate stop unit number %d', function()
             return entity.unit_number
         end)
@@ -20,7 +23,11 @@ function CreateStop(entity)
 
     local stop_offset = ltn_stop_entity_names[entity.name]
     local posIn, posOut, search_area
-    --log("Stop created at "..entity.position.x.."/"..entity.position.y..", orientation "..entity.direction)
+
+    tools.log(7, 'CreateStop', 'Stop created at %d/%d, orientation %d', function()
+        return entity.position.x, entity.position.y, entity.direction
+    end)
+
     if entity.direction == defines.direction.north then --SN
         posIn = { entity.position.x + stop_offset, entity.position.y - 1 }
         posOut = { entity.position.x - 1 + stop_offset, entity.position.y - 1 }
@@ -50,7 +57,10 @@ function CreateStop(entity)
             { entity.position.x - 0.001,     entity.position.y - 0.001 + 1 - stop_offset }
         }
     else --invalid orientation
-        if message_level >= 1 then tools.printmsg({ 'ltn-message.error-stop-orientation', tostring(entity.direction) }, entity.force) end
+        tools.printmsg(1, function()
+            return { 'ltn-message.error-stop-orientation', tostring(entity.direction) }
+        end, entity.force)
+
         tools.log(5, 'CreateStop', 'invalid train stop orientation %d', function()
             return entity.direction
         end)
@@ -65,25 +75,36 @@ function CreateStop(entity)
         if ghost.valid then
             if ghost.name == 'entity-ghost' then
                 if ghost.ghost_name == ltn_stop_input then
-                    -- log("reviving ghost input at "..ghost.position.x..", "..ghost.position.y)
+                    tools.log(5, 'CreateStop', 'reviving ghost input at %d/%d', function()
+                        return ghost.position.x, ghost.position.y
+                    end)
                     _, input = ghost.revive()
                 elseif ghost.ghost_name == ltn_stop_output then
-                    -- log("reviving ghost output at "..ghost.position.x..", "..ghost.position.y)
+                    tools.log(5, 'CreateStop', 'reviving ghost output at %d/%d', function()
+                        return ghost.position.x, ghost.position.y
+                    end)
                     _, output = ghost.revive()
                 elseif ghost.ghost_name == ltn_stop_output_controller then
-                    -- log("reviving ghost lamp-control at "..ghost.position.x..", "..ghost.position.y)
+                    tools.log(5, 'CreateStop', 'reviving ghost lamp-control at %d/%d', function()
+                        return ghost.position.x, ghost.position.y
+                    end)
                     _, lampctrl = ghost.revive()
                 end
-                -- something has built I/O already (e.g.) Creative Mode Instant Blueprint
             elseif ghost.name == ltn_stop_input then
                 input = ghost
-                -- log("Found existing input at "..ghost.position.x..", "..ghost.position.y)
+                tools.log(5, 'CreateStop', 'found existing input at %d/%d', function()
+                    return ghost.position.x, ghost.position.y
+                end)
             elseif ghost.name == ltn_stop_output then
                 output = ghost
-                -- log("Found existing output at "..ghost.position.x..", "..ghost.position.y)
+                tools.log(5, 'CreateStop', 'found existing output at %d/%d', function()
+                    return ghost.position.x, ghost.position.y
+                end)
             elseif ghost.name == ltn_stop_output_controller then
                 lampctrl = ghost
-                -- log("Found existing lamp-control at "..ghost.position.x..", "..ghost.position.y)
+                tools.log(5, 'CreateStop', 'found existing lamp-control at %d/%d', function()
+                    return ghost.position.x, ghost.position.y
+                end)
             end
         end
     end
@@ -109,7 +130,6 @@ function CreateStop(entity)
             position = { input.position.x + 0.45, input.position.y + 0.45 }, -- slight offset so adjacent lamps won't connect
             force = entity.force
         }
-        -- log("building lamp-control at "..lampctrl.position.x..", "..lampctrl.position.y)
     end
 
     assert(lampctrl)
