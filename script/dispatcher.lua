@@ -1032,6 +1032,9 @@ function ProcessRequest(reqIndex, request)
 
     tools.reduceAvailableCapacity(selectedTrain.id)
 
+    -- select the current train
+    dispatcher.knownTrains[selectedTrain.id].select_count = (dispatcher.knownTrains[selectedTrain.id].select_count or 0) + 1
+
     -- train is no longer available => set depot to yellow
     setLamp(depot, 'yellow', 1)
 

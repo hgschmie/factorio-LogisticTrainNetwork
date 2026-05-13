@@ -299,7 +299,7 @@ function Tools.isStopValid(stop)
     return entity.valid and entity.connected_rail and true or false
 end
 
---- Returns True if the internal state of the train stop is consistent. Checks that all internal entities are 
+--- Returns True if the internal state of the train stop is consistent. Checks that all internal entities are
 --- valid and functioning.
 ---@param stop ltn.TrainStop
 ---@return boolean is_consistent
@@ -328,9 +328,6 @@ function Tools.reduceAvailableCapacity(trainId)
         train = dispatcher.availableTrains[trainId].train,
         select_count = 0,
     }
-
-    -- select the current train
-    dispatcher.knownTrains[trainId].select_count = dispatcher.knownTrains[trainId].select_count + 1
 
     dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[trainId].capacity
     dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainId].fluid_capacity
