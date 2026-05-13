@@ -1,6 +1,6 @@
 # LTN Settings
 
-All LTN settings are per-map and can be changed while the game is running.
+Most LTN settings are per-map and can be changed while the game is running. Exceptions are marked below.
 
 ## Dispatcher Enabled (ltn-dispatcher-enabled) - boolean, default is true
 
@@ -158,3 +158,11 @@ When turning this setting on, LTN will also consider trains to go to another sur
 Have you ever had the suspicion that LTN seems to prefer some trains from the depot? You are correct. LTN selects trains based on the distance from the depot stop to the provider. So any train that is closer to the depot exit will be selected over any other train in the depot. The further away a train is from the exit, the less likely is it to be chosen.
 
 As this is unfair to the trains (and they also wear out at a different rate), it is possible to enter a "fudge factor" here, which is the amount by which the path from the depot to the provider can differ while still considered "equal". LTN tracks for each train the number of times it was selected and in case that two stops are considered equal, it will then choose the train that was selected fewer times.
+
+## [NEW in 2.7.0] Depot Train Limit setting (ltn-depot-stop-limit-trains) - select, 0-2, default is 0 [EXPERIMENTAL] - (Startup setting!)
+
+Select behavior of the 'Enable Train Limit' setting for Depot stops.
+
+0: (default) Same behavior as all other stop types: No train limit can be set and any manual override is reset.
+1: Set Train Limit to 1. Each depot can only accommodate a single train; the routing mechanism in the game will send only one train at a time to the stop. This requires enough depot stops for all trains associated with it. If a train can not find an available depot stop, it will be stuck at the requester until a stop frees up.
+2: Do not modify the Train Limit settings. Train Limit can be set manually or through the circuit network. LTN does not change or reset the value here. Chances are that this might deadlock or interfere with the normal LTN operations. Only select if you know what you are doing.

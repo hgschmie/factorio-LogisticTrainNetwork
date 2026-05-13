@@ -68,6 +68,23 @@ If this setting turned on and also 'ltn-dispatcher-requester-delivery-reset' is 
 
 This setting has the potential to pile up trains in depots that are too small to accommodate all trains that are sent there. Use with caution.
 
+### Controlling LTN Stops with the circuit network (or logistics network)
+
+LTN stops are managed by the central dispatcher and require some settings that will be enforced. Each LTN stop will always have "Read train contents" and "Send to train" activated, even if no circuit network is connected.
+
+The 'Priority' 'Enable/Disable', 'Read stopped train', 'Read train count' and 'Set priority' fields can be manually changed.
+
+#### Depot stop train limits [Since 2.7.0]
+
+LTN manages train limits for all stops automatically. For normal operations, it will remove any train limit (and disable setting through the circuit network) as this interferes with the dispatcher. For most stop types (requester, provider and fuel station), this can not be changed.
+
+The train limit for depot stops can be modified by changing the startup option 'ltn-depot-stop-limit-trains'. There are three possible values:
+
+- Reset Train Limit: This is the default. Depot stops behave like all other station types: Any limit is reset and can not be modified
+- Set Train Limit to 1: Sets a limit of one train for each depot stop.
+- Do not modify Train limit: LTN stops managing the train limit setting for depot stops and it can now managed like the other fields listed above.
+
+
 ### API
 
 [LTN Settings Documentation](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/SETTINGS.md)

@@ -206,3 +206,15 @@ data:extend {
         default_value = false,
     },
 }
+
+data:extend {
+        {
+        type = 'string-setting',
+        name = 'ltn-depot-stop-limit-trains',
+        order = 'aa',
+        setting_type = 'startup',
+        default_value = '0',
+        allowed_values = { '0', '1', '2' }
+    },
+
+}

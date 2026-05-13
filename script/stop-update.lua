@@ -135,27 +135,20 @@ function UpdateStop(stopID, stop)
     end
 
     -- also fix up the stop entity itself, in case someone meddled with it
-    stop.entity.trains_limit = nil
+    local disabled = tools.updateTrainStopSettings(stop)
 
-    local trainstop_control = stop.entity.get_or_create_control_behavior() --[[@as LuaTrainStopControlBehavior? ]]
-    if trainstop_control then
-        trainstop_control.send_to_train = true
-        trainstop_control.read_from_train = true
-        trainstop_control.trains_limit_signal = nil
+    -- skip deactivated stops
+    if disabled then
+        stop.error_code = 1
+        tools.reduceAvailableCapacity(stop.parked_train_id)
 
-        -- skip deactivated stops
-        if trainstop_control.disabled then
-            stop.error_code = 1
-            tools.reduceAvailableCapacity(stop.parked_train_id)
+        setLamp(stop, ErrorCodes[stop.error_code], 1)
 
-            setLamp(stop, ErrorCodes[stop.error_code], 1)
+        tools.log(5, 'UpdateStop', 'Circuit deactivated stop: %s', function()
+            return stop.entity.backer_name
+        end)
 
-            tools.log(5, 'UpdateStop', 'Circuit deactivated stop: %s', function()
-                return stop.entity.backer_name
-            end)
-
-            return
-        end
+        return
     end
 
     local signals = stop.input.get_signals(defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)

@@ -7,6 +7,12 @@
 
 local tools = require('script.tools')
 
+---@enum ltn.DepotTrainLimit
+ltn_depot_train_limit = {
+    reset = 0,
+    set_one = 1,
+    unchanged = 2,
+}
 
 ---@class ltn.Settings
 ---@field message_level integer
@@ -34,6 +40,7 @@ local tools = require('script.tools')
 ---@field reselect_depot boolean
 ---@field advanced_cross_surface_delivery boolean
 ---@field depot_fudge_factor integer
+---@field depot_limit_trains ltn.DepotTrainLimit
 ---@diagnostic disable-next-line: missing-fields
 LtnSettings = LtnSettings or {}
 
@@ -71,6 +78,7 @@ local change_settings = {
     ['ltn-schedule-reselect-depot'] = function(ltn_settings, name) ltn_settings.reselect_depot = settings.global[name].value end,
     ['ltn-advanced-cross-surface-delivery'] = function(ltn_settings, name) ltn_settings.advanced_cross_surface_delivery = settings.global[name].value end,
     ['ltn-depot-fudge-factor'] = function(ltn_settings, name) ltn_settings.depot_fudge_factor = settings.global[name].value end,
+    ['ltn-depot-stop-limit-trains'] = function(ltn_settings, name) ltn_settings.depot_limit_trains = tonumber(settings.startup[name].value) end,
 }
 
 function LtnSettings:init()

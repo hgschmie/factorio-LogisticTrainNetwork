@@ -451,6 +451,38 @@ function Tools.removeStop(stop_list, stop_id)
 end
 
 -----------------------------------------------------------------------
+-- Train Stop management
+-----------------------------------------------------------------------
+
+---@param stop ltn.TrainStop
+---@return boolean disabled True if the stop is disabled
+function Tools.updateTrainStopSettings(stop)
+    assert(stop)
+    if not (stop.entity and stop.entity.valid) then return true end
+
+    local trainstop_control = assert(stop.entity.get_or_create_control_behavior()) --[[@as LuaTrainStopControlBehavior]]
+
+    local state = GetStationType(stop)
+
+    if state ~= station_type.depot or LtnSettings.depot_limit_trains ~= ltn_depot_train_limit.unchanged then
+        -- enable reading contents and sending signals to trains
+        trainstop_control.send_to_train = true
+        trainstop_control.read_from_train = true
+
+        trainstop_control.set_trains_limit = false
+        trainstop_control.trains_limit_signal = nil
+    end
+
+    if state ~= station_type.depot or LtnSettings.depot_limit_trains == ltn_depot_train_limit.reset then
+        stop.entity.trains_limit = nil
+    elseif LtnSettings.depot_limit_trains == ltn_depot_train_limit.set_one then
+        stop.entity.trains_limit = 1
+    end
+
+    return trainstop_control.disabled
+end
+
+-----------------------------------------------------------------------
 -- Manage dispatcher ticker events
 -----------------------------------------------------------------------
 
