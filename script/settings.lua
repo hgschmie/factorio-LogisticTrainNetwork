@@ -44,10 +44,7 @@ local change_settings = {
         message_level = ltn_settings.message_level -- legacy
     end,
     ['ltn-interface-message-gps'] = function(ltn_settings, name) ltn_settings.message_include_gps = settings.global[name].value end,
-    ['ltn-interface-debug-logfile'] = function(ltn_settings, name)
-        ltn_settings.debug_log = settings.global[name].value > 0 and settings.global[name].value or nil
-        debug_log = ltn_settings.debug_log -- legacy
-    end,
+    ['ltn-interface-debug-logfile'] = function(ltn_settings, name) ltn_settings.debug_log = settings.global[name].value > 0 and settings.global[name].value or nil end,
     ['ltn-dispatcher-requester-threshold'] = function(ltn_settings, name) ltn_settings.min_requested = settings.global[name].value end,
     ['ltn-dispatcher-provider-threshold'] = function(ltn_settings, name) ltn_settings.min_provided = settings.global[name].value end,
     ['ltn-dispatcher-schedule-circuit-control'] = function(ltn_settings, name) ltn_settings.schedule_cc = settings.global[name].value end,

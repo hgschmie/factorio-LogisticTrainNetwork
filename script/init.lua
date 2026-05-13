@@ -93,7 +93,9 @@ local function initialize(oldVersion, newVersion)
         for locoID, delivery in pairs(storage.Dispatcher.Deliveries) do
             local trainID = locoID_to_trainID[locoID]
             if trainID then
-                tools.log(0, 'initialize', 'Migrating storage.Dispatcher.Deliveries from [%s] to [%s]', tostring(locoID), tostring(trainID))
+                tools.log(0, 'initialize', 'Migrating storage.Dispatcher.Deliveries from [%s] to [%s]', function()
+                    return tostring(locoID), tostring(trainID)
+                end)
                 new_Deliveries[trainID] = delivery
             end
         end
@@ -184,11 +186,15 @@ local function initializeTrainStops()
     -- remove invalidated stops
     for stopID, stop in pairs(storage.LogisticTrainStops) do
         if not stop then
-            tools.log(0, 'initializeTrainStops', 'removing empty stop entry %s', tostring(stopID))
+            tools.log(0, 'initializeTrainStops', 'removing empty stop entry %s', function()
+                return tostring(stopID)
+            end)
             storage.LogisticTrainStops[stopID] = nil
         elseif not (stop.entity and stop.entity.valid) then
             -- stop entity is corrupt/missing remove I/O entities
-            tools.log(0, 'initializeTrainStops', 'removing corrupt stop %s', tostring(stopID))
+            tools.log(0, 'initializeTrainStops', 'removing corrupt stop %s', function()
+                return tostring(stopID)
+            end)
             if stop.input and stop.input.valid then stop.input.destroy() end
             if stop.output and stop.output.valid then stop.output.destroy() end
             if stop.lamp_control and stop.lamp_control.valid then stop.lamp_control.destroy() end
@@ -207,12 +213,16 @@ local function initializeTrainStops()
                     if ltn_stop then
                         if not tools.isStopConsistent(ltn_stop) then
                             -- I/O entities are corrupted
-                            tools.log(0, 'initializeTrainStops', 'recreating corrupt stop %s', stop.backer_name)
+                            tools.log(0, 'initializeTrainStops', 'recreating corrupt stop %s', function()
+                                return stop.backer_name
+                            end)
                             storage.LogisticTrainStops[stop.unit_number] = nil
                             CreateStop(stop) -- recreate to spawn missing I/O entities
                         end
                     else
-                        tools.log(0, 'initializeTrainStops', 'recreating stop missing from storage.LogisticTrainStops - %s', tostring(stop.backer_name))
+                        tools.log(0, 'initializeTrainStops', 'recreating stop missing from storage.LogisticTrainStops - %s', function()
+                            return tostring(stop.backer_name)
+                        end)
                         CreateStop(stop) -- recreate LTN stops missing from storage.LogisticTrainStops
                     end
                 end
@@ -312,7 +322,9 @@ script.on_init(function()
     updateAllTrains()
     registerEvents()
 
-    tools.log(0, 'on_init', '%s %s initialized.', MOD_NAME, newVersionString)
+    tools.log(0, 'on_init', '%s %s initialized.', function()
+        return MOD_NAME, newVersionString
+    end)
 end)
 
 script.on_configuration_changed(function(data)
@@ -329,17 +341,23 @@ script.on_configuration_changed(function(data)
         end
 
         if oldVersion and oldVersion < '01.01.01' then
-            tools.log(0, 'on_init', 'Migration failed. Migrating from %s to %s not supported.', oldVersionString, newVersionString)
+            tools.log(0, 'on_init', 'Migration failed. Migrating from %s to %s not supported.', function()
+                return oldVersionString, newVersionString
+            end)
             tools.printmsg(string.format('[LTN] Error: Direct migration from %s to %s is not supported. Oldest supported version: 1.1.1', oldVersionString, newVersionString))
             return
         else
             initialize(oldVersion, newVersion)
-            tools.log(0, 'on_init', 'Migrating from %s to %s complete.', oldVersionString, newVersionString)
+            tools.log(0, 'on_init', 'Migrating from %s to %s complete.', function()
+                return oldVersionString, newVersionString
+            end)
             tools.printmsg(string.format('[LTN] Migration from %s to %s complete.', oldVersionString, newVersionString))
         end
     end
     initializeTrainStops()
     updateAllTrains()
     registerEvents()
-    tools.log(0, 'on_configuration_changed', '%s %s configuration updated.', MOD_NAME, script.active_mods[MOD_NAME])
+    tools.log(0, 'on_configuration_changed', '%s %s configuration updated.', function()
+        return MOD_NAME, script.active_mods[MOD_NAME]
+    end)
 end)

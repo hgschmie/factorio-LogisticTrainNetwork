@@ -20,25 +20,31 @@ function TrainInterface.GetNextLogisticStop(train, schedule_index)
     local dispatcher = tools.getDispatcher()
 
     if not (train and train.valid) then
-        if debug_log then tools.log(5, 'GetNextLogisticStop', 'train not valid') end
+        tools.log(5, 'GetNextLogisticStop', 'train not valid.')
         return
     end
 
     if not schedule:hasSchedule(train) then
-        if debug_log then tools.log(5, 'GetNextLogisticStop', 'train [%d] has no schedule.', train.id) end
+        tools.log(5, 'GetNextLogisticStop', 'train [%d] has no schedule.', function()
+            return train.id
+        end)
         return
     end
 
     local delivery = dispatcher.Deliveries[train.id]
     if not delivery then
-        if debug_log then tools.log(5, 'GetNextLogisticStop', 'train [%d] not found in deliveries.', train.id) end
+        tools.log(5, 'GetNextLogisticStop', 'train [%d] not found in deliveries.', function()
+            return train.id
+        end)
         return
     end
 
     local identifier = next(delivery.shipment)
     if not identifier then
         -- this can happen when the train was unable to load anything at the provider
-        if debug_log then tools.log(5, 'GetNextLogisticStop', 'train [%d] no longer has a shipment list.', train.id) end
+        tools.log(5, 'GetNextLogisticStop', 'train [%d] no longer has a shipment list.', function()
+            return train.id
+        end)
         return
     end
 
@@ -80,7 +86,9 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
     --unlike ProcessDelivery we need to consider that the stop entity might be gone
     local stop = storage.LogisticTrainStops[stop_id]
     if not tools.isStopValid(stop) then
-        if debug_log then tools.log(5, 'GetOrCreateNextTempStop', 'skipping stop [%d] for train [%d], stop-entity not valid', stop_id, train.id) end
+        tools.log(5, 'GetOrCreateNextTempStop', 'skipping stop [%d] for train [%d], stop-entity not valid', function()
+            return stop_id, train.id
+        end)
         return
     end
 
@@ -91,7 +99,9 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
     -- the engine does not allow temp_stops on different surfaces
     -- locomotive might not work here, a new train on another surface could still be incomplete
     if train.carriages[1].surface ~= stop.entity.surface then
-        if debug_log then tools.log(5, 'GetOrCreateNextTempStop', 'stop [%d] is on a different surface than train [%d]', stop_id, train.id) end
+        tools.log(5, 'GetOrCreateNextTempStop', 'stop [%d] is on a different surface than train [%d]', function()
+            return stop_id, train.id
+        end)
         return
     end
 
@@ -101,7 +111,9 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
     local previous_record = train_schedule[stop_schedule_index - 1]
     if previous_record and previous_record.temporary then return stop_schedule_index - 1 end -- schedule already up-to-date for stop_position
 
-    if debug_log then tools.log(5, 'GetOrCreateNextTempStop', 'adding new temp-stop before stop [%d] at rail [%d] to train [%d] ', stop_id, rail.unit_number, train.id) end
+    tools.log(5, 'GetOrCreateNextTempStop', 'adding new temp-stop before stop [%d] at rail [%d] to train [%d] ', function()
+        return stop_id, rail.unit_number, train.id
+    end)
 
     schedule:temporaryStop(train, rail, rail_direction, stop_schedule_index)
 
@@ -117,7 +129,9 @@ function TrainInterface.ReassignDelivery(old_train_id, new_train)
 
     -- check if delivery exists for given train id
     if not (old_train_id and dispatcher.Deliveries[old_train_id]) then
-        if debug_log then tools.log(5, 'ReassignDelivery', 'train [%d] not found in deliveries.', old_train_id) end
+        tools.log(5, 'ReassignDelivery', 'train [%d] not found in deliveries.', function()
+            return old_train_id
+        end)
 
         -- no freight. Still need to reassign the internal train record state
         tools.reassignTrainRecord(old_train_id, new_train)
@@ -126,7 +140,7 @@ function TrainInterface.ReassignDelivery(old_train_id, new_train)
     end
     -- check if new train is valid
     if not (new_train and new_train.valid and new_train.object_name == 'LuaTrain') then
-        if debug_log then tools.log(5, 'ReassignDelivery', 'Received new_train was invalid.') end
+        tools.log(5, 'ReassignDelivery', 'Received new_train was invalid.')
         return false
     end
 

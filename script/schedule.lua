@@ -34,7 +34,9 @@ function ScheduleManager:analyzeRecord(wait_conditions)
                 result[key] = record
             else
                 if message_level >= 1 then tools.printmsg { 'ltn-message.error-invalid-schedule-record', record.name, record.type, record.count } end
-                if debug_log then tools.log(1, 'analyzeRecord', 'Invalid Schedule Record: %s / %s / %d', record.name, record.type, record.count) end
+                tools.log(1, 'analyzeRecord', 'Invalid Schedule Record: %s / %s / %d', function()
+                    return record.name, record.type, record.count
+                end)
             end
         end
     end
@@ -84,16 +86,14 @@ local function find_depot_record(train_schedule)
         -- return first non-temporary stop.
         if not record.temporary then return record, i end
 
-        if debug_log then
-            tools.log(1, 'find_depot_record', 'Skipping temporary stop %s when selecting depot for train %s (%d)',
-                record.station, tools.getTrainName(train_schedule.owner), train_schedule.owner.id)
-        end
+        tools.log(1, 'find_depot_record', 'Skipping temporary stop %s when selecting depot for train %s (%d)', function()
+            return record.station, tools.getTrainName(train_schedule.owner), train_schedule.owner.id
+        end)
     end
 
-    if debug_log then
-        tools.log(1, 'find_depot_record', 'Could not locate a depot stop in schedule (stops: %s) for train %s (%d)',
-            serpent.line(train_schedule.get_records()), tools.getTrainName(train_schedule.owner), train_schedule.owner.id)
-    end
+    tools.log(1, 'find_depot_record', 'Could not locate a depot stop in schedule (stops: %s) for train %s (%d)', function()
+        return serpent.line(train_schedule.get_records()), tools.getTrainName(train_schedule.owner), train_schedule.owner.id
+    end)
 
     return nil, nil
 end
@@ -116,7 +116,9 @@ function ScheduleManager:selectDepot(train, network_id)
         end
     end
 
-    if debug_log then tools.log(1, 'ScheduleManager:selectDepot', 'Reselecting depot for train %s (%d)', tools.getTrainName(train), train.id) end
+    tools.log(1, 'ScheduleManager:selectDepot', 'Reselecting depot for train %s (%d)', function()
+        return tools.getTrainName(train), train.id
+    end)
 
     -- no depot found / reselection requested
 
@@ -127,7 +129,9 @@ function ScheduleManager:selectDepot(train, network_id)
     end
 
     if table_size(depots) == 0 then
-        if debug_log then tools.log(1, 'ScheduleManager:selectDepot', 'No valid depot for train %s (%d) found!', tools.getTrainName(train), train.id) end
+        tools.log(1, 'ScheduleManager:selectDepot', 'No valid depot for train %s (%d) found!', function()
+            return tools.getTrainName(train), train.id
+        end)
         return nil
     end
 
@@ -138,7 +142,9 @@ function ScheduleManager:selectDepot(train, network_id)
     }
 
     if path_results.amount_accessible == 0 then
-        if debug_log then tools.log(1, 'ScheduleManager:selectDepot', 'No accessible depot for train %s (%d) found!', tools.getTrainName(train), train.id) end
+        tools.log(1, 'ScheduleManager:selectDepot', 'No accessible depot for train %s (%d) found!', function()
+            return tools.getTrainName(train), train.id
+        end)
         return nil
     end
 
@@ -154,7 +160,9 @@ function ScheduleManager:selectDepot(train, network_id)
     end
 
     local depot = accessible_stations[math.random(#accessible_stations)]
-    if debug_log then tools.log(1, 'ScheduleManager:selectDepot', 'Selected %s as depot for train %s (%d)', depot.entity.backer_name, tools.getTrainName(train), train.id) end
+    tools.log(1, 'ScheduleManager:selectDepot', 'Selected %s as depot for train %s (%d)', function()
+        return depot.entity.backer_name, tools.getTrainName(train), train.id
+    end)
 
     return depot
 end
@@ -172,7 +180,7 @@ function ScheduleManager:selectFuelStation(train, network_id)
     for _, station in pairs(all_fuel_stations) do
         assert(station.fuel_signals)
         if #station.fuel_signals > 0 then -- must provide some threshold signal
-             table.insert(stations, station.entity)
+            table.insert(stations, station.entity)
         end
     end
 
@@ -411,7 +419,9 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
     train.group = ''
 
     if not depot_stop then
-        if debug_log then tools.log(1, 'ScheduleManager:resetSchedule', 'Schedule reset without a depot for train %s (%d)', tools.getTrainName(train), train.id) end
+        tools.log(1, 'ScheduleManager:resetSchedule', 'Schedule reset without a depot for train %s (%d)', function()
+            return tools.getTrainName(train), train.id
+        end)
 
         train_schedule.clear_records()
         train_schedule.clear_interrupts()
@@ -449,10 +459,9 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
             return
         end
 
-        if debug_log then
-            tools.log(1, 'ScheduleManager:resetSchedule', 'Unexpected depot stop %s (expected %s) for train %s (%d)',
-                depot_record and depot_record.station or '<unknown>', depot_stop.entity.backer_name, tools.getTrainName(train), train.id)
-        end
+        tools.log(1, 'ScheduleManager:resetSchedule', 'Unexpected depot stop %s (expected %s) for train %s (%d)', function()
+            return depot_record and depot_record.station or '<unknown>', depot_stop.entity.backer_name, tools.getTrainName(train), train.id
+        end)
 
         train_schedule.clear_records()
     end
@@ -473,7 +482,9 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
         },
     }
 
-    if debug_log then tools.log(1, 'ScheduleManager:resetSchedule', 'Added depot stop %s for train %s (%d)', depot_stop.entity.backer_name, tools.getTrainName(train), train.id) end
+    tools.log(1, 'ScheduleManager:resetSchedule', 'Added depot stop %s for train %s (%d)', function()
+        return depot_stop.entity.backer_name, tools.getTrainName(train), train.id
+    end)
 end
 
 ---@param train LuaTrain

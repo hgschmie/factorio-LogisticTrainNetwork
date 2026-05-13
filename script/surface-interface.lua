@@ -21,11 +21,11 @@ end
 function SurfaceInterface.DisconnectSurfaces(entity1, entity2)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
-        if debug_log then tools.log(5, 'DisconnectSurfaces', 'Received entity1 was invalid.') end
+        tools.log(5, 'DisconnectSurfaces', 'Received entity1 was invalid.')
         return
     end
     if not (entity2 and entity2.valid and entity2.surface and entity2.surface.index and game.surfaces[entity2.surface.index]) then
-        if debug_log then tools.log(5, 'DisconnectSurfaces', 'Received entity2 was invalid.') end
+        tools.log(5, 'DisconnectSurfaces', 'Received entity2 was invalid.')
         return
     end
 
@@ -36,7 +36,11 @@ function SurfaceInterface.DisconnectSurfaces(entity1, entity2)
 
     if surface_connections then
         local entity_pair_key = SurfaceInterface.SortedPair(entity1.unit_number, entity2.unit_number)
-        if debug_log then tools.log(5, 'DisconnectSurfaces', 'removing surface connection for entities ' .. entity_pair_key .. ' between surfaces ' .. surface_pair_key) end
+
+        tools.log(5, 'DisconnectSurfaces', 'removing surface connection for entities %s between surfaces %s', function()
+            return entity_pair_key, surface_pair_key
+        end)
+
         surface_connections[entity_pair_key] = nil
     end
 end
@@ -48,20 +52,22 @@ end
 function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
-        if debug_log then tools.log(5, 'ConnectSurfaces', 'Received entity1 was invalid.') end
+        tools.log(5, 'ConnectSurfaces', 'Received entity1 was invalid.')
         return
     end
     if not (entity2 and entity2.valid and entity2.surface and entity2.surface.index and game.surfaces[entity2.surface.index]) then
-        if debug_log then tools.log(5, 'ConnectSurfaces', 'Received entity2 was invalid.') end
+        tools.log(5, 'ConnectSurfaces', 'Received entity2 was invalid.')
         return
     end
     if not (network_id and tonumber(network_id, 10)) then
-        if debug_log then tools.log(5, 'ConnectSurfaces', 'Received network_id was not a valid integer.') end
+        tools.log(5, 'ConnectSurfaces', 'Received network_id was not a valid integer.')
         return
     end
 
     if entity1.surface == entity2.surface then
-        if debug_log then tools.log(5, 'ConnectSurfaces', 'Entities [%d] and [%d] are on the same surface %s [%d].', entity1.unit_number, entity2.unit_number, entity1.surface.name, entity1.surface.index) end
+        tools.log(5, 'ConnectSurfaces', 'Entities [%d] and [%d] are on the same surface %s [%d].', function()
+            return entity1.unit_number, entity2.unit_number, entity1.surface.name, entity1.surface.index
+        end)
         return
     end
 
@@ -73,7 +79,9 @@ function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
 
     local entity_pair_key = SurfaceInterface.SortedPair(entity1.unit_number, entity2.unit_number)
 
-    if debug_log then tools.log(5, 'ConnectSurfaces', 'Creating surface connection between [%d] on %s [%d] and [%d] on %s [%d].', entity1.unit_number, entity1.surface.name, entity1.surface.index, entity2.unit_number, entity2.surface.name, entity2.surface.index) end
+    tools.log(5, 'ConnectSurfaces', 'Creating surface connection between [%d] on %s [%d] and [%d] on %s [%d].', function()
+        return entity1.unit_number, entity1.surface.name, entity1.surface.index, entity2.unit_number, entity2.surface.name, entity2.surface.index
+    end)
 
     surface_connections[entity_pair_key] = {
         -- enforce a consistent order for repeated calls with the same two entities
@@ -88,7 +96,9 @@ end
 function OnSurfaceRemoved(event)
     -- stop references
     local surfaceID = event.surface_index
-    tools.log(5, 'OnSurfaceRemoved', 'Removing LTN stops and surface connections on surface [%d].', surfaceID)
+    tools.log(5, 'OnSurfaceRemoved', 'Removing LTN stops and surface connections on surface [%d].', function()
+        return surfaceID
+    end)
     local surface = game.surfaces[surfaceID]
     if surface then
         local train_stops = surface.find_entities_filtered {

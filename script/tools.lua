@@ -62,14 +62,16 @@ local settings = {
     skip = defines.print_skip.if_visible,
 }
 
+---@alias msg_func fun():LocalisedString
+
 --- write msg to console for all member of force or all players
 ---@param msg LocalisedString
 ---@param force LuaForce?
-function Tools.printmsg(msg, force)
+function Tools.printmsg(msg_func, force)
     if force and force.valid then
-        force.print(msg, settings)
+        force.print(msg_func(), settings)
     else
-        game.print(msg, settings)
+        game.print(msg_func(), settings)
     end
 end
 
@@ -77,13 +79,15 @@ end
 -- logging
 -----------------------------------------------------------------------
 
+---@alias log_func fun():...
+
 ---@param level number
----@param name string?
+---@param name string
 ---@param msg string
----@param ... any
-function Tools.log(level, name, msg, ...)
-    if (not LtnSettings.debug_log) or (LtnSettings.debug_log < level) then return end
-    log(('[LTN] (%s) [%d] - %s'):format(name, level, msg:format(...)))
+---@param log_func log_func?
+function Tools.log(level, name, msg, log_func)
+    if LtnSettings and ((not LtnSettings.debug_log) or (LtnSettings.debug_log < level)) then return end
+    log(('[LTN] (%s) [%d] - %s'):format(name, level, log_func and msg:format(log_func()) or msg))
 end
 
 -----------------------------------------------------------------------
