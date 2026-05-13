@@ -1,8 +1,8 @@
 {
   "name": "LogisticTrainNetwork",
-  "version": "2.6.1",
+  "version": "2.7.0",
   "title": "LTN - Logistic Train Network",
-  "author": "Optera",
+  "author": "Optera & hgschmie",
   "contact": "https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues",
   "homepage": "https://github.com/hgschmie/factorio-LogisticTrainNetwork",
   "description": "Adds new train stops forming a highly configurable, fully automated logistic network.",

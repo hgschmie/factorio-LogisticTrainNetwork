@@ -1,9 +1,10 @@
 ---------------------------------------------------------------------------------------------------
-Version: 2.6.1
+Version: 2.7.0
 Date: ????
   Bugfixes:
     - Fixed crash bugs, reported by @kratons123 (#32), @smittythesmith (#34), @afatsum72 (#36),
       @Giuzu (#40), @tundy (#43, #57), @xyzzycgn (#52), @ArhangeL1790 (#55), @theojk2 (#56), @CoreNest (#58)
+      and many more.
     - Fix support for double-ended trains (and single endeded stations). Reported by @lamhoangsudo and @Que914
       on the forums
   Changes:
