@@ -91,6 +91,40 @@ function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
     }
 end
 
+--- Return a list of matching { entity1, entity2, network_id } each connecting the two surfaces.
+--- The list will be empty if surface1 == surface2 and it will be nil if there are no matching connections.
+--- The second return value will be the number of entries in the list.
+---@param surface1 LuaSurface
+---@param surface2 LuaSurface
+---@param force LuaForce
+---@param network_id number
+---@return ltn.SurfaceConnection[]?
+function SurfaceInterface.FindSurfaceConnections(surface1, surface2, force, network_id)
+    if surface1 == surface2 then return {} end
+
+    local surface_pair_key = SurfaceInterface.SortedPair(surface1.index, surface2.index)
+    local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
+    if not surface_connections then return nil end
+
+    local matching_connections = {}
+    for entity_pair_key, connection in pairs(surface_connections) do
+        if connection.entity1.valid and connection.entity2.valid then
+            if bit32.btest(network_id, connection.network_id) and connection.entity1.force == force and connection.entity2.force == force then
+                table.insert(matching_connections, connection)
+            end
+        else
+            tools.log(5, 'FindSurfaceConnections', 'removing invalid surface connection %s betwen surfaces %s', function()
+                return entity_pair_key, surface_pair_key
+            end)
+
+            surface_connections[entity_pair_key] = nil
+        end
+    end
+
+    return #matching_connections > 0 and matching_connections or nil
+end
+
+
 --- remove entity references when deleting surfaces
 ---@param event EventData.on_pre_surface_cleared
 function OnSurfaceRemoved(event)

@@ -98,7 +98,7 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
 
     -- the engine does not allow temp_stops on different surfaces
     -- locomotive might not work here, a new train on another surface could still be incomplete
-    if train.carriages[1].surface ~= stop.entity.surface then
+    if train.carriages[1].surface_index ~= stop.entity.surface_index then
         tools.log(5, 'GetOrCreateNextTempStop', 'stop [%d] is on a different surface than train [%d]', function()
             return stop_id, train.id
         end)
