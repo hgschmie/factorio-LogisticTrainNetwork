@@ -495,6 +495,10 @@ end
 ---@param rail_direction defines.rail_direction
 ---@param stop_schedule_index integer?
 function ScheduleManager:temporaryStop(train, rail, rail_direction, stop_schedule_index)
+
+    if not (train.carriages[1] and train.carriages[1].valid) then return nil end
+    if train.carriages[1].surface_index ~= rail.surface_index then return nil end
+
     local train_schedule = train.get_schedule()
 
     train_schedule.add_record {

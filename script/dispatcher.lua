@@ -630,8 +630,6 @@ function ProcessRequest(reqIndex, request)
 
     local surface_name = requestStation.entity.surface.name
     local to = requestStation.entity.backer_name
-    local to_rail = requestStation.entity.connected_rail
-    local to_rail_direction = requestStation.entity.connected_rail_direction
     local to_gps = tools.richTextForStop(requestStation.entity) or to
     local to_network_id_string = string.format('0x%x', bit32.band(requestStation.network_id))
     local item = request.item
@@ -751,8 +749,6 @@ function ProcessRequest(reqIndex, request)
     local fromID = assert(providerData.stop.entity).unit_number
     assert(fromID)
 
-    local from_rail = assert(providerData.stop.entity.connected_rail)
-    local from_rail_direction = providerData.stop.entity.connected_rail_direction
     local from = providerData.stop.entity.backer_name
     local from_gps = tools.richTextForStop(providerData.stop.entity) or from
     local matched_network_id_string = string.format('0x%x', bit32.band(providerData.network_id))
@@ -942,9 +938,17 @@ function ProcessRequest(reqIndex, request)
 
     schedule:resetSchedule(selectedTrain, depot)
 
+    -- rail entities have been validated with IsValidStop before
+    local from_rail = assert(providerData.stop.entity.connected_rail)
+    local from_rail_direction = providerData.stop.entity.connected_rail_direction
+    local to_rail = assert(requestStation.entity.connected_rail)
+    local to_rail_direction = requestStation.entity.connected_rail_direction
+    local current_train_surface = depot.entity.surface
+
     -- make train go to specific stations by setting a temporary waypoint on the rail the station is connected to
+    --
     -- schedules cannot have temporary stops on a different surface, those need to be added when the delivery is updated with a train on a different surface
-    if from_rail and from_rail_direction and depot.entity.surface == from_rail.surface then
+    if current_train_surface == from_rail.surface then
         schedule:temporaryStop(selectedTrain, from_rail, from_rail_direction)
     else
         tools.log(5, 'ProcessRequest', ' Warning: creating schedule without temporary stop for provider.')
@@ -952,7 +956,7 @@ function ProcessRequest(reqIndex, request)
 
     schedule:providerStop(selectedTrain, providerData.stop, loadingList)
 
-    if to_rail and to_rail_direction and depot.entity.surface == to_rail.surface and (from_rail and to_rail.surface == from_rail.surface) then
+    if (current_train_surface == to_rail.surface) and (to_rail.surface == from_rail.surface) then
         schedule:temporaryStop(selectedTrain, to_rail, to_rail_direction)
     else
         tools.log(5, 'ProcessRequest', ' Warning: creating schedule without temporary stop for requester.')

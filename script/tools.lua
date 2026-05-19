@@ -296,7 +296,7 @@ end
 function Tools.isStopValid(stop)
     if not stop then return false end
     local entity = type(stop) == 'userdata' and stop or stop.entity
-    return entity.valid and entity.connected_rail and true or false
+    return entity.valid and entity.connected_rail and entity.connected_rail.valid and true or false
 end
 
 --- Returns True if the internal state of the train stop is consistent. Checks that all internal entities are
