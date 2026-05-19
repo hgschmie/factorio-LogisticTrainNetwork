@@ -2,6 +2,9 @@
 Version: 2.7.1
 Date: ????
   Changes:
+    - When removing a mod that provides surface connections, clean up existing connection references
+      in deliveries, otherwise on_dispatcher_updated will not fire until all invalid entities have
+      disappeared
   Bugfixes:
     - Ensure that no duplicate surface connections are listed when sending dispatcher updates
 ---------------------------------------------------------------------------------------------------
