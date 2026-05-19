@@ -25,26 +25,23 @@ function TrainInterface.GetNextLogisticStop(train, schedule_index)
     end
 
     if not schedule:hasSchedule(train) then
-        tools.log(5, 'GetNextLogisticStop', 'train [%d] has no schedule.', function()
-            return train.id
-        end)
+        tools.log(5, 'GetNextLogisticStop', 'train [%d] has no schedule.',
+            function() return train.id end)
         return
     end
 
     local delivery = dispatcher.Deliveries[train.id]
     if not delivery then
-        tools.log(5, 'GetNextLogisticStop', 'train [%d] not found in deliveries.', function()
-            return train.id
-        end)
+        tools.log(5, 'GetNextLogisticStop', 'train [%d] not found in deliveries.',
+            function() return train.id end)
         return
     end
 
     local identifier = next(delivery.shipment)
     if not identifier then
         -- this can happen when the train was unable to load anything at the provider
-        tools.log(5, 'GetNextLogisticStop', 'train [%d] no longer has a shipment list.', function()
-            return train.id
-        end)
+        tools.log(5, 'GetNextLogisticStop', 'train [%d] no longer has a shipment list.',
+            function() return train.id end)
         return
     end
 
