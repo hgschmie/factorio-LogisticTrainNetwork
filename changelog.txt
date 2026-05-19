@@ -2,6 +2,8 @@
 Version: 2.7.1
 Date: ????
   Changes:
+  Bugfixes:
+    - Ensure that no duplicate surface connections are listed when sending dispatcher updates
 ---------------------------------------------------------------------------------------------------
 Version: 2.7.0
 Date: 2026-05-12

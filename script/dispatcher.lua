@@ -867,10 +867,26 @@ function ProcessRequest(reqIndex, request)
     local freeTrain = free_trains[1]
 
     if freeTrain.surface_connections then
-        for _, surface_connection in pairs(free_trains[1].surface_connections) do
-            table.insert(providerData.surface_connections, surface_connection)
+        local known_connections = {}
+        local result = {}
+        for _, surface_connection in pairs(providerData.surface_connections) do
+            local entity_key = SurfaceInterface.SortedPair(surface_connection.entity1.unit_number, surface_connection.entity2.unit_number)
+            if not known_connections[entity_key] then
+                known_connections[entity_key] = surface_connection
+                result[#result + 1] = surface_connection
+            end
         end
-        providerData.surface_connections_count = #providerData.surface_connections
+
+        for _, surface_connection in pairs(free_trains[1].surface_connections) do
+            local entity_key = SurfaceInterface.SortedPair(surface_connection.entity1.unit_number, surface_connection.entity2.unit_number)
+            if not known_connections[entity_key] then
+                known_connections[entity_key] = surface_connection
+                result[#result + 1] = surface_connection
+            end
+        end
+
+        providerData.surface_connections = result
+        providerData.surface_connections_count = #result
     end
 
     local selectedTrain = freeTrain.train
