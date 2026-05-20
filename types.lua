@@ -7,12 +7,12 @@
 --- storage layout
 ---@class ltn.Storage
 ---@field tick_state            ltn.TickState
----@field tick_interval_start   number
+---@field tick_interval_start   integer
 ---@field tick_stop_index       integer?
 ---@field Dispatcher            ltn.Dispatcher
 ---@field LogisticTrainStops    table<integer, ltn.TrainStop>
 ---@field ConnectedSurfaces     table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
----@field StoppedTrains         table<number, ltn.StoppedTrain>
+---@field StoppedTrains         table<integer, ltn.StoppedTrain>
 ---@field StopDistances         table<string, ltn.StopDistance>
 ---@field WagonCapacity         table<string, number>
 ---@field FuelStations          ltn.TrainStop[][]
@@ -46,43 +46,43 @@
 
 --- The event dispatcher.
 ---@class ltn.Dispatcher
----@field availableTrains                      table<number, ltn.Train>
+---@field availableTrains                      table<integer, ltn.Train>
 ---@field availableTrains_total_capacity       number
 ---@field availableTrains_total_fluid_capacity number
----@field Provided                             table<ltn.ItemIdentifier, table<number, number>> -- request-type -> stop id -> count
----@field Provided_by_Stop                     table<number, ltn.Shipment> -- stop id -> request-type -> count
+---@field Provided                             table<ltn.ItemIdentifier, table<integer, integer>> -- request-type -> stop id -> count
+---@field Provided_by_Stop                     table<integer, ltn.Shipment> -- stop id -> request-type -> count
 ---@field Requests                             ltn.Request[]
----@field Requests_by_Stop                     table<number, ltn.Shipment>
----@field RequestAge                           table<string, number>
----@field Deliveries                           table<number, ltn.Delivery>
----@field new_Deliveries                       number[]
----@field knownTrains                          table<number, ltn.KnownTrain>
+---@field Requests_by_Stop                     table<integer, ltn.Shipment>
+---@field RequestAge                           table<string, integer>
+---@field Deliveries                           table<integer, ltn.Delivery>
+---@field new_Deliveries                       integer[]
+---@field knownTrains                          table<integer, ltn.KnownTrain>
 
 --- LTN stop information
 ---@class ltn.TrainStop
----@field active_deliveries           number[]   List of train ids that are either requesting or providing to this stop
+---@field active_deliveries           integer[]   List of train ids that are either requesting or providing to this stop
 ---@field entity                      LuaEntity  The Train stop entity itself
 ---@field input                       LuaEntity  The Lamp entity (input) of the Train stop
 ---@field output                      LuaEntity  The combinator entity (output) of the Train stop
 ---@field lamp_control                LuaEntity  Hidden combinator that controls the input lamp
----@field error_code                  number     Current error state of the stop
+---@field error_code                  integer     Current error state of the stop
 ---@field is_depot                    boolean    True if the stop is a depot
 ---@field is_fuel_station             boolean    True if the stop is a fuel station
----@field depot_priority              number     Depot priority value
----@field network_id                  number     Encoded network id for the stop
----@field min_carriages               number     minimum train length for this stop
----@field max_carriages               number     maximum train length for this stop
----@field max_trains                  number     maximum number of trains allowed to this stop
+---@field depot_priority              integer     Depot priority value
+---@field network_id                  integer     Encoded network id for the stop
+---@field min_carriages               integer     minimum train length for this stop
+---@field max_carriages               integer     maximum train length for this stop
+---@field max_trains                  integer     maximum number of trains allowed to this stop
 ---@field providing_threshold         number     Provider threshold value (items and fluids)
----@field providing_threshold_stacks  number     Provider stack threshold value (for items only)
----@field provider_priority           number     Provider priority value
+---@field providing_threshold_stacks  integer     Provider stack threshold value (for items only)
+---@field provider_priority           integer     Provider priority value
 ---@field requesting_threshold        number     Requester threshold value (items and fluids)
----@field requesting_threshold_stacks number     Requester stack threshold value (for items only)
----@field requester_priority          number     Requester priority value
----@field locked_slots                number     Locked slots per wagon for this stop
+---@field requesting_threshold_stacks integer     Requester stack threshold value (for items only)
+---@field requester_priority          integer     Requester priority value
+---@field locked_slots                integer     Locked slots per wagon for this stop
 ---@field no_warnings                 boolean    If true, warnings are disabled for this stop
 ---@field parked_train                LuaTrain?  The currently parked train at this stop
----@field parked_train_id             number?    The train id of the currently parked train
+---@field parked_train_id             integer?    The train id of the currently parked train
 ---@field parked_train_faces_stop     boolean?   True if the train faces the stop, false otherwise
 ---@field fuel_signals                (CircuitCondition[])? Fuel Signals for a fuel station, used to create refuel interrupt condition
 
@@ -93,14 +93,15 @@
 ---@field capacity          number
 ---@field fluid_capacity    number
 ---@field surface           LuaSurface
----@field depot_priority    number
----@field network_id        number
----@field select_count      number     How often the train was selected for a delivery
+---@field depot_priority    integer
+---@field network_id        integer
+---@field select_count      integer     How often the train was selected for a delivery
 
 --- LTN Train memory
 ---@class ltn.KnownTrain
 ---@field train             LuaTrain
----@field select_count      number?    How often the train was selected for a delivery
+---@field select_count      integer?    How often the train was selected for a delivery
+---@field invalid_tick      integer?
 
 
 --- LTN Train information
@@ -108,43 +109,43 @@
 ---@field train             LuaTrain
 ---@field name              string?
 ---@field force             LuaForce?
----@field stopID            number
+---@field stopID            integer
 
 --- A request for a shipment.
 ---@class ltn.Request
----@field age               number
----@field stopID            number
----@field priority          number
+---@field age               integer
+---@field stopID            integer
+---@field priority          integer
 ---@field item              ltn.ItemIdentifier
----@field count             number
+---@field count             integer
 
 --- A scheduled delivery
 ---@class ltn.Delivery
 ---@field force                LuaForce
 ---@field train                LuaTrain
 ---@field from                 string
----@field from_id              number
+---@field from_id              integer
 ---@field to                   string
----@field to_id                number
----@field network_id           number
----@field started              number
+---@field to_id                integer
+---@field network_id           integer
+---@field started              integer
 ---@field surface_connections  ltn.SurfaceConnection[]
 ---@field shipment             ltn.Shipment
 ---@field pickupDone           boolean?
 
 ---@class ltn.LoadingElement
 ---@field type             ltn.ItemFluid 'item' or 'fluid'
----@field name             string  Item or fluid name
----@field quality          string? *Since 2.1.0* Requested quality. If missing, 'normal' quality was requested
----@field localname        string  Localized name
----@field count            number  number of elements
----@field stacks           number  stack size for items
+---@field name             string        Item or fluid name
+---@field quality          string?       *Since 2.1.0* Requested quality. If missing, 'normal' quality was requested
+---@field localname        string        Localized name
+---@field count            integer       number of elements
+---@field stacks           integer       stack size for items
 
 
 ---@class ltn.SurfaceConnection
 ---@field entity1    LuaEntity
 ---@field entity2    LuaEntity
----@field network_id number
+---@field network_id integer
 
 ---@class ltn.StopDistance
 ---@field distance number
@@ -156,103 +157,103 @@
 
 ---@class ltn.Provider
 ---@field stop                        ltn.TrainStop
----@field network_id                  number
----@field priority                    number
----@field activeDeliveryCount         number
+---@field network_id                  integer
+---@field priority                    integer
+---@field activeDeliveryCount         integer
 ---@field item                        ltn.ItemIdentifier
----@field count                       number
+---@field count                       integer
 ---@field providing_threshold         number
----@field providing_threshold_stacks  number
----@field min_carriages               number
----@field max_carriages               number
----@field locked_slots                number
+---@field providing_threshold_stacks  integer
+---@field min_carriages               integer
+---@field max_carriages               integer
+---@field locked_slots                integer
 ---@field surface_connections         ltn.SurfaceConnection[]
----@field surface_connections_count   number
+---@field surface_connections_count   integer
 
 ---@class ltn.FreeTrain
 ---@field train                 LuaTrain
 ---@field surface               LuaSurface
----@field inventory_size        number
----@field depot_priority        number
+---@field inventory_size        integer
+---@field depot_priority        integer
 ---@field provider_distance     number?
 ---@field surface_connections   (ltn.SurfaceConnection[])?
 ---@field select_count          integer
 
 ---@class ltn.ItemLoadingElement
 ---@field item      SignalID
----@field localname string  Localized name
----@field count     number  number of elements
----@field stacks    number  stack size for items
+---@field localname string   Localized name
+---@field count     integer  number of elements
+---@field stacks    integer  stack size for items
 
 ---@class ltn.SignalState
----@field is_depot boolean
----@field is_fuel_station boolean
----@field depot_priority number
----@field network_id number
----@field min_carriages number
----@field max_carriages number
----@field max_trains number
----@field requesting_threshold number
----@field requesting_threshold_stacks number
----@field requester_priority number
----@field no_warnings boolean
----@field providing_threshold number
----@field providing_threshold_stacks number
----@field provider_priority number
----@field locked_slots number
+---@field is_depot                    boolean
+---@field is_fuel_station             boolean
+---@field depot_priority              integer
+---@field network_id                  integer
+---@field min_carriages               integer
+---@field max_carriages               integer
+---@field max_trains                  integer
+---@field requesting_threshold        number
+---@field requesting_threshold_stacks integer
+---@field requester_priority          integer
+---@field no_warnings                 boolean
+---@field providing_threshold         number
+---@field providing_threshold_stacks  integer
+---@field provider_priority           integer
+---@field locked_slots                integer
 
 ---------------------------------------------------------
 --- Event payloads
 ---------------------------------------------------------
 
 ---@class ltn.EventData.on_stops_updated
----@field logistic_train_stops  table<number, ltn.TrainStop> All train stops known to LTN
+---@field logistic_train_stops  table<integer, ltn.TrainStop> All train stops known to LTN
 
 ---@class ltn.EventData.on_dispatcher_updated
----@field update_interval       number time in ticks LTN needed to run all updates, varies depending on number of stops and requests
----@field provided_by_stop      table<number, ltn.Shipment>
----@field requests_by_stop      table<number, ltn.Shipment>
----@field new_deliveries        number[]
----@field deliveries            table<number, ltn.Delivery>
----@field available_trains      table<number, ltn.Train>
+---@field update_interval       integer time in ticks LTN needed to run all updates, varies depending on number of stops and requests
+---@field provided_by_stop      table<integer, ltn.Shipment>
+---@field requests_by_stop      table<integer, ltn.Shipment>
+---@field new_deliveries        integer[]
+---@field deliveries            table<integer, ltn.Delivery>
+---@field available_trains      table<integer, ltn.Train>
 
 ---@alias ltn.EventData.no_train_found (ltn.EventData.no_train_found_item|ltn.EventData.no_train_found_shipment)
 
 ---@class ltn.EventData.no_train_found_item
 ---@field to               string? Target stop
----@field to_id            number  Target stop id
----@field network_id       number  Network id
+---@field to_id            integer  Target stop id
+---@field network_id       integer  Network id
 ---@field item             ltn.ItemIdentifier? The item to deliver
 
 ---@class ltn.EventData.no_train_found_shipment
 ---@field from             string?          Source stop
----@field from_id          number?          Source stop id
+---@field from_id          integer?          Source stop id
 ---@field to               string?          Target stop
----@field to_id            number           Target stop id
----@field network_id       number           Network id
----@field min_carriages    number?          Minimum train length
----@field max_carriages    number?          Maximum train length
+---@field to_id            integer           Target stop id
+---@field network_id       integer           Network id
+---@field min_carriages    integer?          Minimum train length
+---@field max_carriages    integer?          Maximum train length
 ---@field shipment         ltn.LoadingList? The loading list to deliver
 
 ---@class ltn.EventData.delivery_pickup_complete
 ---@field train            LuaTrain
----@field train_id         number
+---@field train_id         integer
 ---@field planned_shipment ltn.Shipment
 ---@field actual_shipment  ltn.Shipment
 
 ---@class ltn.EventData.delivery_complete
 ---@field train            LuaTrain
----@field train_id         number
+---@field train_id         integer
 ---@field shipment         ltn.Shipment
 
 ---@class ltn.EventData.on_delivery_failed
----@field train_id         number        The Train Id that failed the delivery
+---@field train_id         integer        The Train Id that failed the delivery
 ---@field shipment         ltn.Shipment  The failed shipment
 
 --- Event raised when a delivery is reassigned from one train to another
 ---@class ltn.EventData.on_delivery_reassigned
----@field old_train_id     number         Old train id
----@field new_train_id     number         New train id
+---@field old_train_id     integer         Old train id
+---@field new_train_id     integer         New train id
 ---@field shipment         ltn.Shipment   The shipment which got moved
 
 ---@class ltn.EventData.provider_missing_cargo

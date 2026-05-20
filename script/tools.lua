@@ -389,10 +389,14 @@ function Tools.reassignTrainRecord(old_train_id, new_train)
 
     if not old_train_id or not (new_train and new_train.valid) then return false end
 
-    dispatcher.knownTrains[new_train.id] = {
+    dispatcher.knownTrains[new_train.id] = dispatcher.knownTrains[new_train.id] or {
         train = new_train,
-        select_count = dispatcher.knownTrains[old_train_id] and dispatcher.knownTrains[old_train_id].select_count or 0,
+        select_count = 0
     }
+
+    if dispatcher.knownTrains[old_train_id] and dispatcher.knownTrains[old_train_id].select_count then
+        dispatcher.knownTrains[new_train.id].select_count = dispatcher.knownTrains[new_train.id]. select_count + dispatcher.knownTrains[old_train_id].select_count
+    end
 
     return true
 end

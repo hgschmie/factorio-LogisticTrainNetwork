@@ -8,6 +8,11 @@ local tools = require('script.tools')
 local schedule = require('script.schedule')
 local SurfaceInterface = require('script.surface-interface')
 
+-- amount of time a "knownTrain" record is retained even though the
+-- train has gone away. This allows reassigning information e.g. when
+-- traveling through a space elevator even though the train was destroyed
+local DEAD_TRAIN_LINGER_TIME = 240
+
 -- update dispatcher Deliveries.force when forces are removed/merged
 script.on_event(defines.events.on_forces_merging, function(event)
     local dispatcher = tools.getDispatcher()
@@ -265,9 +270,13 @@ end
 local function DispatcherCleanup()
     local dispatcher = tools.getDispatcher()
 
-    for index, train in pairs(dispatcher.knownTrains) do
-        if not (train.train and train.train.valid) then
-            dispatcher.knownTrains[index] = nil
+    for index, knownTrain in pairs(dispatcher.knownTrains) do
+        if knownTrain.invalid_tick then
+            if knownTrain.invalid_tick < game.tick then
+                dispatcher.knownTrains[index] = nil
+            end
+        elseif not (knownTrain.train and knownTrain.train.valid) then
+            knownTrain.invalid_tick = game.tick + DEAD_TRAIN_LINGER_TIME
         end
     end
 
