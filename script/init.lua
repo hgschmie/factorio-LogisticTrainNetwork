@@ -283,6 +283,12 @@ local function updateAllDeliveries()
     end
 end
 
+---@param event EventData.on_object_destroyed
+local function onObjectDestroyed(event)
+    if SurfaceInterfaceOnObjectDestroyed(event.useful_id) then
+        DispatcherOnObjectDestroyed(event.useful_id)
+    end
+end
 
 -- register events
 local function registerEvents()
@@ -298,6 +304,8 @@ local function registerEvents()
     script.on_event(defines.events.on_robot_pre_mined, OnEntityRemoved, filters_on_mined)
     script.on_event(defines.events.on_entity_died, function(event) OnEntityRemoved(event, true) end, filters_on_mined)
     script.on_event(defines.events.script_raised_destroy, OnEntityRemoved)
+
+    script.on_event(defines.events.on_object_destroyed, onObjectDestroyed)
 
     script.on_event({ defines.events.on_pre_surface_deleted, defines.events.on_pre_surface_cleared }, OnSurfaceRemoved)
     script.on_event(defines.events.on_runtime_mod_setting_changed, LtnSettings.on_config_changed)

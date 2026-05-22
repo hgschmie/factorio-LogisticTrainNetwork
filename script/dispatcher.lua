@@ -24,6 +24,24 @@ script.on_event(defines.events.on_forces_merging, function(event)
     end
 end)
 
+---@param id integer
+function DispatcherOnObjectDestroyed(id)
+    local dispatcher = tools.getDispatcher()
+
+    -- the destroyed object may have been a surface connection object.
+    -- This is expensive but the objects should not be deleted that often
+    -- if you build a mod that creates and deletes surface connections, please
+    -- remove them before destroying the objects
+    for _, delivery in pairs(dispatcher.Deliveries) do
+        for idx, surface_connection in pairs(delivery.surface_connections) do
+            if not ((surface_connection.entity1 and surface_connection.entity1.valid) and
+                (surface_connection.entity2 and surface_connection.entity2.valid)) then
+                    delivery.surface_connections[idx] = nil
+            end
+        end
+    end
+end
+
 ---------------------------------- MAIN LOOP STAGES ----------------------------------
 
 ---@param event EventData.on_tick

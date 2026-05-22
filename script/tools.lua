@@ -279,7 +279,7 @@ end
 function Tools.richTextForTrain(train, train_name)
     local loco = Tools.getMainLocomotive(train)
     if loco and loco.valid then
-        return string.format('[train=%d] %s', loco.unit_number, train_name or loco.backer_name)
+        return string.format('[train=%d] %s', train.id, train_name or loco.backer_name)
     else
         return string.format('[train=%d] %s', train.id, train_name)
     end

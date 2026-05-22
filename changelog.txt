@@ -8,6 +8,8 @@ Date: ????
   Bugfixes:
     - Ensure that no duplicate surface connections are listed when sending dispatcher updates
     - When trains switch surfaces often, the train_selected count could have gotten lost
+    - If an entity representing a surface connection gets invalidated, the on_dispatcher_updated event
+      may have been silently discarded.
 ---------------------------------------------------------------------------------------------------
 Version: 2.7.0
 Date: 2026-05-12

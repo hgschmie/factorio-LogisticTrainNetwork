@@ -83,6 +83,11 @@ function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
         return entity1.unit_number, entity1.surface.name, entity1.surface.index, entity2.unit_number, entity2.surface.name, entity2.surface.index
     end)
 
+    -- We need to listen to connection entities being destroyed and remove them from deliveries. Otherwise
+    -- on_dispatcher_update silently fails (see https://lua-api.factorio.com/latest/classes/LuaBootstrap.html#raise_event)
+    script.register_on_object_destroyed(entity1)
+    script.register_on_object_destroyed(entity2)
+
     surface_connections[entity_pair_key] = {
         -- enforce a consistent order for repeated calls with the same two entities
         entity1 = entity1.unit_number <= entity2.unit_number and entity1 or entity2,
@@ -158,6 +163,29 @@ function OnSurfaceRemoved(event)
             connected_surfaces[surface_pair_key] = nil
         end
     end
+end
+
+---@param id integer
+---@return boolean was_destroyed If a connection was removed
+function SurfaceInterfaceOnObjectDestroyed(id)
+    local first_key = '^' .. id .. '|'
+    local second_key = '|' .. id .. '$'
+
+    local was_destroyed = false
+
+    ---@type table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
+    local connected_surfaces = storage.ConnectedSurfaces
+
+    for _, entity_pair_keys in pairs(connected_surfaces) do
+        for entity_pair_key in pairs(entity_pair_keys) do
+            if string.find(entity_pair_key, first_key) or string.find(entity_pair_key, second_key) then
+                entity_pair_keys[entity_pair_key] = nil
+                was_destroyed = true
+            end
+        end
+    end
+
+    return was_destroyed
 end
 
 return SurfaceInterface
