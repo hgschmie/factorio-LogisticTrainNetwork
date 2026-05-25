@@ -22,7 +22,7 @@ If all your stations have an explicit network id provided (e.g. through LTN Comb
 
 ### What is 'Advanced Cross-Surface Delivery'?
 
-If you are not using a mod like [Space Exploration](https://mods.factorio.com/mod/space-exploration) and the [Space Exploration LTN integration](https://mods.factorio.com/mod/se-ltn-glue) mod, this setting is not for you and you should simply leave it off.
+If you are not using a mod like [Space Exploration](https://mods.factorio.com/mod/space-exploration) and the [LTN - Space Exploration](https://mods.factorio.com/mod/ltn-space-exploration) mod, this setting is not for you and you should simply leave it off.
 
 This setting is for games where the train network stretches across multiple surfaces *that are connected*. This is not true if you e.g. use the same network id on two planets (e.g. Gleba and Nauvis) that are not connected.
 
@@ -30,7 +30,9 @@ If you have a network across multiple surfaces, then normally a train can be dis
 
 With this setting, LTN will schedule trains to go through the space elevator first if necessary to pick up a delivery from a different surface. It may even schedule a delivery where both provider and requester are on a different surface as the depot. The train will still return to its original depot.
 
-Cross-surface delivery is a glorious hack and at least for Space Exploration, the [Space Exploration LTN integration](https://mods.factorio.com/mod/se-ltn-glue) mod needs to support advanced scheduling. Do *NOT* turn this setting on before you verified that it is supported, otherwise your trains will stall with "No path found".
+[LTN - Space Exploration](https://mods.factorio.com/mod/ltn-space-exploration) fully supports this.
+
+If you are using [Space Exploration LTN integration](https://mods.factorio.com/mod/se-ltn-glue), you need to verify that it was updated to support advanced scheduling, otherwise your trains will stall with "No path found".
 
 
 ## Factorio 2.0 Updates
