@@ -66,4 +66,7 @@ remote.add_interface('logistic-train-network', {
     reassign_delivery = TrainInterface.ReassignDelivery,                 -- function(old_train_id :: uint, new_train :: LuaTrain) :: bool
     get_or_create_next_temp_stop = TrainInterface.GetOrCreateNextTempStop, -- function(train :: LuaTrain, schedule_index :: uint?) :: uint
     get_next_logistic_stop = TrainInterface.GetNextLogisticStop,         -- function(train :: LuaTrain, schedule_index :: uint?) :: uint?, uint?, string?
+
+    -- exclude loco types from refueling
+    exclude_from_fuel_schedule = TrainInterface.ExcludeFromFuelSchedule -- fun(name: string)
 })

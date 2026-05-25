@@ -255,17 +255,19 @@ local function must_refuel(train, fuel_signals)
         for _, locomotive in pairs(movers) do
             ---@type table<string, number>
             local fuel = {}
-            local fuelInventory = locomotive.get_fuel_inventory()
-            if fuelInventory then
-                for _, item in pairs(fuelInventory.get_contents()) do
-                    local key = tools.createItemIdentifierFromItemWithQualityCount(item)
-                    fuel[key] = (fuel[key] or 0) + item.count
+            if not storage.ExcludedFromRefuel[locomotive.name] then
+                local fuelInventory = locomotive.get_fuel_inventory()
+                if fuelInventory then
+                    for _, item in pairs(fuelInventory.get_contents()) do
+                        local key = tools.createItemIdentifierFromItemWithQualityCount(item)
+                        fuel[key] = (fuel[key] or 0) + item.count
+                    end
                 end
-            end
-            for _, fuel_signal in pairs(fuel_signals) do
-                assert(fuel_signal.constant)
-                local key = tools.createItemIdentifierFromItemWithQualityCount(fuel_signal.first_signal)
-                if fuel[key] and fuel[key] < fuel_signal.constant then return true end
+                for _, fuel_signal in pairs(fuel_signals) do
+                    assert(fuel_signal.constant)
+                    local key = tools.createItemIdentifierFromItemWithQualityCount(fuel_signal.first_signal)
+                    if fuel[key] and fuel[key] < fuel_signal.constant then return true end
+                end
             end
         end
     end
@@ -495,7 +497,6 @@ end
 ---@param rail_direction defines.rail_direction
 ---@param stop_schedule_index integer?
 function ScheduleManager:temporaryStop(train, rail, rail_direction, stop_schedule_index)
-
     if not (train.carriages[1] and train.carriages[1].valid) then return nil end
     if train.carriages[1].surface_index ~= rail.surface_index then return nil end
 

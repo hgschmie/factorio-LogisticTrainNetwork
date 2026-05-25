@@ -1,10 +1,13 @@
 ---------------------------------------------------------------------------------------------------
-Version: 2.7.2
+Version: 2.8.0
 Date: ????
   Changes:
   Bugfixes:
     - When a train contains an item with a quality other than normal arrives at a provider that supplies the
       same item in quality normal, the output got confused and sent out the wrong signal. Reported by @Odhrean in #47
+  Minor Features:
+    - Support locomotive types that do not need refueling. Expose a new remote API where such mods can register with LTN
+      to have their locomotives excluded from refueling.
 ---------------------------------------------------------------------------------------------------
 Version: 2.7.1
 Date: 2026-05-24

@@ -99,7 +99,7 @@ end
 
 --- Convert a Signal into a typed item string. If the quality is 'normal',
 --- omit quality information
----@param item (SignalID|ItemWithQualityCount)
+---@param item SignalID|ItemWithQualityCount
 ---@return ltn.ItemIdentifier
 function Tools.createItemIdentifier(item)
     assert(item)

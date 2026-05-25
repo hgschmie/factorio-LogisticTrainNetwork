@@ -212,3 +212,11 @@ Clears all surface connections. Active deliveries will not be affected.
 ```lua
 remote.call('logistic-train-network', 'clear_all_surface_connections')
 ```
+
+#### exclude_from_fuel_schedule (since 2.8.0)
+
+Excludes a locomotive type from refueling. Some mods provide locomotives that do not need refueling. LTN exposes a remote API similar to [Automatic Train Refueler](https://mods.factorio.com/mod/auto-train-refuel) or [Automatic Train Fuel Stop](https://mods.factorio.com/mod/FuelTrainStop).
+
+```lua
+remote.call('logistic-train-network', 'exclude_from_fuel_schedule', 'my-magic-locomotive-type')
+```

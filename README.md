@@ -86,6 +86,11 @@ The train limit for depot stops can be modified by changing the startup option '
 - Set Train Limit to 1: Sets a limit of one train for each depot stop.
 - Do not modify Train limit: LTN stops managing the train limit setting for depot stops and it can now managed like the other fields listed above.
 
+#### Support locomotive types that do not need refueling
+
+Some mods add locomotive types that do not need refueling. LTN now supports excluding such locomotives from refueling by exposing a remote API that is compatible to [Automatic Train Refueler](https://mods.factorio.com/mod/auto-train-refuel) or [Automatic Train Fuel Stop](https://mods.factorio.com/mod/FuelTrainStop).
+
+By default, the mod automatically ignores electric locomotives named 'et-electric-locomotive-1', 'et-electric-locomotive-2' and 'et-electric-locomotive-3' which are provided by various mods that add electric trains.
 
 ### API
 

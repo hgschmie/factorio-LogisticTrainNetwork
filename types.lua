@@ -17,6 +17,7 @@
 ---@field WagonCapacity         table<string, number>
 ---@field FuelStations          ltn.TrainStop[][]
 ---@field Depots                ltn.TrainStop[][]
+---@field ExcludedFromRefuel    string[]
 
 ---------------------------------------------------------
 --- Type aliases

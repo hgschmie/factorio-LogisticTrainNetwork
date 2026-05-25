@@ -145,4 +145,12 @@ function TrainInterface.ReassignDelivery(old_train_id, new_train)
     return delivery and true or false
 end
 
+---@param name string?
+function TrainInterface.ExcludeFromFuelSchedule(name)
+    if not name then return end
+    -- API can be called before on_load/on_init or migration
+    storage.ExcludedFromRefuel = storage.ExcludedFromRefuel or {}
+    storage.ExcludedFromRefuel[name] = true
+end
+
 return TrainInterface

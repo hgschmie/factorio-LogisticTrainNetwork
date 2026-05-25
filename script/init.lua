@@ -38,6 +38,12 @@ local function initialize(oldVersion, newVersion)
     storage.LogisticTrainStops = storage.LogisticTrainStops or {}
     storage.FuelStations = storage.FuelStations or {}
     storage.Depots = storage.Depots or {}
+    storage.ExcludedFromRefuel = storage.ExcludedFromRefuel or {
+        ---- ElectricTrain mod - https://mods.factorio.com/mod/ElectricTrain2
+        ['et-electric-locomotive-1'] = true,
+        ['et-electric-locomotive-2'] = true,
+        ['et-electric-locomotive-3'] = true,
+    }
 
     -- table of connections per surface used to decide if providers from another surface are valid sources
     -- { [surface1.index|surface2.index] = { [entity1.unit_number|entity2.unit_number] = { entity1, entity2, network_id } }
@@ -275,7 +281,7 @@ local function updateAllDeliveries()
         for idx, surface_connection in pairs(delivery.surface_connections) do
             if (surface_connection.entity1 and surface_connection.entity1.valid)
                 and (surface_connection.entity2 and surface_connection.entity2.valid) then
-                    surface_connections[#surface_connections + 1] = surface_connection
+                surface_connections[#surface_connections + 1] = surface_connection
             end
         end
         delivery.surface_connections = surface_connections
