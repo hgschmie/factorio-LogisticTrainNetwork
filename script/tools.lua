@@ -97,7 +97,7 @@ end
 -- Item Identifier management
 -----------------------------------------------------------------------
 
---- Convert a Signal into a typed item string. If the quality is 'normal',
+--- Convert a Signal or a ItemWithQualityCount into a typed item string. If the quality is 'normal',
 --- omit quality information
 ---@param item SignalID|ItemWithQualityCount
 ---@return ltn.ItemIdentifier
@@ -110,22 +110,10 @@ function Tools.createItemIdentifier(item)
     }, ',')
 end
 
---- Convert a ItemWithQualityCount into a typed item string
----@param item ItemWithQualityCount|SignalID
----@return ltn.ItemIdentifier
-function Tools.createItemIdentifierFromItemWithQualityCount(item)
-    assert(item)
-    return Tools.createItemIdentifier {
-        type = 'item',
-        name = item.name,
-        quality = item.quality
-    }
-end
-
 --- Convert a fluid name into a typed item string
 ---@param fluid_name string
 ---@return ltn.ItemIdentifier
-function Tools.createItemIdentifierFluidName(fluid_name)
+function Tools.createFluidIdentifier(fluid_name)
     assert(fluid_name)
     return Tools.createItemIdentifier {
         type = 'fluid',

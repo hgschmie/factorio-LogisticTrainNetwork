@@ -18,9 +18,11 @@ local ScheduleManager = {}
 function ScheduleManager:analyzeRecord(wait_conditions)
     local result = {}
     for _, wait_condition in pairs(wait_conditions) do
-        if (wait_condition.type == 'item_count' or wait_condition.type == 'fluid_count') and wait_condition.condition and wait_condition.condition.first_signal then
+        local is_item = (wait_condition.type == 'item_count')
+        local is_fluid = (wait_condition.type == 'fluid_count')
+        if (is_item or is_fluid) and wait_condition.condition and wait_condition.condition.first_signal then
             local record = {
-                name = wait_condition.condition.first_signal.name,
+                name = assert(wait_condition.condition.first_signal.name),
                 type = wait_condition.condition.first_signal.type or 'item',
                 quality = wait_condition.condition.first_signal.quality or 'normal',
                 provider = wait_condition.condition.comparator == '≥',
@@ -30,7 +32,7 @@ function ScheduleManager:analyzeRecord(wait_conditions)
             assert(record.name)
 
             if record.provider or record.requester then
-                local key = tools.createItemIdentifier(record)
+                local key = is_item and tools.createItemIdentifier(record) or record.name
                 result[key] = record
             else
                 tools.printmsg(1, function()
@@ -71,9 +73,9 @@ function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
             end
         elseif result.type == 'fluid' then
             if result.provider then
-                fluidInventory[result.name] = (fluidInventory[result.name] or 0) + (result.count or 0)
+                fluidInventory[key] = (fluidInventory[key] or 0) + (result.count or 0)
             else
-                fluidInventory[result.name] = -1 -- this makes no sense. This should be nil but it is -1 ever since 1.10.x
+                fluidInventory[key] = -1 -- this makes no sense. This should be nil but it is -1 ever since 1.10.x
             end
         end
     end
@@ -259,13 +261,13 @@ local function must_refuel(train, fuel_signals)
                 local fuelInventory = locomotive.get_fuel_inventory()
                 if fuelInventory then
                     for _, item in pairs(fuelInventory.get_contents()) do
-                        local key = tools.createItemIdentifierFromItemWithQualityCount(item)
+                        local key = tools.createItemIdentifier(item)
                         fuel[key] = (fuel[key] or 0) + item.count
                     end
                 end
                 for _, fuel_signal in pairs(fuel_signals) do
                     assert(fuel_signal.constant)
-                    local key = tools.createItemIdentifierFromItemWithQualityCount(fuel_signal.first_signal)
+                    local key = tools.createItemIdentifier(fuel_signal.first_signal)
                     if fuel[key] and fuel[key] < fuel_signal.constant then return true end
                 end
             end

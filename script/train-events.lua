@@ -154,7 +154,7 @@ function TrainArrives(train)
                     local unscheduled_load = {}
 
                     for _, cargo in pairs(train.get_contents()) do
-                        local item = tools.createItemIdentifierFromItemWithQualityCount(cargo)
+                        local item = tools.createItemIdentifier(cargo)
                         if not delivery.shipment[item] then
                             requester_unscheduled_cargo = true
                             unscheduled_load[item] = cargo.count
@@ -162,7 +162,7 @@ function TrainArrives(train)
                     end
 
                     for name, cargo in pairs(train.get_fluid_contents()) do
-                        local item = tools.createItemIdentifierFluidName(name)
+                        local item = tools.createFluidIdentifier(name)
                         if not delivery.shipment[item] then
                             requester_unscheduled_cargo = true
                             unscheduled_load[item] = math.ceil(cargo)
@@ -285,7 +285,7 @@ function TrainLeaves(trainID)
                 local provider_missing_cargo = false
 
                 for _, cargo in pairs(train.get_contents()) do
-                    local item = tools.createItemIdentifierFromItemWithQualityCount(cargo)
+                    local item = tools.createItemIdentifier(cargo)
                     local planned_count = delivery.shipment[item]
                     if planned_count then
                         actual_load[item] = cargo.count -- update shipment to actual inventory
@@ -301,7 +301,7 @@ function TrainLeaves(trainID)
                 end
 
                 for name, cargo in pairs(train.get_fluid_contents()) do
-                    local item = tools.createItemIdentifierFluidName(name)
+                    local item = tools.createFluidIdentifier(name)
                     local planned_count = delivery.shipment[item]
                     if planned_count then
                         actual_load[item] = math.ceil(cargo) -- update shipment actual inventory
@@ -373,14 +373,14 @@ function TrainLeaves(trainID)
 
                 for _, cargo in pairs(train.get_contents()) do
                     -- not fully unloaded
-                    local item = tools.createItemIdentifierFromItemWithQualityCount(cargo)
+                    local item = tools.createItemIdentifier(cargo)
                     requester_left_over_cargo = true
                     remaining_load[item] = cargo.count
                 end
 
                 for name, cargo in pairs(train.get_fluid_contents()) do
                     -- not fully unloaded
-                    local item = tools.createItemIdentifierFluidName(name)
+                    local item = tools.createFluidIdentifier(name)
                     requester_left_over_cargo = true
                     remaining_load[item] = cargo
                 end
