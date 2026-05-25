@@ -10,6 +10,9 @@ Date: ????
     - When trains switch surfaces often, the train_selected count could have gotten lost
     - If an entity representing a surface connection gets invalidated, the on_dispatcher_updated event
       may have been silently discarded.
+  Minor Features:
+    - Add clarification and documentation for other mods that use cross-surface connections with LTN.
+      Makes [LTN - Space Exploration Integration](https://mods.factorio.com/mod/ltn-space-exploration) work well.
 ---------------------------------------------------------------------------------------------------
 Version: 2.7.0
 Date: 2026-05-12

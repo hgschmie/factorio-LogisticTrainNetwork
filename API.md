@@ -140,6 +140,19 @@ Raised when a train leaves a dropoff with remaining cargo. Sends out a `ltn.Even
 
 ### Cross-Surface operations
 
+__If you design a mod that uses the cross-surface operations mod, please read the following implementation notes:__
+
+When calling `connect_surfaces`, LTN will retain a reference to the entities passed in. That means, if your mod invalidates these entities without calling `disconnect_surfaces` or `clear_all_surface_connections`, LTN will have references to invalid LuaEntities. Those Entities may be passed back in some events, especially `on_dispatcher_updated`.
+
+_As Factorio will not raise events with invalid entities in the payload_, LTN must filter out these invalid entities. It does so by tracking destruction of these entities but this is expensive and (in large games) may lead to FPS problems. There is a [modding interface request](https://forums.factorio.com/viewtopic.php?t=133664) that would allow some mitigation.
+
+LTN works better if these entities do not get invalidated while LTN knows about them:
+
+- before destroying connection objects, call `disconnect_surfaces` or even `clear_all_surface_connections` to inform LTN that it should no longer hold references to these entities.
+- Only destroy or invalidate these entities when it is really necessary. The [LTN - Space Exploration Integration](https://mods.factorio.com/mod/ltn-space-exploration) mod shows how this can be done while still allowing connecting/disconnecting between surfaces.
+
+If you change or update your mod, make it depend on LTN version 2.7.1 or later to ensure that LTN and your mod will coexist well.
+
 #### reassign_delivery API
 
 Re-assigns a delivery to a different train. Should be called after creating a train based on another train, for example after moving a train to a different surface.
