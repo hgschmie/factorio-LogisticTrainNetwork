@@ -2,6 +2,9 @@
 Version: 2.7.2
 Date: ????
   Changes:
+  Bugfixes:
+    - When a train contains an item with a quality other than normal arrives at a provider that supplies the
+      same item in quality normal, the output got confused and sent out the wrong signal. Reported by @Odhrean in #47
 ---------------------------------------------------------------------------------------------------
 Version: 2.7.1
 Date: 2026-05-24

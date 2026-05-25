@@ -515,7 +515,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
 
         if not (ignore_existing_cargo) then
             for _, item in pairs(trainStop.parked_train.get_contents()) do
-                inventory[item.name] = item
+                inventory[tools.createItemIdentifier(item)] = item
             end
             for name, amount in pairs(trainStop.parked_train.get_fluid_contents()) do
                 fluidInventory[name] = math.floor(amount)
@@ -609,7 +609,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
             schedule:updateFromSchedule(trainStop.parked_train, inventory, fluidInventory)
 
             -- output expected inventory contents
-            for k, v in pairs(inventory) do
+            for _, v in pairs(inventory) do
                 table.insert(signals, { value = { type = 'item', name = v.name, quality = v.quality, }, min = v.count, })
             end
             for k, v in pairs(fluidInventory) do

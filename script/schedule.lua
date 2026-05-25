@@ -56,18 +56,18 @@ function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
 
     local results = self:analyzeRecord(wait_conditions)
 
-    for _, result in pairs(results) do
+    for key, result in pairs(results) do
         if result.type == 'item' then
             if result.provider then
-                inventory[result.name] = inventory[result.name] or {
+                inventory[key] = inventory[key] or {
                     name = result.name,
                     quality = result.quality,
                     count = 0,
                 }
 
-                inventory[result.name].count = (inventory[result.name].count or 0) + result.count
+                inventory[key].count = (inventory[key].count or 0) + result.count
             else
-                inventory[result.name] = nil
+                inventory[key] = nil
             end
         elseif result.type == 'fluid' then
             if result.provider then

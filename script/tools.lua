@@ -99,14 +99,14 @@ end
 
 --- Convert a Signal into a typed item string. If the quality is 'normal',
 --- omit quality information
----@param signal SignalID
+---@param item (SignalID|ItemWithQualityCount)
 ---@return ltn.ItemIdentifier
-function Tools.createItemIdentifier(signal)
-    assert(signal)
+function Tools.createItemIdentifier(item)
+    assert(item)
     return table.concat({
-        signal.type or 'item',
-        signal.name,
-        signal.quality and signal.quality ~= 'normal' and signal.quality or nil
+        item.type or 'item',
+        item.name,
+        item.quality and item.quality ~= 'normal' and item.quality or nil
     }, ',')
 end
 
