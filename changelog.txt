@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.8.0
-Date: ????
+Date: 2026-05-28
   Changes:
   Bugfixes:
     - When a train contains an item with a quality other than normal arrives at a provider that supplies the
