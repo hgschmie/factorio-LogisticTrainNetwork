@@ -4,6 +4,8 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
+local util = require('util')
+
 local tools = require('script.tools')
 local schedule = require('script.schedule')
 local SurfaceInterface = require('script.surface-interface')
@@ -62,6 +64,7 @@ local function DispatcherReset(event)
     dispatcher.Requests = {}
     dispatcher.Provided_by_Stop = {}
     dispatcher.Requests_by_Stop = {}
+    dispatcher.Pending_Requests = {}
     dispatcher.new_Deliveries = {}
 
     return nil
@@ -209,6 +212,11 @@ local function DispatcherDispatchTrains(event)
             return dispatcher.availableTrains_total_capacity, dispatcher.availableTrains_total_fluid_capacity
         end)
 
+        -- snapshot Requests_by_Stop before any ProcessRequest calls mutate it
+        if not request_index then
+            dispatcher.Pending_Requests = util.copy(dispatcher.Requests_by_Stop)
+        end
+
         -- reset on invalid index
         if request_index and not dispatcher.Requests[request_index] then
             tools.printmsg(1, function()
@@ -272,7 +280,7 @@ local function DispatcherApiEvents(event)
     local dispatcher_data = {
         update_interval = event.tick - storage.tick_interval_start,
         provided_by_stop = dispatcher.Provided_by_Stop,
-        requests_by_stop = dispatcher.Requests_by_Stop,
+        requests_by_stop = dispatcher.Pending_Requests,
         new_deliveries = dispatcher.new_Deliveries,
         deliveries = dispatcher.Deliveries,
         available_trains = dispatcher.availableTrains,
