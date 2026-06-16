@@ -58,6 +58,8 @@ function TrainInterface.GetNextLogisticStop(train, schedule_index)
     local record = records[record_index]
     while record do
         local results = schedule:analyzeRecord(record.wait_conditions)
+        tools.log(6, 'GetNextLogisticStop', 'checking for identifier: %s.',
+            function() return identifier end)
         local result = results[identifier]
         if result then
             if record.station == delivery.from and result.provider then
@@ -70,6 +72,8 @@ function TrainInterface.GetNextLogisticStop(train, schedule_index)
         record_index = record_index + 1
         record = records[record_index]
     end
+    tools.log(5, 'GetNextLogisticStop', 'train [%d] searched all records withouth finding wait conditions matching LTN deliveries.',
+        function() return train.id end)
 end
 
 ---Ensures the next logistic stop in the schedule has a temporary stop if is on the same surface as the train.

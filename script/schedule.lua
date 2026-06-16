@@ -20,6 +20,9 @@ function ScheduleManager:analyzeRecord(wait_conditions)
     for _, wait_condition in pairs(wait_conditions) do
         local is_item = (wait_condition.type == 'item_count')
         local is_fluid = (wait_condition.type == 'fluid_count')
+        tools.log(6, 'analyzeRecord', 'analyzing Schedule Record: Type %s / Condtion %s / Condition.First_Signal %s', function()
+            return wait_condition.type, wait_condition.condition, wait_condition.condition and wait_condition.condition.first_signal
+        end)
         if (is_item or is_fluid) and wait_condition.condition and wait_condition.condition.first_signal then
             local record = {
                 name = assert(wait_condition.condition.first_signal.name),
@@ -30,9 +33,11 @@ function ScheduleManager:analyzeRecord(wait_conditions)
                 count = (wait_condition.condition.constant or 0)
             }
             assert(record.name)
-
+            tools.log(6, 'analyzeRecord', 'Matched Schedule Record: Provider %s / Requester %s', function()
+                return record.provider, record.requester
+            end)
             if record.provider or record.requester then
-                local key = is_item and tools.createItemIdentifier(record) or record.name
+                local key = is_item and tools.createItemIdentifier(record) or is_fluid and tools.createFluidIdentifier(record.name) or record.name
                 result[key] = record
             else
                 tools.printmsg(1, function()
@@ -43,8 +48,17 @@ function ScheduleManager:analyzeRecord(wait_conditions)
                     return record.name, record.type, record.count
                 end)
             end
+        else
+            tools.log(6, 'analyzeRecord', 'Unmatched Schedule Record: Type %s / Condtion %s / Condition.First_Signal %s', function()
+                return wait_condition.type, wait_condition.condition, wait_condition.condition and wait_condition.condition.first_signal
+            end)
         end
     end
+
+    tools.log(6, 'analyzeRecord', 'Result: %s', function()
+        return serpent.dump(result)
+    end)
+
     return result
 end
 

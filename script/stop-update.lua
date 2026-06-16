@@ -518,7 +518,7 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                 inventory[tools.createItemIdentifier(item)] = item
             end
             for name, amount in pairs(trainStop.parked_train.get_fluid_contents()) do
-                fluidInventory[name] = math.floor(amount)
+                fluidInventory[tools.createFluidIdentifier(name)] = math.floor(amount)
             end
         end
 
@@ -613,6 +613,8 @@ function UpdateStopOutput(trainStop, ignore_existing_cargo)
                 table.insert(signals, { value = { type = 'item', name = v.name, quality = v.quality, }, min = v.count, })
             end
             for k, v in pairs(fluidInventory) do
+                -- if fluid identifier instead of name, cut prefix
+                if k:sub(1,6) == 'fluid,' then k = k:sub(7,-1) end
                 table.insert(signals, { value = { type = 'fluid', name = k, quality = 'normal', }, min = v, })
             end
         end -- station
