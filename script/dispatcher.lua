@@ -1038,6 +1038,15 @@ function ProcessRequest(reqIndex, request)
         end)
     end
 
+    for key, value in pairs(shipment) do
+        -- update pending requests so that Dispatcher Update API call is correct
+        local pending_amount = dispatcher.Pending_Requests[toID][key]
+        if pending_amount then
+            pending_amount = pending_amount - value
+            dispatcher.Pending_Requests[toID][key] = (pending_amount > 0) and pending_amount or nil
+        end
+    end
+
     table.insert(dispatcher.new_Deliveries, selectedTrain.id)
     dispatcher.Deliveries[selectedTrain.id] = {
         force = requestForce,

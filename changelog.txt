@@ -4,6 +4,7 @@ Date: ????
   Bugfixes:
     - Ensure that remote API calls can find stops for fluids (fixes #67, thank you @wildd0g for reporting).
   Changes:
+    - Have the very first Update Dispatcher API call after scheduling a delivery to match subsequent API calls. (addresses comment in #49 by @wildd0g).
 ---------------------------------------------------------------------------------------------------
 Version: 2.8.0
 Date: 2026-05-28

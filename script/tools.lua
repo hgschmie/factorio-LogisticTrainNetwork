@@ -122,7 +122,7 @@ function Tools.createFluidIdentifier(fluid_name)
 end
 
 ---@param identifier ltn.ItemIdentifier
----@return SignalID? Guaranteed to have all fields filled.
+---@return SignalID? SignalID Guaranteed to have all fields filled.
 function Tools.parseItemIdentifier(identifier)
     if not identifier then return nil end
     local type, name, quality = identifier:match('^([^,]+),([^,]+),?([^,]*)')
