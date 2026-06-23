@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.8.1
 Date: ????
+  Bugfixes:
+    - Ensure that remote API calls can find stops for fluids (fixes #67, thank you @wildd0g for reporting).
   Changes:
 ---------------------------------------------------------------------------------------------------
 Version: 2.8.0

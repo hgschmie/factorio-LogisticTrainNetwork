@@ -32,7 +32,7 @@ function ScheduleManager:analyzeRecord(wait_conditions)
             assert(record.name)
 
             if record.provider or record.requester then
-                local key = is_item and tools.createItemIdentifier(record) or record.name
+                local key = is_item and tools.createItemIdentifier(record) or tools.createFluidIdentifier(record.name)
                 result[key] = record
             else
                 tools.printmsg(1, function()
@@ -50,7 +50,7 @@ end
 
 ---@param train LuaTrain
 ---@param inventory ltn.InventoryType
----@param fluidInventory ltn.FluidInventoryType
+---@param fluidInventory ltn.InventoryType
 function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
     local train_schedule = train.get_schedule()
     local wait_conditions = train_schedule.get_wait_conditions { schedule_index = train_schedule.current }
@@ -73,9 +73,18 @@ function ScheduleManager:updateFromSchedule(train, inventory, fluidInventory)
             end
         elseif result.type == 'fluid' then
             if result.provider then
-                fluidInventory[key] = (fluidInventory[key] or 0) + (result.count or 0)
+                fluidInventory[key] = fluidInventory[key] or {
+                    name = result.name,
+                    quality = '',
+                    count = 0,
+                }
+                fluidInventory[key].count = (fluidInventory[key].count or 0) + result.count
             else
-                fluidInventory[key] = -1 -- this makes no sense. This should be nil but it is -1 ever since 1.10.x
+                fluidInventory[key] = {
+                    name = result.name,
+                    quality = '',
+                    count = -1, -- this makes no sense. This should be nil but it is -1 ever since 1.10.x
+                }
             end
         end
     end
