@@ -34,14 +34,9 @@ With this setting, LTN will schedule trains to go through the space elevator fir
 
 If you are using [Space Exploration LTN integration](https://mods.factorio.com/mod/se-ltn-glue), you need to verify that it was updated to support advanced scheduling, otherwise your trains will stall with "No path found".
 
-
-## Factorio 2.0 Updates
-
-LTN has been ported to Factorio 2.0. It will get minimal updates (only really glaring bugs). The current plan is to provide a successor that takes advantage of the improved 2.0 trains while maintaining the ease of scheduling and dispatching with LTN.
-
 ### Train Schedule Interrupts (since 2.3.0)
 
-Factorio 2.0 trains support "Train Schedule Interrupts" which trigger under certain conditions. Starting with 2.3.0, LTN will not change any interrupts in the train schedule unless explicitly configured with the `ltn-schedule-reset-interrupts` setting.
+Factorio 2.x trains support "Train Schedule Interrupts" which trigger under certain conditions. Starting with 2.3.0, LTN will not change any interrupts in the train schedule unless explicitly configured with the `ltn-schedule-reset-interrupts` setting.
 
 ### Refueling support (since 2.3.0)
 
@@ -102,7 +97,7 @@ Starting with version 2.1.0, LTN supports quality for requester and provider sig
 
 ### Contact
 
-- [Forum](https://mods.factorio.com/mod/LogisticTrainNetwork/discussion) (changed from pre-2.0!)
+- [Forum](https://mods.factorio.com/mod/LogisticTrainNetwork/discussion) (changed from pre-2.x!)
 - [Bug Reports](https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues)
 - [Source Code](https://github.com/hgschmie/factorio-LogisticTrainNetwork)
 - [Download](https://mods.factorio.com/mod/LogisticTrainNetwork/downloads)
@@ -110,7 +105,7 @@ Starting with version 2.1.0, LTN supports quality for requester and provider sig
 
 ### How you can help
 
-If you maintain an LTN mod and stopped working on it, consider porting it to 2.0!
+If you maintain an LTN mod and stopped working on it, consider porting it to 2.x!
 
 ----
 
@@ -118,4 +113,4 @@ If you maintain an LTN mod and stopped working on it, consider porting it to 2.0
 
 LTN is (C) 2017-2018 by Optera [under a restrictive license](LICENSE.md).
 
-The 2.0 port is maintained with permission by @hgschmie
+The 2.x port is maintained with permission by @hgschmie

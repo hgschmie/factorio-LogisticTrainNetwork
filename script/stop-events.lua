@@ -120,7 +120,7 @@ function CreateStop(entity)
 
     assert(input)
     input.operable = false     -- disable gui
-    input.minable = false
+    input.minable_flag = false
     input.destructible = false -- don't bother checking if alive
     input.always_on = true
 
@@ -134,7 +134,7 @@ function CreateStop(entity)
 
     assert(lampctrl)
     lampctrl.operable = false     -- disable gui
-    lampctrl.minable = false
+    lampctrl.minable_flag = false
     lampctrl.destructible = false -- don't bother checking if alive
 
     -- connect lamp and control
@@ -182,7 +182,7 @@ function CreateStop(entity)
     assert(output)
 
     output.operable = false     -- disable gui
-    output.minable = false
+    output.minable_flag = false
     output.destructible = false -- don't bother checking if alive
 
     local stop = {
