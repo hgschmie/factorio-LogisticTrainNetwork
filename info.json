@@ -12,7 +12,7 @@
     "(?)cargo-ships"
   ],
   "package": {
-    "git_publish_branch": "master",
+    "git_publish_branch": "2.0-maint",
     "sync_portal_details": false
   }
 }
