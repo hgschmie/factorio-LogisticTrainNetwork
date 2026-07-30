@@ -127,11 +127,13 @@ function Tools.parseItemIdentifier(identifier)
     if not identifier then return nil end
     local type, name, quality = identifier:match('^([^,]+),([^,]+),?([^,]*)')
 
+    type = type or 'item'
+
     if not name or #name == 0 then return nil end
-    if not (prototypes.item[name] or prototypes.fluid[name]) then return nil end
+    if not prototypes[type][name] then return nil end
 
     return {
-        type = type or 'item',
+        type = type,
         name = name,
         quality = (quality and #quality > 0) and quality or 'normal',
     }

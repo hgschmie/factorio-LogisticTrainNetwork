@@ -667,6 +667,7 @@ function ProcessRequest(reqIndex, request)
     local to = requestStation.entity.backer_name
     local to_gps = tools.richTextForStop(requestStation.entity) or to
     local to_network_id_string = string.format('0x%x', bit32.band(requestStation.network_id))
+    ---@type ltn.ItemIdentifier
     local item = request.item
     local count = request.count
 
@@ -706,10 +707,9 @@ function ProcessRequest(reqIndex, request)
         return nil
     end
 
-    local localname
+    local localname = prototypes[item_info.type][item_info.name].localised_name
+
     if item_info.type == 'fluid' then
-        assert(prototypes.fluid[item_info.name], 'fluid prototype undefined!', item_info)
-        localname = prototypes.fluid[item_info.name].localised_name
         -- skip if no trains are available
         if (dispatcher.availableTrains_total_fluid_capacity or 0) == 0 then
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-fluid' }, requestForce)
@@ -733,8 +733,6 @@ function ProcessRequest(reqIndex, request)
             return nil
         end
     else
-        assert(prototypes.item[item_info.name], 'item prototype undefined!', item_info)
-        localname = prototypes.item[item_info.name].localised_name
         -- skip if no trains are available
         if (dispatcher.availableTrains_total_capacity or 0) == 0 then
             create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.empty-depot-item' }, requestForce)
