@@ -149,8 +149,9 @@
 ---@field network_id integer
 
 ---@class ltn.StopDistance
----@field distance number
----@field tick integer
+---@field distance           number?
+---@field backwards_distance number?
+---@field tick               uint64
 
 ---------------------------------------------------------
 --- Internal types used in various methods

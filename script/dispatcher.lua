@@ -475,7 +475,7 @@ local function get_station_distance(train, next_station)
     if type(stop_distance) ~= 'table' then stop_distance = nil end
 
     if stop_distance and stop_distance.tick > game.tick then
-        return stop_distance.distance
+        return tools.getStopDistance(stop_distance)
     end
 
     local front_result = needs_front_path and game.train_manager.request_train_path {

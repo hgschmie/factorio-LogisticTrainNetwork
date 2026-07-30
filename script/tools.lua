@@ -157,6 +157,14 @@ function Tools.prettyPrint(item_info)
     end
 end
 
+--- Returns the smaller value from the StopDistance cache if it exists.
+---@param distance ltn.StopDistance?
+---@return number? distance
+function Tools.getStopDistance(distance)
+    if not distance then return nil end
+    return (distance.distance or 0) > (distance.backwards_distance or 0) and distance.distance or distance.backwards_distance
+end
+
 --- Create backwards compatible loading list for API use.
 ---@param loadingList ltn.ItemLoadingElement[]
 ---@return ltn.LoadingList
