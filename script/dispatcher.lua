@@ -901,7 +901,7 @@ function ProcessRequest(reqIndex, request)
         local known_connections = {}
         local result = {}
         for _, surface_connection in pairs(providerData.surface_connections) do
-            local entity_key = SurfaceInterface.SortedPair(surface_connection.entity1.unit_number, surface_connection.entity2.unit_number)
+            local entity_key = tools.sortedPair(surface_connection.entity1.unit_number, surface_connection.entity2.unit_number)
             if not known_connections[entity_key] then
                 known_connections[entity_key] = surface_connection
                 result[#result + 1] = surface_connection
@@ -909,7 +909,7 @@ function ProcessRequest(reqIndex, request)
         end
 
         for _, surface_connection in pairs(free_trains[1].surface_connections) do
-            local entity_key = SurfaceInterface.SortedPair(surface_connection.entity1.unit_number, surface_connection.entity2.unit_number)
+            local entity_key = tools.sortedPair(surface_connection.entity1.unit_number, surface_connection.entity2.unit_number)
             if not known_connections[entity_key] then
                 known_connections[entity_key] = surface_connection
                 result[#result + 1] = surface_connection

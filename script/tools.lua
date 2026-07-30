@@ -137,6 +137,14 @@ function Tools.parseItemIdentifier(identifier)
     }
 end
 
+--- returns the string "number1|number2" in consistent order: the smaller number is always placed first
+---@param number1 number
+---@param number2 number
+---@return ltn.EntityPairKey
+function Tools.sortedPair(number1, number2)
+    return (number1 < number2) and (number1 .. '|' .. number2) or (number2 .. '|' .. number1)
+end
+
 ---@param item_info SignalID
 ---@return string result
 function Tools.prettyPrint(item_info)

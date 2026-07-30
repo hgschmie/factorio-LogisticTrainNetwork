@@ -7,14 +7,6 @@ function SurfaceInterface.ClearAllSurfaceConnections()
     storage.ConnectedSurfaces = {}
 end
 
---- returns the string "number1|number2" in consistent order: the smaller number is always placed first
----@param number1 number
----@param number2 number
----@return ltn.EntityPairKey
-function SurfaceInterface.SortedPair(number1, number2)
-    return (number1 < number2) and (number1 .. '|' .. number2) or (number2 .. '|' .. number1)
-end
-
 --- removes the surface connection between the given entities from storage.SurfaceConnections. Does nothing if the connection doesn't exist.
 ---@param entity1 LuaEntity
 ---@param entity2 LuaEntity
@@ -29,13 +21,13 @@ function SurfaceInterface.DisconnectSurfaces(entity1, entity2)
         return
     end
 
-    local surface_pair_key = SurfaceInterface.SortedPair(entity1.surface.index, entity2.surface.index)
+    local surface_pair_key = tools.sortedPair(entity1.surface.index, entity2.surface.index)
 
     ---@type table<ltn.EntityPairKey, ltn.SurfaceConnection>?
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
 
     if surface_connections then
-        local entity_pair_key = SurfaceInterface.SortedPair(entity1.unit_number, entity2.unit_number)
+        local entity_pair_key = tools.sortedPair(entity1.unit_number, entity2.unit_number)
 
         tools.log(5, 'DisconnectSurfaces', 'removing surface connection for entities %s between surfaces %s', function()
             return entity_pair_key, surface_pair_key
@@ -71,13 +63,13 @@ function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
         return
     end
 
-    local surface_pair_key = SurfaceInterface.SortedPair(entity1.surface.index, entity2.surface.index)
+    local surface_pair_key = tools.sortedPair(entity1.surface.index, entity2.surface.index)
 
     storage.ConnectedSurfaces[surface_pair_key] = storage.ConnectedSurfaces[surface_pair_key] or {}
     ---@type table<ltn.EntityPairKey, ltn.SurfaceConnection>
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
 
-    local entity_pair_key = SurfaceInterface.SortedPair(entity1.unit_number, entity2.unit_number)
+    local entity_pair_key = tools.sortedPair(entity1.unit_number, entity2.unit_number)
 
     tools.log(5, 'ConnectSurfaces', 'Creating surface connection between [%d] on %s [%d] and [%d] on %s [%d].', function()
         return entity1.unit_number, entity1.surface.name, entity1.surface.index, entity2.unit_number, entity2.surface.name, entity2.surface.index
@@ -107,7 +99,7 @@ end
 function SurfaceInterface.FindSurfaceConnections(surface1, surface2, force, network_id)
     if surface1 == surface2 then return {} end
 
-    local surface_pair_key = SurfaceInterface.SortedPair(surface1.index, surface2.index)
+    local surface_pair_key = tools.sortedPair(surface1.index, surface2.index)
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
     if not surface_connections then return nil end
 
