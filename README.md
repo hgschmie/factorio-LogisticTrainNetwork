@@ -20,9 +20,15 @@ If you run a relatively simple setup (only a single LTN network) and do not have
 
 If all your stations have an explicit network id provided (e.g. through LTN Combinators), the default of "0" is correct and will avoid that new stations mess up your train schedule.
 
+### I get error messages: "No train to transport from ... to ... in networks ..."
+
+If trains with the right length are available and they are in the right network, then it is possible that the provider is not accessible from the depot. LTN checks whether it can send a train from the depot to the provider by asking the game to resolve the path and if no path exists, it drops the train.
+
+Starting with 2.8.2, if multiple providers exist, LTN will retry with another provider. However, this still means that it is possible that you have a provider that is never accessed by a train. If this message persists and LTN consistently chooses another provider (especially if it is further away than the "best" provider, has the wrong priority or fewer items), check whether there is e.g. a rail signal on the wrong side of the track or a break in the track that leading to the provider. Turn on GPS tags in the settings to quickly navigate to the provider.
+
 ### What is 'Advanced Cross-Surface Delivery'?
 
-If you are not using a mod like [Space Exploration](https://mods.factorio.com/mod/space-exploration) and the [LTN - Space Exploration](https://mods.factorio.com/mod/ltn-space-exploration) mod, this setting is not for you and you should simply leave it off.
+If you are not using a expansion that allows trains to travel between surfaces (planets, moons, orbital etc.) such as [Space Exploration](https://mods.factorio.com/mod/space-exploration) and the [LTN - Space Exploration](https://mods.factorio.com/mod/ltn-space-exploration) mod, this setting is not for you and you should leave it off.
 
 This setting is for games where the train network stretches across multiple surfaces *that are connected*. This is not true if you e.g. use the same network id on two planets (e.g. Gleba and Nauvis) that are not connected.
 

@@ -1,12 +1,22 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.0.1
 Date: ????
-  Changes:
+  Bugfixes:
+    - If a chosen provider stop was inaccessible, LTN would report "no train found ..." even if more than one stop could provide items.
+      LTN Now iterates through all provider stops if more than one exists. based on a discussion on the forums with @deadbyte and @pavel.recnik
 ---------------------------------------------------------------------------------------------------
 Version: 3.0.0
 Date: 2026-06-24
   Changes:
     - Update to Factorio 2.1
+---------------------------------------------------------------------------------------------------
+Version: 2.8.2
+Date: 2026-06-30
+  Bugfixes:
+    - If a chosen provider stop was inaccessible, LTN would report "no train found ..." even if more than one stop could provide items.
+      LTN Now iterates through all provider stops if more than one exists. based on a discussion on the forums with @deadbyte and @pavel.recnik
+  Changes:
+    - backport 2.1 changes
 ---------------------------------------------------------------------------------------------------
 Version: 2.8.1
 Date: 2026-06-22

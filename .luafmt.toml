@@ -1,0 +1,29 @@
+[syntax]
+level = "Lua52"
+
+[indent]
+kind = "Space"
+width = 4
+
+[layout]
+max_line_width = 160
+max_blank_lines = 1
+table_expand = "Auto"
+call_args_expand = "Auto"
+func_params_expand = "Auto"
+prefer_call_args_layout_from_source = true
+prefer_table_layout_from_source = true
+prefer_chain_break_on_statement_tail = false
+prefer_binary_chain_operand_per_line = false
+
+[spacing]
+space_before_lambda_func_paren = false
+
+[output]
+insert_final_newline = true
+trailing_comma = "Never"
+trailing_table_separator = "Multiline"
+quote_style = "Single"
+single_arg_call_parens = "Preserve"
+simple_lambda_single_line = "Preserve"
+end_of_line = "LF"

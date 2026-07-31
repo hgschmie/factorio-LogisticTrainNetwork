@@ -11,7 +11,7 @@ local tools = require('script.tools')
 local schedule = require('script.schedule')
 
 ---@type table<string, fun(signal: Signal, state: ltn.SignalState)>
-local ltn_signals = {
+local LTN_SIGNALS = {
     [ISDEPOT] = function(signal, state) if signal.count > 0 then state.is_depot = true end end,
     [DEPOT_PRIORITY] = function(signal, state) state.depot_priority = signal.count end,
     [ISFUEL_STATION] = function(signal, state) if signal.count > 0 then state.is_fuel_station = true end end,
@@ -182,8 +182,8 @@ function UpdateStop(stopID, stop)
     for _, v in pairs(signals) do
         local signal_name = v.signal.name
         local signal_type = v.signal.type or 'item'
-        if signal_type == 'virtual' and ltn_signals[signal_name] then
-            ltn_signals[signal_name](v, ltn_state)
+        if signal_type == 'virtual' and LTN_SIGNALS[signal_name] then
+            LTN_SIGNALS[signal_name](v, ltn_state)
         elseif (signal_type == 'item' or signal_type == 'fluid') then
             signals_filtered[v.signal] = v.count
         end

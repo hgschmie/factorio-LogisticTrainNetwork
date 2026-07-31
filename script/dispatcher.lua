@@ -37,8 +37,8 @@ function DispatcherOnObjectDestroyed(id)
     for _, delivery in pairs(dispatcher.Deliveries) do
         for idx, surface_connection in pairs(delivery.surface_connections) do
             if not ((surface_connection.entity1 and surface_connection.entity1.valid) and
-                (surface_connection.entity2 and surface_connection.entity2.valid)) then
-                    delivery.surface_connections[idx] = nil
+                    (surface_connection.entity2 and surface_connection.entity2.valid)) then
+                        delivery.surface_connections[idx] = nil
             end
         end
     end
@@ -468,7 +468,7 @@ local function get_station_distance(train, next_station)
 
     if not (needs_front_path or needs_back_path) then return nil end
 
-    local stationPair = current_station.unit_number .. ',' .. next_station.entity.unit_number
+    local stationPair = tools.sortedPair(current_station.unit_number, next_station.entity.unit_number)
     ---@type ltn.StopDistance?
     local stop_distance = storage.StopDistances[stationPair]
 
@@ -746,7 +746,6 @@ function ProcessRequest(reqIndex, request)
             end)
 
             ---@type ltn.EventData.no_train_found_item
-
             local data = {
                 to = to,
                 to_id = toID,
@@ -776,8 +775,8 @@ function ProcessRequest(reqIndex, request)
         return nil
     end
 
-    local providerData = providers[1] -- only one delivery/request is created so use only the best provider
-
+    -- Iterate through all possible providers in case some are inaccessible.
+    for _, providerData in pairs(providers) do
     -- getProviders only returns valid stops with connected rails
     local fromID = assert(providerData.stop.entity).unit_number
     assert(fromID)
@@ -864,34 +863,7 @@ function ProcessRequest(reqIndex, request)
     end
 
     local free_trains = getFreeTrains(providerData, min_carriages, max_carriages, item_info.type, totalStacks)
-    if not free_trains then
-        create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.no-train-found', from, to, matched_network_id_string, tostring(min_carriages), tostring(max_carriages) }, requestForce)
-
-        tools.printmsg(1, function()
-            return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_string, tostring(min_carriages), tostring(max_carriages) }
-        end, requestForce)
-
-        tools.log(5, 'ProcessRequest', 'No train with %d <= length <= %d to transport %d stacks from %s to %s in network %s found in Depot.', function()
-            return min_carriages, max_carriages, totalStacks, from, to, matched_network_id_string
-        end)
-
-        ---@type ltn.EventData.no_train_found_shipment
-        local data = {
-            to = to,
-            to_id = toID,
-            from = from,
-            from_id = fromID,
-            network_id = requestStation.network_id,
-            min_carriages = min_carriages,
-            max_carriages = max_carriages,
-            shipment = tools.createLoadingList(loadingList),
-        }
-
-        script.raise_event(on_dispatcher_no_train_found_event, data)
-
-        dispatcher.Requests_by_Stop[toID][item] = count -- add removed item back to list of requested items.
-        return nil
-    end
+    if free_trains then
 
     local freeTrain = free_trains[1]
 
@@ -1096,4 +1068,35 @@ function ProcessRequest(reqIndex, request)
     end
 
     return selectedTrain.id -- deliveries are indexed by train.id
+        else
+            create_alert(requestStation.entity, 'depot-empty', { 'ltn-message.no-train-found', from, to, matched_network_id_string, tostring(min_carriages), tostring(max_carriages) }, requestForce)
+
+            tools.printmsg(1, function()
+                return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_string, tostring(min_carriages), tostring(max_carriages) }
+            end, requestForce)
+
+            tools.log(5, 'ProcessRequest', 'No train with %d <= length <= %d to transport %d stacks from %s to %s in network %s found in Depot.', function()
+                return min_carriages, max_carriages, totalStacks, from, to, matched_network_id_string
+            end)
+
+            ---@type ltn.EventData.no_train_found_shipment
+            local data = {
+                to = to,
+                to_id = toID,
+                from = from,
+                from_id = fromID,
+                network_id = requestStation.network_id,
+                min_carriages = min_carriages,
+                max_carriages = max_carriages,
+                shipment = tools.createLoadingList(loadingList),
+            }
+
+            script.raise_event(on_dispatcher_no_train_found_event, data)
+
+            dispatcher.Requests_by_Stop[toID][item] = count -- add removed item back to list of requested items.
+        end
+    end
+    -- iterated through all providers and nothing found
+
+    return nil
 end
