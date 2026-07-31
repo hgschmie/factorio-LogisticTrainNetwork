@@ -10,6 +10,8 @@ local tools = require('script.tools')
 local schedule = require('script.schedule')
 local SurfaceInterface = require('script.surface-interface')
 
+local request_processor = require('script.request_processor')
+
 -- amount of time a "knownTrain" record is retained even though the
 -- train has gone away. This allows reassigning information e.g. when
 -- traveling through a space elevator even though the train was destroyed
@@ -241,6 +243,7 @@ local function DispatcherDispatchTrains(event)
                     tools.log(6, 'OnTick', '%d parsing request %d/%d', function()
                         return event.tick, request_index, #dispatcher.Requests
                     end)
+                    -- request_processor:processRequest(request_index, request)
                     ProcessRequest(request_index, request)
                 end
                 request_count = request_count - 1
