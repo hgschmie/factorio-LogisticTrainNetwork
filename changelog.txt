@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.8.2
-Date: ????
+Date: 2026-07-30
   Bugfixes:
     - If a chosen provider stop was inaccessible, LTN would report "no train found ..." even if more than one stop could provide items.
       LTN Now iterates through all provider stops if more than one exists. based on a discussion on the forums with @deadbyte and @pavel.recnik
