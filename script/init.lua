@@ -289,6 +289,26 @@ local function updateAllDeliveries()
     end
 end
 
+local function checkStopNetworkId()
+
+    local stops = {}
+    for stop_id, stop in pairs(storage.LogisticTrainStops) do
+        if not stop.network_id or stop.network_id == 0 then
+            UpdateStop(stop_id, stop)
+            if stop.network_id and stop.network_id == 0 then
+                stops[#stops + 1] = tools.richTextForStop(stop.entity)
+            end
+        end
+    end
+
+    if #stops > 0 then
+        tools.printmsg(0, function()
+            return string.format('[LTN] Found stations without a network id set: %s', table.concat(stops, ', '))
+        end)
+    end
+
+end
+
 ---@param event EventData.on_object_destroyed
 local function onObjectDestroyed(event)
     if SurfaceInterfaceOnObjectDestroyed(event.useful_id) then
@@ -399,6 +419,7 @@ script.on_configuration_changed(function(data)
     initializeTrainStops()
     updateAllTrains()
     updateAllDeliveries()
+    checkStopNetworkId()
 
     tools.log(0, 'on_configuration_changed', '%s %s configuration updated.', function()
         return MOD_NAME, script.active_mods[MOD_NAME]
