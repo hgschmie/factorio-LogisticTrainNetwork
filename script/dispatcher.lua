@@ -676,7 +676,7 @@ function ProcessRequest(reqIndex, request)
     local requestForce = requestStation.entity.force
 
     tools.log(5, 'ProcessRequest', 'request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d', function()
-        return reqIndex, #dispatcher.Requests, count, requestStation.requesting_threshold, item, requestStation.entity.backer_name, to_network_id_string, request.priority, min_carriages, max_carriages
+        return reqIndex, #dispatcher.Requests, count, requestStation.requesting_threshold, item, to, to_network_id_string, request.priority, min_carriages, max_carriages
     end)
 
     if not (dispatcher.Requests_by_Stop[toID] and dispatcher.Requests_by_Stop[toID][item]) then
@@ -729,6 +729,7 @@ function ProcessRequest(reqIndex, request)
                 network_id = requestStation.network_id,
                 item = item
             }
+
             script.raise_event(on_dispatcher_no_train_found_event, data)
             return nil
         end
@@ -746,7 +747,6 @@ function ProcessRequest(reqIndex, request)
             end)
 
             ---@type ltn.EventData.no_train_found_item
-
             local data = {
                 to = to,
                 to_id = toID,
@@ -755,7 +755,6 @@ function ProcessRequest(reqIndex, request)
             }
 
             script.raise_event(on_dispatcher_no_train_found_event, data)
-
             return nil
         end
     end

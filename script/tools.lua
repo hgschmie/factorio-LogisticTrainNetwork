@@ -169,18 +169,18 @@ end
 ---@param loadingList ltn.ItemLoadingElement[]
 ---@return ltn.LoadingList
 function Tools.createLoadingList(loadingList)
-    ---@type ltn.ItemLoadingElement[]
+    ---@type ltn.LoadingElement[]
     local result = {}
 
     for _, element in pairs(loadingList) do
-        table.insert(result, {
+        result[#result + 1] = {
             name = element.item.name,
             type = element.item.type,
             quality = element.item.quality,
             count = element.count,
             localname = element.localname,
             stacks = element.stacks,
-        })
+        }
     end
     return result
 end
@@ -285,9 +285,9 @@ end
 function Tools.richTextForTrain(train, train_name)
     local loco = Tools.getMainLocomotive(train)
     if loco and loco.valid then
-        return string.format('[train=%d] %s', train.id, train_name or loco.backer_name)
+        return string.format('[train=%d] %s', loco.unit_number, train_name or loco.backer_name)
     else
-        return string.format('[train=%d] %s', train.id, train_name)
+        return string.format('%s', train_name)
     end
 end
 
