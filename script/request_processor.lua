@@ -17,6 +17,7 @@ local SurfaceInterface = require('script.surface-interface')
 ---@field free_train ltn.FreeTrain
 ---@field providers table<integer, ltn.CandidateProvider>
 
+
 ---@class ltn.RequestProcessor
 local RequestProcessor = {}
 
@@ -731,9 +732,9 @@ function RequestProcessor:processRequest(reqIndex, request)
 
     tools.printmsg(2, function()
         if #loading_list == 1 then
-            return { 'ltn-message.creating-delivery', from_gps, to_gps, loading_list[1].count, tools.prettyPrint(loading_list[1].item), tools.richTextForTrain(train) }
+            return { 'ltn-message.creating-delivery', from_gps, to_gps, tools.printLoadingList(loading_list), tools.richTextForTrain(train) }
         else
-            return { 'ltn-message.creating-delivery-merged', from_gps, to_gps, total_stacks, tools.richTextForTrain(train) }
+            return { 'ltn-message.creating-delivery-merged', from_gps, to_gps, tools.printLoadingList(loading_list), total_stacks, tools.richTextForTrain(train) }
         end
     end, force)
 
