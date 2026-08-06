@@ -8,6 +8,8 @@
 
 local tools = require('script.tools')
 
+local Console = require('script.console')
+
 local function initialize(oldVersion, newVersion)
     tools.log(0, 'initialize', 'oldVersion: %s, newVersion: %s', function()
         return tostring(oldVersion), tostring(newVersion)
@@ -354,6 +356,8 @@ local function registerEvents()
         remote.call('PickerDollies', 'add_blacklist_name', ltn_stop_output, true)
         remote.call('PickerDollies', 'add_blacklist_name', ltn_stop_output_controller, true)
     end
+
+    Console:registerCommands()
 end
 
 script.on_load(function()

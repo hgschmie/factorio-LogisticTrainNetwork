@@ -101,6 +101,7 @@ By default, the mod automatically ignores electric locomotives named 'et-electri
 ### API
 
 [LTN Settings Documentation](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/SETTINGS.md)
+[LTN Console Documentation](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/CONSOLE.md)
 [LTN API Documentation](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/API.md)
 [LTN additional Documentation](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/MANUAL.md)
 

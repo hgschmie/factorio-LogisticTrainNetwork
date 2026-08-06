@@ -67,15 +67,12 @@ local settings = {
 --- write msg to console for all member of force or all players
 ---@param level number
 ---@param msg_func msg_func
----@param force LuaForce?
-function Tools.printmsg(level, msg_func, force)
+---@param target (LuaForce|LuaPlayer|LuaGameScript)?
+function Tools.printmsg(level, msg_func, target)
     if LtnSettings and ((not LtnSettings.message_level) or (LtnSettings.message_level < level)) then return end
 
-    if force and force.valid then
-        force.print(msg_func(), settings)
-    else
-        game.print(msg_func(), settings)
-    end
+    if not target then target = game end
+    target.print(msg_func(), settings)
 end
 
 -----------------------------------------------------------------------

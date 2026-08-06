@@ -2,6 +2,7 @@
 Version: 2.8.3
 Date: ????
   Changes:
+    - add 'ltn-list-refuel-excluded' console command
 ---------------------------------------------------------------------------------------------------
 Version: 2.8.2
 Date: 2026-07-30
