@@ -197,7 +197,7 @@ function UpdateStop(stopID, stop)
         end)
     end
 
-    local network_id_string = string.format('0x%x', bit32.band(ltn_state.network_id))
+    local network_id_string = tools.networkList(ltn_state.network_id)
 
     local new_state = GetStationType(ltn_state)
     local current_state = GetStationType(stop)

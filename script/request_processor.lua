@@ -744,13 +744,13 @@ function RequestProcessor:processRequest(reqIndex, request)
     local request_network_id = request_stop.network_id
     local to = request_stop.entity.backer_name
     local to_gps = tools.richTextForStop(request_stop.entity) or to
-    local to_network_id = string.format('0x%x', bit32.band(request_network_id))
+    local to_network_ids = tools.networkList(request_network_id)
     local force = request_stop.entity.force
 
     local dispatcher = tools.getDispatcher()
 
     tools.log(5, 'RequestProcessor:processRequest', 'request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d', function()
-        return reqIndex, #dispatcher.Requests, request.count, request_stop.requesting_threshold, request.item, to, to_network_id, request.priority, request_stop.min_carriages, request_stop.max_carriages
+        return reqIndex, #dispatcher.Requests, request.count, request_stop.requesting_threshold, request.item, to, to_network_ids, request.priority, request_stop.min_carriages, request_stop.max_carriages
     end)
 
     if not (dispatcher.Requests_by_Stop[to_id] and dispatcher.Requests_by_Stop[to_id][request.item]) then
@@ -843,7 +843,7 @@ function RequestProcessor:processRequest(reqIndex, request)
     local from_id = provider_stop.entity.unit_number
     local from = provider_stop.entity.backer_name
     local from_gps = tools.richTextForStop(provider_stop.entity) or from
-    local matched_network_id = string.format('0x%x', bit32.band(provider.network_id, request_stop.network_id))
+    local matched_network_ids = tools.networkList(bit32.band(provider.network_id, request_stop.network_id))
     local min_carriages = math.max(request_stop.min_carriages, provider_stop.min_carriages)
     local max_carriages = math.min(request_stop.max_carriages, provider_stop.max_carriages)
 
@@ -869,9 +869,9 @@ function RequestProcessor:processRequest(reqIndex, request)
 
     local free_train = select_train(trains_for_provider[from_id], provider_stop.entity.surface_index, stacks)
     if not free_train then
-        create_alert(request_stop.entity, 'depot-empty', { 'ltn-message.no-train-found', provider_stop.entity.backer_name, request_stop.entity.backer_name, matched_network_id, tostring(min_carriages), tostring(max_carriages) }, force)
+        create_alert(request_stop.entity, 'depot-empty', { 'ltn-message.no-train-found', provider_stop.entity.backer_name, request_stop.entity.backer_name, matched_network_ids, tostring(min_carriages), tostring(max_carriages) }, force)
 
-        tools.printmsg(1, function() return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id, tostring(min_carriages), tostring(max_carriages) } end, force)
+        tools.printmsg(1, function() return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_ids, tostring(min_carriages), tostring(max_carriages) } end, force)
 
         ---@type ltn.EventData.no_train_found_shipment
         local data = {
@@ -917,7 +917,7 @@ function RequestProcessor:processRequest(reqIndex, request)
 
     local total_stacks = primary_is_item and create_merged_delivery(loading_list, free_train, provider, request) or loading_list[1].stacks
 
-    tools.printmsg(3, function() return { 'ltn-message.train-found', from_gps, to_gps, matched_network_id, tostring(free_train.inventory_size), tostring(total_stacks) } end, force)
+    tools.printmsg(3, function() return { 'ltn-message.train-found', from_gps, to_gps, matched_network_ids, tostring(free_train.inventory_size), tostring(total_stacks) } end, force)
 
     tools.printmsg(2, function()
         if #loading_list == 1 then

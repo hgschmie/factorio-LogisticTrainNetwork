@@ -304,6 +304,33 @@ function Tools.richTextForTrain(train, train_name)
     end
 end
 
+local function add_result(result, left, idx)
+    if not left then return end
+    result[#result + 1] = (left == idx) and tostring(left) or tostring(left) .. '-' .. tostring(idx)
+end
+
+---@param network_id integer
+---@return string network_list
+function Tools.networkList(network_id)
+    network_id = bit32.band(network_id)
+
+    local result = {}
+    local mask = 1
+    local left = nil
+    for idx = 1, 32 do
+        if bit32.band(network_id, mask) == mask then
+            if not left then left = idx end
+        else
+            add_result(result, left, idx - 1)
+            left = nil
+        end
+        mask = bit32.lshift(mask, 1)
+    end
+    add_result(result, left, 32)
+
+    return table.concat(result, ', ') .. (' (0x%x)'):format(network_id)
+end
+
 -----------------------------------------------------------------------
 -- Validation
 -----------------------------------------------------------------------

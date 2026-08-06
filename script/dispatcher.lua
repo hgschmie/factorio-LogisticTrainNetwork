@@ -406,9 +406,8 @@ local function getProviders(requestStation, item, req_count, min_length, max_len
                     -- check if surface transition is possible
                     local surface_connections = SurfaceInterface.FindSurfaceConnections(surface, stop.entity.surface, force, matched_networks)
                     if surface_connections then -- for same surfaces surface_connections = {}
-                        local from_network_id_string = string.format('0x%x', bit32.band(stop.network_id))
                         tools.log(5, 'GetProviders', 'found %d(%d)/%d %s at %s {%s}, priority: %s, active Deliveries: %d, min_carriages: %d, max_carriages: %d, locked Slots: %d, #surface_connections: %d', function()
-                            return count, stop.providing_threshold, req_count, item, stop.entity.backer_name, from_network_id_string, stop.provider_priority, activeDeliveryCount, stop.min_carriages, stop.max_carriages, stop.locked_slots, #surface_connections
+                            return count, stop.providing_threshold, req_count, item, stop.entity.backer_name, tools.networkList(stop.network_id), stop.provider_priority, activeDeliveryCount, stop.min_carriages, stop.max_carriages, stop.locked_slots, #surface_connections
                         end)
 
                         table.insert(stations, {
@@ -550,10 +549,7 @@ local function getFreeTrains(nextStop, min_carriages, max_carriages, type, size)
             end
 
             tools.log(5, 'getFreeTrains', 'checking train %s, force %s/%s, network %s/%s, priority: %d, length: %d<=%d<=%d, inventory size: %d/%d, distance: %s', function()
-                local depot_network_id_string = string.format('0x%x', bit32.band(trainData.network_id))
-                local dest_network_id_string = string.format('0x%x', bit32.band(nextStop.network_id))
-
-                return tools.getTrainName(trainData.train), trainData.force.name, nextStop.stop.entity.force.name, depot_network_id_string, dest_network_id_string, trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size,
+                return tools.getTrainName(trainData.train), trainData.force.name, nextStop.stop.entity.force.name, tools.networkList(trainData.network_id), tools.networkList(nextStop.network_id), trainData.depot_priority, min_carriages, #trainData.train.carriages, max_carriages, inventorySize, size,
                     get_station_distance(trainData.train, nextStop.stop) or '<no path found>'
             end)
 
@@ -669,7 +665,7 @@ function ProcessRequest(reqIndex, request)
     local surface_name = requestStation.entity.surface.name
     local to = requestStation.entity.backer_name
     local to_gps = tools.richTextForStop(requestStation.entity) or to
-    local to_network_id_string = string.format('0x%x', bit32.band(requestStation.network_id))
+    local to_network_id_string = tools.networkList(requestStation.network_id)
     ---@type ltn.ItemIdentifier
     local item = request.item
     local count = request.count
@@ -786,7 +782,7 @@ function ProcessRequest(reqIndex, request)
 
         local from = providerData.stop.entity.backer_name
         local from_gps = tools.richTextForStop(providerData.stop.entity) or from
-        local matched_network_id_string = string.format('0x%x', bit32.band(providerData.network_id))
+        local matched_network_id_string = tools.networkList(providerData.network_id)
 
         tools.printmsg(3, function()
             return { 'ltn-message.provider-found', from_gps, tostring(providerData.priority), tostring(providerData.activeDeliveryCount), providerData.count, tools.prettyPrint(item_info) }
