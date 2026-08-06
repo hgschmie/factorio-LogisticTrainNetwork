@@ -155,14 +155,23 @@ function Tools.prettyPrint(item_info)
 end
 
 ---@param loading_list ltn.ItemLoadingElement[]
----@return string result
+---@return LocalisedString result
 function Tools.printLoadingList(loading_list)
-    local elements = {}
-    for _, loading_element in pairs(loading_list) do
-        elements[#elements + 1] = ('%d %s'):format(loading_element.stacks, Tools.prettyPrint(loading_element.item))
-    end
+    ---@type LocalisedString
+    local elements = { '' }
 
-    return table.concat(elements, ', ')
+    for _, loading_element in pairs(loading_list) do
+        elements[#elements + 1] = tostring(loading_element.count)
+        if loading_element.item.type == 'item' then
+            elements[#elements + 1] = { 'ltn-message.stacks', tostring(loading_element.stacks) }
+        end
+        elements[#elements + 1] = ' '
+        elements[#elements + 1] = Tools.prettyPrint(loading_element.item)
+        elements[#elements + 1] = ', '
+    end
+    if #elements > 1 then elements[#elements] = nil end
+
+    return elements
 end
 
 --- Returns the smaller value from the StopDistance cache if it exists.
