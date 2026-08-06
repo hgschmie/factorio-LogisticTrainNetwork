@@ -403,7 +403,6 @@ local function compute_path(from_stop, to_stops, reverse)
         -- remove unreachable stops
         for _, stop in pairs(to_stops) do
             local distance = get_cached_distance(from_stop, stop)
-            distance.tick = game.tick
             if reverse then
                 distance.backwards_distance = nil
             else
@@ -430,25 +429,41 @@ local function validate_reachable_stops(train_candidate, provider_to_train_metri
 
     if not (needs_front_path or needs_back_path) then
         train_candidate.providers = {} -- can not reach any provider
-        return
-    end
+    else
+        ---@type LuaEntity[]
+        local forward_stops = {}
 
-    local forward_stops = {}
-    local backward_stops = {}
-    for _, provider in pairs(train_candidate.providers) do
-        local provider_stop = provider.provider.stop.entity
-        local distance = get_cached_distance(depot_stop, provider_stop)
-        if needs_front_path and not distance.distance then forward_stops[#forward_stops + 1] = provider_stop end
-        if needs_back_path and not distance.backwards_distance then backward_stops[#backward_stops + 1] = provider_stop end
-        provider.distance = distance
-    end
+        ---@type LuaEntity[]
+        local backward_stops = {}
 
-    if #forward_stops > 0 then compute_path(depot_stop, forward_stops, false) end
-    if #backward_stops > 0 then compute_path(depot_stop, backward_stops, false) end
+        for _, provider in pairs(train_candidate.providers) do
+            local provider_stop = provider.provider.stop.entity
+            local distance = get_cached_distance(depot_stop, provider_stop)
+            if provider_stop.surface_index == depot_stop.surface_index then
+                if needs_front_path and not distance.distance then forward_stops[#forward_stops + 1] = provider_stop end
+                if needs_back_path and not distance.backwards_distance then backward_stops[#backward_stops + 1] = provider_stop end
+            else
+                distance.distance = -1
+                distance.backwards_distance = -1
+            end
+            provider.distance = distance
+        end
 
-    for provider_id, provider in pairs(train_candidate.providers) do
-        if not tools.getStopDistance(provider.distance) then
-            train_candidate.providers[provider_id] = nil
+        if #forward_stops > 0 then compute_path(depot_stop, forward_stops, false) end
+        if #backward_stops > 0 then compute_path(depot_stop, backward_stops, true) end
+
+        for provider_id, provider in pairs(train_candidate.providers) do
+            if not tools.getStopDistance(provider.distance) then
+                train_candidate.providers[provider_id] = nil
+
+                provider_to_train_metrics[provider_id]:inc('unreachable')
+                provider_to_train_metrics[provider_id]:dec('match_count')
+                assert(not provider_to_train_metrics[provider_id].trains[train.id])
+
+                local train_metrics = Metrics.create()
+                train_metrics:set('unreachable', 1)
+                provider_to_train_metrics[provider_id].trains[train.id] = train_metrics
+            end
         end
     end
 end
@@ -541,8 +556,8 @@ local function select_train(free_trains, provider_surface_index, stacks)
             return b.inventory_size < stacks and b.inventory_size < a.inventory_size
         else
             -- if one stop is on the same surface and the other is not, return
-            if not a.provider_distance then return false end
-            if not b.provider_distance then return true end
+            if not a.provider_distance or a.provider_distance == -1 then return false end
+            if not b.provider_distance or b.provider_distance == -1 then return true end
 
             if math.abs(a.provider_distance - b.provider_distance) >= fudge_factor then
                 return a.provider_distance < b.provider_distance
