@@ -9,6 +9,24 @@
 ---@class ltn.Metrics: { [string]: integer }
 local Metrics = {}
 
+Metrics.PROCESS_REQUEST_METRICS = {
+    'no_matching_network',
+    'stop_is_full',
+    'ineligible_trains',
+    'only_cargo_wagons',
+    'only_fluid_wagons',
+    'empty_train',
+    'unreachable',
+    'different_surface',
+    'different_force',
+    'provider_min_too_long',
+    'provider_max_too_short',
+    'train_too_short',
+    'train_too_long',
+    'train_invalid',
+    'invalid_stop',
+}
+
 Metrics.__index = Metrics
 
 --- Sets a metric to a given value. Creates the metric if it does not exist yet.
@@ -17,6 +35,13 @@ Metrics.__index = Metrics
 ---@param value integer
 function Metrics:set(key, value)
     rawset(self, key, value)
+end
+
+--- Gets a metric value.
+---@param key string
+---@return integer value
+function Metrics:get(key)
+    return rawget(self, key) or 0
 end
 
 --- Increments a metric by one. Creates the metric with a value of 1 if it does not exist yet.
@@ -47,6 +72,34 @@ function Metrics:merge(other)
     for key, value in pairs(other) do
         rawset(self, key, (rawget(self, key) or 0) + value)
     end
+end
+
+---@param result_collector any[]
+---@param metrics_key string
+---@return any[] result_collector
+function Metrics:add_metric(result_collector, metrics_key)
+    local metrics_value = rawget(self, metrics_key)
+    if metrics_value and (metrics_value > 0) then
+        result_collector[#result_collector + 1] = { 'metrics.' .. metrics_key }
+        result_collector[#result_collector + 1] = ': '
+        result_collector[#result_collector + 1] = tostring(metrics_value)
+        result_collector[#result_collector + 1] = ', '
+    end
+
+    return result_collector
+end
+
+---@param result_collector any[]
+---@param metrics_names string
+---@return any[] result_collector
+function Metrics:summarize(result_collector, metrics_names)
+    local metrics_keys = assert(Metrics[metrics_names]) --[[@as string[] ]]
+    for _, metrics_key in pairs(metrics_keys) do
+        self:add_metric(result_collector, metrics_key)
+    end
+    if #result_collector > 1 then result_collector[#result_collector] = nil end
+
+    return result_collector
 end
 
 --- Creates a new, empty metrics collector.

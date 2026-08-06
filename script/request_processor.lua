@@ -78,9 +78,7 @@ local function match_stops_by_surface(request_stop, provider_stop, network_mask,
 
     local result = SurfaceInterface.FindSurfaceConnections(request_stop.entity.surface, provider_stop.entity.surface, request_stop.entity.force, network_mask)
 
-    if not result then
-        metrics:inc('different_surface')
-    end
+    if not result then metrics:inc('different_surface') end
 
     return result
 end
@@ -129,9 +127,7 @@ local function train_matches_stop_by_surface(train, stop, network_mask, metrics)
 
     local result = SurfaceInterface.FindSurfaceConnections(train.train.station.surface, stop.entity.surface, train.force, network_mask)
 
-    if not result then
-        metrics:inc('different_surface')
-    end
+    if not result then metrics:inc('different_surface') end
 
     return result
 end
@@ -287,10 +283,9 @@ local function get_free_trains(provider, request_stop, primary_is_item, train_me
                     surface_connections = surface_connections,
                     select_count = train_data.select_count or 0,
                 }
-
             end
         else
-            metrics:inc('train-invalid')
+            metrics:inc('train_invalid')
 
             -- remove invalid train from dispatcher availableTrains
             tools.reduceAvailableCapacity(train_id)
@@ -798,18 +793,23 @@ function RequestProcessor:processRequest(reqIndex, request)
     -- 1) Establish all routes between possible providers and requesters.
 
     local provider_metrics = Metrics.create()
-    -- total_count = 0,            -- total number of elements evaluated
-    -- match_count = 0,            -- matching elements found
-
-    -- invalid_stop = 0,           -- stop was tested and found invalid
     -- provider_min_too_long = 0,  -- provider min train length > requester max train length
     -- provider_max_too_short = 0, -- provider max train length < requester min train length
     -- different_force = 0,        -- provider force does not match requester force
-    -- train_too_short = 0,        -- train is too short for station
-    -- train_too_long = 0,         -- train is too long for station
-    -- stop_is_full = 0,           -- train stop has all the active deliveries it can handle
-    -- different_surface = 0,      -- stops are on different surfaces and no connections exist
     -- no_matching_network = 0,    -- no network between provider stop and requester stop
+    -- different_surface = 0,      -- stops are on different surfaces and no connections exist
+    -- train_too_short
+    -- train_too_long
+    -- only_fluid_wagons
+    -- only_cargo_wagons
+    -- empty_train
+    -- stop_is_full = 0,           -- train stop has all the active deliveries it can handle
+    -- train_invalid
+    -- unreachable
+    -- invalid_stop = 0,           -- stop was tested and found invalid
+    -- total_count = 0,            -- total number of elements evaluated
+    -- match_count = 0,            -- matching elements found
+    -- unselected_trains = 0       -- trains considered but not selected
 
     local providers = get_providers(request, request_stop, provider_metrics)
 
@@ -832,7 +832,16 @@ function RequestProcessor:processRequest(reqIndex, request)
     local provider = select_provider(providers, trains_for_provider)
     if not provider then
         if not request_stop.no_warnings then
-            tools.printmsg(1, function() return { 'ltn-message.no-provider-found', to_gps, tools.prettyPrint(item_info), to_network_id } end, force)
+
+            for _, provider_to_train_metric in pairs(provider_to_train_metrics) do
+                if provider_to_train_metric:get('match_count') == 0 then provider_metrics:inc('ineligible_trains') end
+            end
+
+            local total_count = provider_metrics:get('total_count')
+            local msg = (total_count == 0) and 'ltn-message.no-provider-found' or 'ltn-message.no-provider-available'
+            local metrics_result = provider_metrics:summarize({'', }, 'PROCESS_REQUEST_METRICS')
+
+            tools.printmsg(1, function() return { msg, to_gps, tools.prettyPrint(item_info), to_network_ids, metrics_result, total_count } end, force)
         end
 
         return nil
