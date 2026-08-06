@@ -295,11 +295,17 @@ end
 --- Returns True if the stop exists, its main entity is valid and has a rail connected.
 --- This is good enough to e.g. determine whether a stop can be used in schedule (delivery, fuel station, depot)
 ---@param stop (ltn.TrainStop|LuaEntity)?
+---@param metrics ltn.Metrics? Tracks error state
 ---@return boolean is_valid
-function Tools.isStopValid(stop)
-    if not stop then return false end
-    local entity = type(stop) == 'userdata' and stop or stop.entity
-    return entity.valid and entity.connected_rail and entity.connected_rail.valid and true or false
+function Tools.isStopValid(stop, metrics)
+    local result = false
+    if stop then
+        local entity = type(stop) == 'userdata' and stop or stop.entity
+        result = entity.valid and entity.connected_rail and entity.connected_rail.valid and true or false
+    end
+    if metrics and not result then metrics:inc('invalid_stop') end
+
+    return result
 end
 
 --- Returns True if the internal state of the train stop is consistent. Checks that all internal entities are

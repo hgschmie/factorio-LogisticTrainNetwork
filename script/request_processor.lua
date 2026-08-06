@@ -8,6 +8,7 @@ local util = require('util')
 local tools = require('script.tools')
 local schedule = require('script.schedule')
 local SurfaceInterface = require('script.surface-interface')
+local Metrics = require('script.metrics')
 
 ---@class ltn.CandidateProvider
 ---@field provider ltn.Provider
@@ -35,81 +36,210 @@ end
 
 ---@param request_stop ltn.TrainStop
 ---@param provider_stop ltn.TrainStop
+---@param metrics ltn.Metrics
 ---@return boolean matches
-local function match_stops_by_train_length(request_stop, provider_stop)
-    return (provider_stop.min_carriages == 0) or (request_stop.max_carriages == 0) or (provider_stop.min_carriages <= request_stop.max_carriages)
-        and (provider_stop.max_carriages == 0) or (request_stop.min_carriages == 0) or (provider_stop.max_carriages >= request_stop.min_carriages)
-end
+local function match_stops_by_train_length(request_stop, provider_stop, metrics)
+    local match_min = (provider_stop.min_carriages == 0) or (request_stop.max_carriages == 0) or (provider_stop.min_carriages <= request_stop.max_carriages)
+    local match_max = (provider_stop.max_carriages == 0) or (request_stop.min_carriages == 0) or (provider_stop.max_carriages >= request_stop.min_carriages)
 
----@param train ltn.Train
----@param stop ltn.TrainStop
----@return boolean
-local function train_matches_station_by_length(train, stop)
-    return ((stop.min_carriages == 0) or (#train.train.carriages >= stop.min_carriages))
-        and ((stop.max_carriages == 0) or (#train.train.carriages <= stop.max_carriages))
-end
+    if not match_min then metrics:inc('provider_min_too_long') end
+    if not match_max then metrics:inc('provider_max_too_short') end
 
----@param stop ltn.TrainStop
----@return boolean
-local function can_accept_train(stop)
-    local activeDeliveryCount = #stop.active_deliveries
-    return (stop.max_trains == 0) or (activeDeliveryCount == 0) or (activeDeliveryCount < stop.max_trains)
+    return match_min and match_max
 end
 
 ---@param request_stop ltn.TrainStop
 ---@param provider_stop ltn.TrainStop
+---@param metrics ltn.Metrics
+---@return boolean matches
+local function match_stops_by_force(request_stop, provider_stop, metrics)
+    local forces_match = provider_stop.entity.force == request_stop.entity.force
+    if not forces_match then metrics:inc('different_force') end
+    return forces_match
+end
+
+---@param request_stop ltn.TrainStop
+---@param provider_stop ltn.TrainStop
+---@param metrics ltn.Metrics
+---@return integer network_mask
+local function match_stops_by_network(request_stop, provider_stop, metrics)
+    local network_mask = bit32.band(request_stop.network_id, provider_stop.network_id)
+    if network_mask == 0 then metrics:inc('no_matching_network') end
+    return network_mask
+end
+
+---@param request_stop ltn.TrainStop
+---@param provider_stop ltn.TrainStop
+---@param network_mask integer
+---@param metrics ltn.Metrics
 ---@return ltn.SurfaceConnection[]?
-local function surface_compatible(request_stop, provider_stop, network_mask)
+local function match_stops_by_surface(request_stop, provider_stop, network_mask, metrics)
     if network_mask == 0 then return nil end
-    return SurfaceInterface.FindSurfaceConnections(request_stop.entity.surface, provider_stop.entity.surface, request_stop.entity.force, network_mask)
+
+    local result = SurfaceInterface.FindSurfaceConnections(request_stop.entity.surface, provider_stop.entity.surface, request_stop.entity.force, network_mask)
+
+    if not result then
+        metrics:inc('different_surface')
+    end
+
+    return result
+end
+
+---@param train ltn.Train
+---@param stop ltn.TrainStop
+---@param metrics ltn.Metrics
+---@return boolean
+local function train_matches_stop_by_length(train, stop, metrics)
+    local min_len_ok = (stop.min_carriages == 0) or (#train.train.carriages >= stop.min_carriages)
+    local max_len_ok = (stop.max_carriages == 0) or (#train.train.carriages <= stop.max_carriages)
+
+    if not min_len_ok then metrics:inc('train_too_short') end
+    if not max_len_ok then metrics:inc('train_too_long') end
+
+    return min_len_ok and max_len_ok
+end
+
+---@param train ltn.Train
+---@param stop ltn.TrainStop
+---@param metrics ltn.Metrics
+---@return boolean
+local function train_matches_stop_by_force(train, stop, metrics)
+    local forces_match = train.force == stop.entity.force
+    if not forces_match then metrics:inc('different_force') end
+    return forces_match
+end
+
+---@param train ltn.Train
+---@param stop ltn.TrainStop
+---@param metrics ltn.Metrics
+---@return integer network_mask
+local function train_matches_stop_by_network(train, stop, metrics)
+    local network_mask = bit32.band(train.network_id, stop.network_id)
+    if network_mask == 0 then metrics:inc('no_matching_network') end
+    return network_mask
+end
+
+---@param train ltn.Train
+---@param stop ltn.TrainStop
+---@param network_mask integer
+---@param metrics ltn.Metrics
+---@return ltn.SurfaceConnection[]?
+local function train_matches_stop_by_surface(train, stop, network_mask, metrics)
+    if network_mask == 0 then return nil end
+
+    local result = SurfaceInterface.FindSurfaceConnections(train.train.station.surface, stop.entity.surface, train.force, network_mask)
+
+    if not result then
+        metrics:inc('different_surface')
+    end
+
+    return result
+end
+
+---@param train ltn.Train
+---@param locked_slots integer
+---@param primary_is_item boolean
+---@param metrics ltn.Metrics
+---@return integer inventory_size
+local function get_train_inventory_size(train, locked_slots, primary_is_item, metrics)
+    local item_inventory_size = (train.capacity - (locked_slots * #train.train.cargo_wagons))
+    local fluid_inventory_size = train.fluid_capacity
+
+    if primary_is_item then
+        if item_inventory_size == 0 then
+            if fluid_inventory_size > 0 then
+                metrics:inc('only_fluid_wagons')
+            else
+                metrics:inc('empty_train')
+            end
+        end
+        return item_inventory_size
+    else
+        if fluid_inventory_size == 0 then
+            if item_inventory_size > 0 then
+                metrics:inc('only_cargo_wagons')
+            else
+                metrics:inc('empty_train')
+            end
+        end
+        return fluid_inventory_size
+    end
+end
+
+---@param stop ltn.TrainStop
+---@param metrics ltn.Metrics
+---@return boolean
+local function can_accept_train(stop, metrics)
+    local activeDeliveryCount = #stop.active_deliveries
+    local result = (stop.max_trains == 0) or (activeDeliveryCount == 0) or (activeDeliveryCount < stop.max_trains)
+
+    if not result then metrics:inc('stop_is_full') end
+
+    return result
 end
 
 -- return a map of all potential providers for this request
 ---@param request ltn.Request
 ---@param request_stop ltn.TrainStop
+---@param metrics ltn.Metrics
 ---@return table<integer, ltn.Provider>
-local function get_providers(request, request_stop)
+local function get_providers(request, request_stop, metrics)
     local dispatcher = tools.getDispatcher()
 
     ---@type table<integer, ltn.Provider>
-    local provider_stops = {}
+    local providers = {}
 
-    local providers = dispatcher.Provided[request.item]
-    if not providers then return provider_stops end
+    metrics:set('total_count', 0)
+    metrics:set('match_count', 0)
 
-    for provider_id, available_count in pairs(providers) do
+    local provider_candidates = dispatcher.Provided[request.item]
+    if not provider_candidates then return providers end
+
+    metrics:set('total_count', table_size(provider_candidates))
+
+    for provider_id, available_count in pairs(provider_candidates) do
         local provider_stop = storage.LogisticTrainStops[provider_id]
 
         -- stop must be valid and match requester force
-        if tools.isStopValid(provider_stop) and provider_stop.entity.force == request_stop.entity.force
+        if not tools.isStopValid(provider_stop, metrics) then goto continue end
+
+        -- network must match
+        local matched_networks = match_stops_by_network(request_stop, provider_stop, metrics)
+        if matched_networks == 0 then goto continue end
+
+        --  there must be a surface connection
+        local surface_connections = match_stops_by_surface(request_stop, provider_stop, matched_networks, metrics)
+        if not surface_connections then goto continue end
+
+        if match_stops_by_force(request_stop, provider_stop, metrics)
             -- there must be a compatible set of train length between them
-            and match_stops_by_train_length(request_stop, provider_stop)
+            and match_stops_by_train_length(request_stop, provider_stop, metrics)
             -- the provider must still accept another train
-            and can_accept_train(provider_stop) then
-            local network_mask = bit32.band(request_stop.network_id, provider_stop.network_id)
-            local surface_connections = surface_compatible(request_stop, provider_stop, network_mask)
-            -- network must match and there must be a surface connection
-            if network_mask ~= 0 and surface_connections then
-                provider_stops[provider_stop.entity.unit_number] = {
-                    stop = provider_stop,
-                    network_id = network_mask,
-                    priority = provider_stop.provider_priority,
-                    activeDeliveryCount = #provider_stop.active_deliveries,
-                    item = request.item,
-                    count = available_count,
-                    providing_threshold = provider_stop.providing_threshold,
-                    providing_threshold_stacks = provider_stop.providing_threshold_stacks,
-                    min_carriages = provider_stop.min_carriages,
-                    max_carriages = provider_stop.max_carriages,
-                    locked_slots = provider_stop.locked_slots,
-                    surface_connections = surface_connections,
-                    surface_connections_count = #surface_connections,
-                }
-            end
+            and can_accept_train(provider_stop, metrics) then
+
+            providers[provider_stop.entity.unit_number] = {
+                stop = provider_stop,
+                network_id = matched_networks,
+                priority = provider_stop.provider_priority,
+                activeDeliveryCount = #provider_stop.active_deliveries,
+                item = request.item,
+                count = available_count,
+                providing_threshold = provider_stop.providing_threshold,
+                providing_threshold_stacks = provider_stop.providing_threshold_stacks,
+                min_carriages = provider_stop.min_carriages,
+                max_carriages = provider_stop.max_carriages,
+                locked_slots = provider_stop.locked_slots,
+                surface_connections = surface_connections,
+                surface_connections_count = #surface_connections,
+            }
         end
+
+        ::continue::
     end
 
-    return provider_stops
+    metrics:set('match_count', table_size(providers))
+
+    return providers
 end
 
 -- returns: available trains in depots or nil
@@ -117,44 +247,63 @@ end
 ---@param provider ltn.Provider
 ---@param request_stop ltn.TrainStop
 ---@param primary_is_item boolean
+---@param train_metrics ltn.Metrics
 ---@return table<integer, ltn.FreeTrain>
-local function get_free_trains(provider, request_stop, primary_is_item)
+local function get_free_trains(provider, request_stop, primary_is_item, train_metrics)
     local dispatcher = tools.getDispatcher()
 
     ---@type table<integer, ltn.FreeTrain>
     local free_trains = {}
 
+    train_metrics:set('total_count', table_size(dispatcher.availableTrains))
+
+    ---@diagnostic disable-next-line: assign-type-mismatch
+    train_metrics.trains = {}
+
     for train_id, train_data in pairs(dispatcher.availableTrains) do
-        if train_data.train.valid and tools.isStopValid(train_data.train.station)
-            and train_matches_station_by_length(train_data, request_stop)
-            and train_matches_station_by_length(train_data, provider.stop)
-            and train_data.force == provider.stop.entity.force then
-            local inventory_size = primary_is_item
-                and train_data.capacity - (provider.locked_slots * #train_data.train.cargo_wagons)
-                or train_data.fluid_capacity
-            local matched_networks = bit32.band(train_data.network_id, provider.network_id)
+        local metrics = Metrics.create()
 
-            if inventory_size > 0 and matched_networks ~= 0 then
-                local surface_connections = SurfaceInterface.FindSurfaceConnections(train_data.train.station.surface, provider.stop.entity.surface, train_data.force, matched_networks)
+        if train_data.train.valid then
+            if not tools.isStopValid(train_data.train.station, metrics) then goto continue end
 
-                if surface_connections
-                    -- either train is on the same surface as the next stop or cross surface delivery is allowed
-                    and (#surface_connections == 0 or LtnSettings.advanced_cross_surface_delivery) then
-                    free_trains[train_data.train.id] = {
-                        train = train_data.train,
-                        surface = train_data.surface,
-                        inventory_size = inventory_size,
-                        depot_priority = train_data.depot_priority,
-                        surface_connections = surface_connections,
-                        select_count = train_data.select_count or 0,
-                    }
-                end
+            local inventory_size = get_train_inventory_size(train_data, provider.locked_slots, primary_is_item, metrics)
+            if inventory_size == 0 then goto continue end
+
+            local matched_networks = train_matches_stop_by_network(train_data, provider.stop, metrics)
+            if matched_networks == 0 then goto continue end
+
+            local surface_connections = train_matches_stop_by_surface(train_data, provider.stop, matched_networks, metrics)
+            if not (surface_connections and (#surface_connections == 0 or LtnSettings.advanced_cross_surface_delivery)) then goto continue end
+
+            if train_matches_stop_by_force(train_data, provider.stop, metrics)
+                and train_matches_stop_by_length(train_data, request_stop, metrics)
+                and train_matches_stop_by_length(train_data, provider.stop, metrics) then
+
+                free_trains[train_id] = {
+                    train = train_data.train,
+                    surface = train_data.surface,
+                    inventory_size = inventory_size,
+                    depot_priority = train_data.depot_priority,
+                    surface_connections = surface_connections,
+                    select_count = train_data.select_count or 0,
+                }
+
             end
         else
+            metrics:inc('train-invalid')
+
             -- remove invalid train from dispatcher availableTrains
             tools.reduceAvailableCapacity(train_id)
         end
+
+        ::continue::
+        if not free_trains[train_id] then
+            train_metrics:merge(metrics)
+            train_metrics.trains[train_id] = metrics
+        end
     end
+
+    train_metrics:set('match_count', table_size(free_trains))
 
     return free_trains
 end
@@ -164,13 +313,17 @@ end
 ---@param providers table<integer, ltn.Provider>
 ---@param request_stop ltn.TrainStop
 ---@param primary_is_item boolean
+---@param provider_to_train_metrics table<integer, ltn.Metrics>
 ---@return table<integer, ltn.TrainCandidate>
-local function map_train_candidates(providers, request_stop, primary_is_item)
+local function map_train_candidates(providers, request_stop, primary_is_item, provider_to_train_metrics)
     ---@type table<integer, ltn.TrainCandidate>
     local train_candidates = {}
 
     for provider_id, provider in pairs(providers) do
-        local free_trains = get_free_trains(provider, request_stop, primary_is_item)
+        local train_metrics = Metrics.create()
+        local free_trains = get_free_trains(provider, request_stop, primary_is_item, train_metrics)
+
+        provider_to_train_metrics[provider_id] = train_metrics
 
         for free_train_id, free_train in pairs(free_trains) do
             train_candidates[free_train_id] = train_candidates[free_train_id] or {
@@ -265,7 +418,8 @@ end
 --- Finds all the stops that each train can actually go to. If a stop is unreachable,
 --- prune it from the list of candidates.
 ---@param train_candidate ltn.TrainCandidate
-local function validate_reachable_stops(train_candidate)
+---@param provider_to_train_metrics table<integer, ltn.Metrics>
+local function validate_reachable_stops(train_candidate, provider_to_train_metrics)
     local train = train_candidate.free_train.train
 
     -- depot where the train is currently sitting
@@ -301,13 +455,14 @@ end
 
 -- find all trains that can serve a provider, prune out the ones that don't
 ---@param train_candidates table<integer, ltn.TrainCandidate>
+---@param provider_to_train_metrics table<integer, ltn.Metrics>
 ---@return table<integer, ltn.FreeTrain[]>
-local function prune_train_candidates(train_candidates)
+local function prune_train_candidates(train_candidates, provider_to_train_metrics)
     ---@type table<integer, ltn.FreeTrain[]>
     local trains_for_provider = {}
 
     for train_candidate_id, train_candidate in pairs(train_candidates) do
-        validate_reachable_stops(train_candidate)
+        validate_reachable_stops(train_candidate, provider_to_train_metrics)
         if table_size(train_candidate.providers) == 0 then
             train_candidates[train_candidate_id] = nil
         else
@@ -627,15 +782,34 @@ function RequestProcessor:processRequest(reqIndex, request)
 
     -- 1) Establish all routes between possible providers and requesters.
 
-    local providers = get_providers(request, request_stop)
+    local provider_metrics = Metrics.create()
+    -- total_count = 0,            -- total number of elements evaluated
+    -- match_count = 0,            -- matching elements found
+
+    -- invalid_stop = 0,           -- stop was tested and found invalid
+    -- provider_min_too_long = 0,  -- provider min train length > requester max train length
+    -- provider_max_too_short = 0, -- provider max train length < requester min train length
+    -- different_force = 0,        -- provider force does not match requester force
+    -- train_too_short = 0,        -- train is too short for station
+    -- train_too_long = 0,         -- train is too long for station
+    -- stop_is_full = 0,           -- train stop has all the active deliveries it can handle
+    -- different_surface = 0,      -- stops are on different surfaces and no connections exist
+    -- no_matching_network = 0,    -- no network between provider stop and requester stop
+
+    local providers = get_providers(request, request_stop, provider_metrics)
+
+    ---@type table<integer, ltn.Metrics>
+    local provider_to_train_metrics = {}
 
     -- maps all potential stops for each train
-    local train_candidates = map_train_candidates(providers, request_stop, primary_is_item)
+    local train_candidates = map_train_candidates(providers, request_stop, primary_is_item, provider_to_train_metrics)
 
     -- 2) find all trains that can actually serve the routes
 
     ---@type table<integer, ltn.FreeTrain[]>
-    local trains_for_provider = prune_train_candidates(train_candidates)
+    local trains_for_provider = prune_train_candidates(train_candidates, provider_to_train_metrics)
+
+    provider_metrics:set('match_count', table_size(trains_for_provider))
 
     -- 3) remove all providers that have no train going to it.
     --    Sort the result by priority, connection_count, active delivery count and item count
