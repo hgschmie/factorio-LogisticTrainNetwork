@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.9.0
-Date: ????
+Date: 2026-08-06
   Major Features:
     - Rewrote the request processor to cover more situations where multiple providers exist but not all are available. This should consistently provide better matches and distribution across multiple providers. There may be some obscure problems lurking in extreme corner cases, so any bug reports are welcome.
   Changes:
