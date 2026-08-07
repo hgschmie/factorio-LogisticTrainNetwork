@@ -46,10 +46,7 @@ LtnSettings = LtnSettings or {}
 
 ---@type table<string, fun(settings: ltn.Settings, name: string): boolean?>
 local change_settings = {
-    ['ltn-interface-console-level'] = function(ltn_settings, name)
-        ltn_settings.message_level = tonumber(settings.global[name].value)
-        message_level = ltn_settings.message_level -- legacy
-    end,
+    ['ltn-interface-console-level'] = function(ltn_settings, name) ltn_settings.message_level = tonumber(settings.global[name].value) end,
     ['ltn-interface-message-gps'] = function(ltn_settings, name) ltn_settings.message_include_gps = settings.global[name].value end,
     ['ltn-interface-debug-logfile'] = function(ltn_settings, name) ltn_settings.debug_log = settings.global[name].value > 0 and settings.global[name].value or nil end,
     ['ltn-dispatcher-requester-threshold'] = function(ltn_settings, name) ltn_settings.min_requested = settings.global[name].value end,

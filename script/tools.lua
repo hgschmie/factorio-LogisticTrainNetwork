@@ -161,13 +161,26 @@ function Tools.printLoadingList(loading_list)
     local elements = { '' }
 
     for _, loading_element in pairs(loading_list) do
-        elements[#elements + 1] = tostring(loading_element.count)
+        local sub_element = { '' }
+        sub_element[#sub_element + 1] = tostring(loading_element.count)
         if loading_element.item.type == 'item' then
-            elements[#elements + 1] = { 'ltn-message.stacks', tostring(loading_element.stacks) }
+            sub_element[#sub_element + 1] = ' ('
+            sub_element[#sub_element + 1] = Tools.pluralize('ltn-message.stack', loading_element.stacks)
+            sub_element[#sub_element + 1] = ')'
         end
-        elements[#elements + 1] = ' '
-        elements[#elements + 1] = Tools.prettyPrint(loading_element.item)
+
+        sub_element[#sub_element + 1] = ' '
+        sub_element[#sub_element + 1] = Tools.prettyPrint(loading_element.item)
+
+        elements[#elements + 1] = sub_element
         elements[#elements + 1] = ', '
+
+        if #elements > 18 then
+            -- ensure that for extremely long mixed deliveries we don't run into the localisation print
+            -- limits
+            elements[#elements + 1] = '...'
+            return elements
+        end
     end
     if #elements > 1 then elements[#elements] = nil end
 
@@ -320,14 +333,17 @@ end
 
 ---@param network_id integer
 ---@return string network_list
+---@return integer network_count
 function Tools.networkList(network_id)
     network_id = bit32.band(network_id)
 
+    local count = 0
     local result = {}
     local mask = 1
     local left = nil
     for idx = 1, 32 do
         if bit32.band(network_id, mask) == mask then
+            count = count + 1
             if not left then left = idx end
         else
             add_result(result, left, idx - 1)
@@ -337,7 +353,21 @@ function Tools.networkList(network_id)
     end
     add_result(result, left, 32)
 
-    return table.concat(result, ', ') .. (' (0x%x)'):format(network_id)
+    return table.concat(result, ', ') .. (' (0x%x)'):format(network_id), count
+end
+
+--- Returns prefix.none / prefix.singular / prefix.plural as a LocalisedString
+---@param prefix string Locale prefix, locale must have <prefix>_singular, <prefix>_plural and <prefix>_none
+---@param count integer? The count that gets pluralized
+---@param value string? A value printed within the localized string. If omitted, tostring(count) will be used
+---@return LocalisedString result A localised string
+function Tools.pluralize(prefix, count, value)
+    local msg = (not count or count == 0)
+        and prefix .. '_none'
+        or ((count == 1)
+            and prefix .. '_singular'
+            or prefix .. '_plural')
+    return { msg, value or (count and tostring(count) or '') }
 end
 
 -----------------------------------------------------------------------
