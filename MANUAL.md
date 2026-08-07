@@ -20,3 +20,23 @@ All station colors can be read on the circuit network by connecting a green wire
 * Virtual Signal "cyan" - Train stop is a refuel station.
 
 When using a single combinator for multiple stations (e.g. for a depot), the combinator should connect to the train stop inputs (lamps) using the *red* wire connection. This ensures that the different station lamps function correctly. When using a green wire, the virtual signals will be sent from one stop to the other and the lamps will not show the correct state. The stations will continue to function correctly, only the lamp color will be incorrect.
+
+## Metrics
+
+When creating a delivery, it is possible that LTN could not select a provider, even though some providers exist that should have been able to provide items or fluids. LTN prints a summary on why it could not select existing providers:
+
+* `Network mismatch` - There is no shared LTN network between the provider and the requester.
+* `No train available` - There is no train available to fulfil the delivery between a selected provider and the requester.
+* `Only fluid wagons` - A delivery has items and a selected train has only fluid wagons.
+* `Only cargo wagons` - A delivery has fluids and a selected train has only cargo wagons.
+* `Stop is full` - The maximum number of trains defined by the provider train limit has been reached.
+* `Stop is unreachable` - The game could not find any path from a depot to the provider.
+* `Stop is invalid` - A selected provider in LTN in invalid (e.g. it has been deconstructed or destroyed).
+* `Other force` - A provider is owned by a different force than the requester.
+* `Different surface` - The provider and requester are on different surfaces and LTN has no surface connection registered. This can happen if LTN runs trains on different planets but the networks have the same Id. For some mods (e.g. Space Exploration), it is possible to "connect" surfaces.
+* `Minimum train length too long` - The minimum train length accepted by the provider is longer than the maximum train length accepted by the requester.
+* `Maximum train length too short` - The maximum train length accepted by the provider is shorter than the minimum train length accepted by the requester.
+* `Train is invalid` - A selected train in LTN is invalid (e.g. it has been deconstructed or destroyed).
+* `Train is too short` - A selected train is too short to match the provider and/or requester minimum train length.
+* `Train is too long` - A selected train is too long to match the provider and/or requester maximum train length.
+* `No wagons` - A selected train has no wagons.

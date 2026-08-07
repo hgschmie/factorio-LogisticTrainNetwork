@@ -12,7 +12,7 @@ local Metrics = {}
 Metrics.PROCESS_REQUEST_METRICS = {
     'no_matching_network',
     'stop_is_full',
-    'ineligible_trains',
+    'no_train_available',
     'only_cargo_wagons',
     'only_fluid_wagons',
     'empty_train',

@@ -793,24 +793,6 @@ function RequestProcessor:processRequest(reqIndex, request)
     -- 1) Establish all routes between possible providers and requesters.
 
     local provider_metrics = Metrics.create()
-    -- provider_min_too_long = 0,  -- provider min train length > requester max train length
-    -- provider_max_too_short = 0, -- provider max train length < requester min train length
-    -- different_force = 0,        -- provider force does not match requester force
-    -- no_matching_network = 0,    -- no network between provider stop and requester stop
-    -- different_surface = 0,      -- stops are on different surfaces and no connections exist
-    -- train_too_short
-    -- train_too_long
-    -- only_fluid_wagons
-    -- only_cargo_wagons
-    -- empty_train
-    -- stop_is_full = 0,           -- train stop has all the active deliveries it can handle
-    -- train_invalid
-    -- unreachable
-    -- invalid_stop = 0,           -- stop was tested and found invalid
-    -- total_count = 0,            -- total number of elements evaluated
-    -- match_count = 0,            -- matching elements found
-    -- unselected_trains = 0       -- trains considered but not selected
-
     local providers = get_providers(request, request_stop, provider_metrics)
 
     ---@type table<integer, ltn.Metrics>
@@ -834,7 +816,7 @@ function RequestProcessor:processRequest(reqIndex, request)
         if not request_stop.no_warnings then
 
             for _, provider_to_train_metric in pairs(provider_to_train_metrics) do
-                if provider_to_train_metric:get('match_count') == 0 then provider_metrics:inc('ineligible_trains') end
+                if provider_to_train_metric:get('match_count') == 0 then provider_metrics:inc('no_train_available') end
             end
 
             local total_count = provider_metrics:get('total_count')
