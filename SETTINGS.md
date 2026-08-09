@@ -27,6 +27,14 @@ Selects the level of messages sent to the game console:
 - `2` - Notifications for deliveries
 - `3` - Detailed messages
 
+## Console messages (ltn-interface-console-messages) - boolean, default is true
+
+If `true`, LTN console messages (deliveries, warnings, errors) are shown in chat for this player.
+
+If `false`, those messages are silenced for this player only. Useful in multiplayer when the chat spam and notification sounds are distracting.
+
+This setting is per-player. The map-wide Message Level still controls which messages are generated for players who keep console messages enabled.
+
 ## GPS Tags (ltn-interface-message-gps) - boolean, default is false
 
 Console messages contain [Factorio rich text](https://wiki.factorio.com/rich_text) GPS tags which can be clicked.

@@ -2,6 +2,7 @@
 Version: 3.0.2
 Date: ????
   Changes:
+    - Added per-player setting "Console messages" to silence LTN chat notifications without affecting other players.
 ---------------------------------------------------------------------------------------------------
 Version: 3.0.1
 Date: 2026-07-30
