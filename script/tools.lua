@@ -57,24 +57,26 @@ end
 -----------------------------------------------------------------------
 
 ---@type PrintSettings
-local settings = {
+local print_settings = {
     sound = defines.print_sound.use_player_settings,
     skip = defines.print_skip.if_visible,
 }
 
 ---@alias msg_func fun():LocalisedString
 
---- write msg to console for all member of force or all players
+--- write msg to console for all members of force or all players who have console messages enabled
 ---@param level number
 ---@param msg_func msg_func
 ---@param force LuaForce?
 function Tools.printmsg(level, msg_func, force)
     if LtnSettings and ((not LtnSettings.message_level) or (LtnSettings.message_level < level)) then return end
 
-    if force and force.valid then
-        force.print(msg_func(), settings)
-    else
-        game.print(msg_func(), settings)
+    local players = (force and force.valid) and force.players or game.players
+    local msg = msg_func()
+    for _, player in pairs(players) do
+        if player.valid and settings.get_player_settings(player)['ltn-interface-console-messages'].value then
+            player.print(msg, print_settings)
+        end
     end
 end
 
