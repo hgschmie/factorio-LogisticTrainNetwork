@@ -1,7 +1,14 @@
 ---------------------------------------------------------------------------------------------------
-Version: 3.0.2
+Version: 3.1.0
 Date: ????
+  Major Features:
+    - Rewrote the request processor to cover more situations where multiple providers exist but not all are available. This should consistently provide better matches and distribution across multiple providers. There may be some obscure problems lurking in extreme corner cases, so any bug reports are welcome.
   Changes:
+    - add 'ltn-list-refuel-excluded' console command to show which locomotives are not considered for refueling in LTN.
+    - reworked some of the locale strings, especially around pluralisation. If you maintain a language pack for LTN, you may need to update it. LTN officially only supports English and German.
+    - If no provider for a delivery is available, the console message now contains a breakdown why existing providers couldn't be selected.
+    - When printing a network id, now list the various networks, not just the hexadecimal value
+    - When printing a merged delivery manifest, print the various items, not just a stack summary
 ---------------------------------------------------------------------------------------------------
 Version: 3.0.1
 Date: 2026-07-30
@@ -14,8 +21,30 @@ Date: 2026-06-24
   Changes:
     - Update to Factorio 2.1
 ---------------------------------------------------------------------------------------------------
+Version: 2.9.0
+Date: 2026-08-06
+  Major Features:
+    - Rewrote the request processor to cover more situations where multiple providers exist but not all are available. This should consistently provide better matches and distribution across multiple providers. There may be some obscure problems lurking in extreme corner cases, so any bug reports are welcome.
+  Changes:
+    - add 'ltn-list-refuel-excluded' console command to show which locomotives are not considered for refueling in LTN.
+    - reworked some of the locale strings, especially around pluralisation. If you maintain a language pack for LTN, you may need to update it. LTN officially only supports English and German.
+    - If no provider for a delivery is available, the console message now contains a breakdown why existing providers couldn't be selected.
+    - When printing a network id, now list the various networks, not just the hexadecimal value
+    - When printing a merged delivery manifest, print the various items, not just a stack summary
+---------------------------------------------------------------------------------------------------
+Version: 2.9.0
+Date: 2026-08-06
+  Major Features:
+    - Rewrote the request processor to cover more situations where multiple providers exist but not all are available. This should consistently provide better matches and distribution across multiple providers. There may be some obscure problems lurking in extreme corner cases, so any bug reports are welcome.
+  Changes:
+    - add 'ltn-list-refuel-excluded' console command to show which locomotives are not considered for refueling in LTN.
+    - reworked some of the locale strings, especially around pluralisation. If you maintain a language pack for LTN, you may need to update it. LTN officially only supports English and German.
+    - If no provider for a delivery is available, the console message now contains a breakdown why existing providers couldn't be selected.
+    - When printing a network id, now list the various networks, not just the hexadecimal value
+    - When printing a merged delivery manifest, print the various items, not just a stack summary
+---------------------------------------------------------------------------------------------------
 Version: 2.8.2
-Date: 2026-06-30
+Date: 2026-07-30
   Bugfixes:
     - If a chosen provider stop was inaccessible, LTN would report "no train found ..." even if more than one stop could provide items.
       LTN Now iterates through all provider stops if more than one exists. based on a discussion on the forums with @deadbyte and @pavel.recnik

@@ -52,8 +52,8 @@ end
 ---
 --- Returns `nil` if the prototype's icons are incorrectly or incompletely defined.
 --- @param prototype table
---- @param new_layers? data.IconData[]
---- @return data.IconData[]|nil
+--- @param new_layers? IconData[]
+--- @return IconData[]|nil
 function flib_data_util.create_icons(prototype, new_layers)
   if new_layers then
     for _, new_layer in pairs(new_layers) do
@@ -152,9 +152,9 @@ end
 --- @param filename? string
 --- @param size? Vector
 --- @param mods? table
---- @return data.Sprite
+--- @return Sprite
 function flib_data_util.build_sprite(name, position, filename, size, mods)
-  --- @type data.Sprite
+  --- @type Sprite
   local def = {
     type = "sprite",
     name = name,

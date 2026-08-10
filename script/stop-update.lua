@@ -197,7 +197,7 @@ function UpdateStop(stopID, stop)
         end)
     end
 
-    local network_id_string = string.format('0x%x', bit32.band(ltn_state.network_id))
+    local network_id_string = tools.networkList(ltn_state.network_id)
 
     local new_state = GetStationType(ltn_state)
     local current_state = GetStationType(stop)
@@ -470,13 +470,11 @@ function setLamp(trainStop, color, count)
     -- skip invalid stops and colors
     if not (trainStop and trainStop.lamp_control.valid and ColorLookup[color]) then return false end
 
-    local lampctrl_control = trainStop.lamp_control.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
-    assert(lampctrl_control)
-    if lampctrl_control.sections_count == 0 then
-        assert(lampctrl_control.add_section())
-    end
+    local lampctrl_control = assert(trainStop.lamp_control.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior ]]
+    if lampctrl_control.sections_count < 1 then lampctrl_control.add_section() end
+    local section = lampctrl_control.sections[1]
 
-    lampctrl_control.sections[1].set_slot(1, {
+    section.set_slot(1, {
         value = {
             type = 'virtual',
             name = ColorLookup[color],
@@ -486,6 +484,17 @@ function setLamp(trainStop, color, count)
     })
 
     return true
+end
+
+---@param train_stop ltn.TrainStop
+---@return LogisticFilter?
+function getLamp(train_stop)
+    if not (train_stop and train_stop.lamp_control.valid) then return nil end
+
+    local lampctrl_control = assert(train_stop.lamp_control.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior ]]
+    if lampctrl_control.sections_count < 1 then lampctrl_control.add_section() end
+    local section = lampctrl_control.sections[1]
+    return section.filters[1]
 end
 
 ---@param trainStop ltn.TrainStop

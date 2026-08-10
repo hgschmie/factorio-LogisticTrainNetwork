@@ -67,15 +67,12 @@ local settings = {
 --- write msg to console for all member of force or all players
 ---@param level number
 ---@param msg_func msg_func
----@param force LuaForce?
-function Tools.printmsg(level, msg_func, force)
+---@param target (LuaForce|LuaPlayer|LuaGameScript)?
+function Tools.printmsg(level, msg_func, target)
     if LtnSettings and ((not LtnSettings.message_level) or (LtnSettings.message_level < level)) then return end
 
-    if force and force.valid then
-        force.print(msg_func(), settings)
-    else
-        game.print(msg_func(), settings)
-    end
+    if not target then target = game end
+    target.print(msg_func(), settings)
 end
 
 -----------------------------------------------------------------------
@@ -157,30 +154,68 @@ function Tools.prettyPrint(item_info)
     end
 end
 
+---@param loading_list ltn.ItemLoadingElement[]
+---@return LocalisedString result
+function Tools.printLoadingList(loading_list)
+    ---@type LocalisedString
+    local elements = { '' }
+
+    for _, loading_element in pairs(loading_list) do
+        local sub_element = { '' }
+        sub_element[#sub_element + 1] = tostring(loading_element.count)
+        if loading_element.item.type == 'item' then
+            sub_element[#sub_element + 1] = ' ('
+            sub_element[#sub_element + 1] = Tools.pluralize('ltn-message.stack', loading_element.stacks)
+            sub_element[#sub_element + 1] = ')'
+        end
+
+        sub_element[#sub_element + 1] = ' '
+        sub_element[#sub_element + 1] = Tools.prettyPrint(loading_element.item)
+
+        elements[#elements + 1] = sub_element
+        elements[#elements + 1] = ', '
+
+        if #elements > 18 then
+            -- ensure that for extremely long mixed deliveries we don't run into the localisation print
+            -- limits
+            elements[#elements + 1] = '...'
+            return elements
+        end
+    end
+    if #elements > 1 then elements[#elements] = nil end
+
+    return elements
+end
+
 --- Returns the smaller value from the StopDistance cache if it exists.
 ---@param distance ltn.StopDistance?
 ---@return number? distance
 function Tools.getStopDistance(distance)
     if not distance then return nil end
-    return (distance.distance or 0) > (distance.backwards_distance or 0) and distance.distance or distance.backwards_distance
+    local forward_distance = (distance.distance or 0)
+    local backward_distance = (distance.backwards_distance or 0)
+    if forward_distance == -1 or backward_distance == -1 then return -1 end -- -1: on a different surface
+    if forward_distance == 0 then return (backward_distance > 0) and backward_distance or nil end
+    if backward_distance == 0 then return (forward_distance > 0) and forward_distance or nil end
+    return math.min(forward_distance, backward_distance)
 end
 
 --- Create backwards compatible loading list for API use.
 ---@param loadingList ltn.ItemLoadingElement[]
 ---@return ltn.LoadingList
 function Tools.createLoadingList(loadingList)
-    ---@type ltn.ItemLoadingElement[]
+    ---@type ltn.LoadingElement[]
     local result = {}
 
     for _, element in pairs(loadingList) do
-        table.insert(result, {
+        result[#result + 1] = {
             name = element.item.name,
             type = element.item.type,
             quality = element.item.quality,
             count = element.count,
             localname = element.localname,
             stacks = element.stacks,
-        })
+        }
     end
     return result
 end
@@ -285,10 +320,54 @@ end
 function Tools.richTextForTrain(train, train_name)
     local loco = Tools.getMainLocomotive(train)
     if loco and loco.valid then
-        return string.format('[train=%d] %s', train.id, train_name or loco.backer_name)
+        return string.format('[train=%d] %s', loco.unit_number, train_name or loco.backer_name)
     else
-        return string.format('[train=%d] %s', train.id, train_name)
+        return string.format('%s', train_name)
     end
+end
+
+local function add_result(result, left, idx)
+    if not left then return end
+    result[#result + 1] = (left == idx) and tostring(left) or tostring(left) .. '-' .. tostring(idx)
+end
+
+---@param network_id integer
+---@return string network_list
+---@return integer network_count
+function Tools.networkList(network_id)
+    network_id = bit32.band(network_id)
+
+    local count = 0
+    local result = {}
+    local mask = 1
+    local left = nil
+    for idx = 1, 32 do
+        if bit32.band(network_id, mask) == mask then
+            count = count + 1
+            if not left then left = idx end
+        else
+            add_result(result, left, idx - 1)
+            left = nil
+        end
+        mask = bit32.lshift(mask, 1)
+    end
+    add_result(result, left, 32)
+
+    return table.concat(result, ', ') .. (' (0x%x)'):format(network_id), count
+end
+
+--- Returns prefix.none / prefix.singular / prefix.plural as a LocalisedString
+---@param prefix string Locale prefix, locale must have <prefix>_singular, <prefix>_plural and <prefix>_none
+---@param count integer? The count that gets pluralized
+---@param value string? A value printed within the localized string. If omitted, tostring(count) will be used
+---@return LocalisedString result A localised string
+function Tools.pluralize(prefix, count, value)
+    local msg = (not count or count == 0)
+        and prefix .. '_none'
+        or ((count == 1)
+            and prefix .. '_singular'
+            or prefix .. '_plural')
+    return { msg, value or (count and tostring(count) or '') }
 end
 
 -----------------------------------------------------------------------
@@ -298,11 +377,17 @@ end
 --- Returns True if the stop exists, its main entity is valid and has a rail connected.
 --- This is good enough to e.g. determine whether a stop can be used in schedule (delivery, fuel station, depot)
 ---@param stop (ltn.TrainStop|LuaEntity)?
+---@param metrics ltn.Metrics? Tracks error state
 ---@return boolean is_valid
-function Tools.isStopValid(stop)
-    if not stop then return false end
-    local entity = type(stop) == 'userdata' and stop or stop.entity
-    return entity.valid and entity.connected_rail and entity.connected_rail.valid and true or false
+function Tools.isStopValid(stop, metrics)
+    local result = false
+    if stop then
+        local entity = type(stop) == 'userdata' and stop or stop.entity
+        result = entity.valid and entity.connected_rail and entity.connected_rail.valid and true or false
+    end
+    if metrics and not result then metrics:inc('invalid_stop') end
+
+    return result
 end
 
 --- Returns True if the internal state of the train stop is consistent. Checks that all internal entities are
@@ -401,7 +486,7 @@ function Tools.reassignTrainRecord(old_train_id, new_train)
     }
 
     if dispatcher.knownTrains[old_train_id] and dispatcher.knownTrains[old_train_id].select_count then
-        dispatcher.knownTrains[new_train.id].select_count = dispatcher.knownTrains[new_train.id]. select_count + dispatcher.knownTrains[old_train_id].select_count
+        dispatcher.knownTrains[new_train.id].select_count = dispatcher.knownTrains[new_train.id].select_count + dispatcher.knownTrains[old_train_id].select_count
     end
 
     return true

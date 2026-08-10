@@ -50,7 +50,7 @@ local ltn_stop_in_update = {
 
 ltn_stop_in = meld(ltn_stop_in, ltn_stop_in_update)
 
----@type data.ConstantCombinatorPrototype
+---@type ConstantCombinatorPrototype
 local ltn_stop_out = data_util.copy_prototype(data.raw['constant-combinator']['constant-combinator'], 'logistic-train-stop-output')
 
 local ltn_stop_out_update = {
@@ -91,7 +91,7 @@ local ltn_stop_out_update = {
 
 ltn_stop_out = meld(ltn_stop_out, ltn_stop_out_update)
 
----@type data.ConstantCombinatorPrototype
+---@type ConstantCombinatorPrototype
 local ltn_lamp_control = data_util.copy_prototype(data.raw['constant-combinator']['constant-combinator'], 'logistic-train-stop-lamp-control')
 
 local ltn_lamp_control_update = {
