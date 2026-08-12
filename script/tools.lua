@@ -165,7 +165,7 @@ function Tools.printLoadingList(loading_list)
         sub_element[#sub_element + 1] = tostring(loading_element.count)
         if loading_element.item.type == 'item' then
             sub_element[#sub_element + 1] = ' ('
-            sub_element[#sub_element + 1] = Tools.pluralize('ltn-message.stack', loading_element.stacks)
+            sub_element[#sub_element + 1] = { 'ltn-message.stack', loading_element.stacks }
             sub_element[#sub_element + 1] = ')'
         end
 
@@ -354,20 +354,6 @@ function Tools.networkList(network_id)
     add_result(result, left, 32)
 
     return table.concat(result, ', ') .. (' (0x%x)'):format(network_id), count
-end
-
---- Returns prefix.none / prefix.singular / prefix.plural as a LocalisedString
----@param prefix string Locale prefix, locale must have <prefix>_singular, <prefix>_plural and <prefix>_none
----@param count integer? The count that gets pluralized
----@param value string? A value printed within the localized string. If omitted, tostring(count) will be used
----@return LocalisedString result A localised string
-function Tools.pluralize(prefix, count, value)
-    local msg = (not count or count == 0)
-        and prefix .. '_none'
-        or ((count == 1)
-            and prefix .. '_singular'
-            or prefix .. '_plural')
-    return { msg, value or (count and tostring(count) or '') }
 end
 
 -----------------------------------------------------------------------

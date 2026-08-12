@@ -823,7 +823,7 @@ function RequestProcessor:processRequest(reqIndex, request)
             local msg = (total_count == 0) and 'ltn-message.no-provider-found' or 'ltn-message.no-provider-available'
             local metrics_result = provider_metrics:summarize({'', }, 'PROCESS_REQUEST_METRICS')
 
-            tools.printmsg(1, function() return { msg, to_gps, tools.prettyPrint(item_info), tools.pluralize('ltn-message.network', to_network_id_count, to_network_ids), metrics_result, total_count } end, force)
+            tools.printmsg(1, function() return { msg, to_gps, tools.prettyPrint(item_info), { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result, total_count } end, force)
         end
 
         return nil
@@ -836,7 +836,7 @@ function RequestProcessor:processRequest(reqIndex, request)
     local from_gps = tools.richTextForStop(provider_stop.entity) or from
 
     local matched_network_ids, matched_network_count = tools.networkList(bit32.band(provider.network_id, request_stop.network_id))
-    local matched_network_id_str = tools.pluralize('ltn-message.network', matched_network_count, matched_network_ids)
+    local matched_network_id_str = { 'ltn-message.network', matched_network_count, matched_network_ids }
 
     local min_carriages = math.max(request_stop.min_carriages, provider_stop.min_carriages)
     local max_carriages = math.min(request_stop.max_carriages, provider_stop.max_carriages)
@@ -909,7 +909,7 @@ function RequestProcessor:processRequest(reqIndex, request)
     loading_list = { limit_to_train_capacity(free_train.inventory_size, loading_list[1]) }
 
     ---@type LocalisedString
-    local total_stacks_str = primary_is_item and tools.pluralize('ltn-message.stack', create_merged_delivery(loading_list, free_train, provider, request)) or { '', tostring(loading_list[1].stacks)}
+    local total_stacks_str = primary_is_item and { 'ltn-message.stack', create_merged_delivery(loading_list, free_train, provider, request) } or { '', tostring(loading_list[1].stacks)}
 
     tools.printmsg(3, function() return { 'ltn-message.train-found', from_gps, to_gps, matched_network_id_str, tostring(free_train.inventory_size), total_stacks_str } end, force)
 

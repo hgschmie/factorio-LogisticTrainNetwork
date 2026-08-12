@@ -2,6 +2,7 @@
 Version: 3.1.1
 Date: ????
   Changes:
+    - use native pluralization instead of helper
 ---------------------------------------------------------------------------------------------------
 Version: 3.1.0
 Date: 2026-08-09
