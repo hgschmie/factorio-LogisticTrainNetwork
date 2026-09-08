@@ -197,7 +197,7 @@ function UpdateStop(stopID, stop)
         end)
     end
 
-    local network_id_string = tools.networkList(ltn_state.network_id)
+    local network_id_string
 
     local new_state = GetStationType(ltn_state)
     local current_state = GetStationType(stop)
@@ -264,6 +264,7 @@ function UpdateStop(stopID, stop)
         if stop.parked_train_id and stop.parked_train.valid then
             if dispatcher.Deliveries[stop.parked_train_id] then
                 tools.log(5, 'UpdateStop', '%s {%s}, depot priority: %d, assigned train.id: %d', function()
+                    network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
                     return stop.entity.backer_name, network_id_string, ltn_state.depot_priority, stop.parked_train_id
                 end)
             else
@@ -277,11 +278,13 @@ function UpdateStop(stopID, stop)
                     train_info.depot_priority = ltn_state.depot_priority
                 end
                 tools.log(5, 'UpdateStop', '%s {%s}, depot priority: %d, available train.id: %d', function()
+                    network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
                     return stop.entity.backer_name, network_id_string, ltn_state.depot_priority, stop.parked_train_id
                 end)
             end
         else
             tools.log(5, 'UpdateStop', '%s {%s}, depot priority: %d, no available train', function()
+                network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
                 return stop.entity.backer_name, network_id_string, ltn_state.depot_priority
             end)
         end
@@ -351,6 +354,7 @@ function UpdateStop(stopID, stop)
                             local newcount = count + traincount
                             if newcount > 0 then newcount = 0 end --make sure we don't turn it into a provider
                             tools.log(5, 'UpdateStop', '%s {%s} updating requested count with train %d inventory: %s %d+%d=%d', function()
+                                network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
                                 return stop.entity.backer_name, network_id_string, trainID, item, count, traincount, newcount
                             end)
                             count = newcount
@@ -360,12 +364,14 @@ function UpdateStop(stopID, stop)
                                 if newcount < 0 then newcount = 0 end --make sure we don't turn it into a request
 
                                 tools.log(5, 'UpdateStop', '%s {%s} updating provided count with train %d inventory: %s %d-%d=%d', function()
+                                    network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
                                     return stop.entity.backer_name, network_id_string, trainID, item, count, deliverycount - traincount, newcount
                                 end)
 
                                 count = newcount
                             else --train loaded more than delivery
                                 tools.log(5, 'UpdateStop', '%s {%s} updating delivery count with overloaded train %d inventory: %s %d', function()
+                                    network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
                                     return stop.entity.backer_name, network_id_string, trainID, item, traincount
                                 end)
 
@@ -380,6 +386,7 @@ function UpdateStop(stopID, stop)
                             if newcount > 0 then newcount = 0 end --make sure we don't turn it into a provider
 
                             tools.log(5, 'UpdateStop', '%s {%s} updating requested count with delivery: %s %d+%d=%d', function()
+                                network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
                                 return stop.entity.backer_name, network_id_string, item, count, deliverycount, newcount
                             end)
 
@@ -388,6 +395,7 @@ function UpdateStop(stopID, stop)
                             local newcount = count - deliverycount
                             if newcount < 0 then newcount = 0 end --make sure we don't turn it into a request
                             tools.log(5, 'UpdateStop', '%s {%s} updating provided count with delivery: %s %d-%d=%d', function()
+                                network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
                                 return stop.entity.backer_name, network_id_string, item, count, deliverycount, newcount
                             end)
                             count = newcount
@@ -418,10 +426,14 @@ function UpdateStop(stopID, stop)
                 dispatcher.Provided[item][stopID] = count
                 dispatcher.Provided_by_Stop[stopID] = dispatcher.Provided_by_Stop[stopID] or {}
                 dispatcher.Provided_by_Stop[stopID][item] = count
-                tools.log(5, 'UpdateStop', '%s {%s} provides %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, trains en route: %s', function()
-                    local trainsEnRoute = table.concat(stop.active_deliveries, ', ')
-                    return stop.entity.backer_name, network_id_string, item, count, ltn_state.providing_threshold, stack_count, ltn_state.providing_threshold_stacks, ltn_state.provider_priority, ltn_state.min_carriages, ltn_state.max_carriages, trainsEnRoute
-                end)
+                tools.log(5, 'UpdateStop', '%s {%s} provides %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, trains en route: %s',
+                    function()
+                        local trainsEnRoute = table.concat(stop.active_deliveries, ', ')
+                        network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
+
+                        return stop.entity.backer_name, network_id_string, item, count, ltn_state.providing_threshold, stack_count,
+                            ltn_state.providing_threshold_stacks, ltn_state.provider_priority, ltn_state.min_carriages, ltn_state.max_carriages, trainsEnRoute
+                    end)
             elseif (useRequestStackThreshold and stack_count * -1 >= ltn_state.requesting_threshold_stacks) or
                 (not useRequestStackThreshold and count * -1 >= ltn_state.requesting_threshold) then
                 count = count * -1
@@ -437,11 +449,14 @@ function UpdateStop(stopID, stop)
 
                 dispatcher.Requests_by_Stop[stopID] = dispatcher.Requests_by_Stop[stopID] or {}
                 dispatcher.Requests_by_Stop[stopID][item] = count
-                tools.log(5, 'UpdateStop', '%s {%s} requests %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, age: %d/%d, trains en route: %s', function()
-                    local trainsEnRoute = table.concat(stop.active_deliveries, ', ')
-                    return stop.entity.backer_name, network_id_string, item, count, ltn_state.requesting_threshold, stack_count * -1, ltn_state.requesting_threshold_stacks, ltn_state.requester_priority, ltn_state.min_carriages, ltn_state.max_carriages, dispatcher.RequestAge[ageIndex], game.tick,
-                        trainsEnRoute
-                end)
+                tools.log(5, 'UpdateStop',
+                    '%s {%s} requests %s %d(%d) stacks: %d(%d), priority: %d, min length: %d, max length: %d, age: %d/%d, trains en route: %s', function()
+                        local trainsEnRoute = table.concat(stop.active_deliveries, ', ')
+                        network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
+                        return stop.entity.backer_name, network_id_string, item, count, ltn_state.requesting_threshold, stack_count * -1,
+                            ltn_state.requesting_threshold_stacks, ltn_state.requester_priority, ltn_state.min_carriages, ltn_state.max_carriages,
+                            dispatcher.RequestAge[ageIndex], game.tick, trainsEnRoute
+                    end)
             end
         end -- for circuitValues
 
