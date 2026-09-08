@@ -302,7 +302,7 @@ function UpdateStop(stopID, stop)
 
         for signal, count in pairs(signals_filtered) do
             if (signal.type or 'item') == 'item' and fuel_prototypes[signal.name] then
-                table.insert(fuel_signals, {
+                fuel_signals[#fuel_signals + 1] = {
                     first_signal = {
                         name = signal.name,
                         type = 'item',
@@ -478,16 +478,15 @@ function UpdateStop(stopID, stop)
     stop.max_trains = ltn_state.max_trains
 end
 
----@param trainStop ltn.TrainStop
+---@param train_stop ltn.TrainStop
 ---@param color string
 ---@param count number
-function setLamp(trainStop, color, count)
+function setLamp(train_stop, color, count)
     -- skip invalid stops and colors
-    if not (trainStop and trainStop.lamp_control.valid and ColorLookup[color]) then return false end
+    if not (train_stop and train_stop.lamp_control.valid and ColorLookup[color]) then return false end
 
-    local lampctrl_control = assert(trainStop.lamp_control.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior ]]
-    if lampctrl_control.sections_count < 1 then lampctrl_control.add_section() end
-    local section = lampctrl_control.sections[1]
+    local lampctrl_control = assert(train_stop.lamp_control.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior ]]
+    local section = lampctrl_control.get_section(1) or assert(lampctrl_control.add_section())
 
     section.set_slot(1, {
         value = {
@@ -507,153 +506,131 @@ function getLamp(train_stop)
     if not (train_stop and train_stop.lamp_control.valid) then return nil end
 
     local lampctrl_control = assert(train_stop.lamp_control.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior ]]
-    if lampctrl_control.sections_count < 1 then lampctrl_control.add_section() end
-    local section = lampctrl_control.sections[1]
+    local section = lampctrl_control.get_section(1) or assert(lampctrl_control.add_section())
     return section.filters[1]
 end
 
----@param trainStop ltn.TrainStop
+---@param train_stop ltn.TrainStop
 ---@param ignore_existing_cargo boolean?
-function UpdateStopOutput(trainStop, ignore_existing_cargo)
+function UpdateStopOutput(train_stop, ignore_existing_cargo)
     -- skip invalid stop outputs
-    if not trainStop.output.valid then
-        return
+    if not tools.isStopConsistent(train_stop) then return end
+
+    -- reset output signal
+
+    local outputControl = assert(train_stop.output.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior ]]
+    local section = outputControl.get_section(1) or assert(outputControl.add_section())
+    section.filters = {}
+
+    local train = train_stop.parked_train
+
+    if not (train and train.valid) then return end
+
+    -- create train virtual signals
+
+    -- get train composition
+    local carriages = train.carriages
+    local encoded_positions = {}
+
+    local start = 1
+    local stop = #carriages < 32 and #carriages or 31
+    local inc = 1
+
+    if not train_stop.parked_train_faces_stop then --train faces backwards >> iterate backwards
+        start = stop
+        stop = 1
+        inc = -1
+    end
+
+    local bit = 1
+    for i = start, stop, inc do
+        for _, signal in pairs { string.format('ltn-position-any-%s', carriages[i].type), string.format('ltn-position-%s', carriages[i].name) } do
+            if prototypes.virtual_signal[signal] then
+                encoded_positions[signal] = bit32.bor((encoded_positions[signal] or 0), bit)
+            else
+                tools.printmsg(1, function() return { 'ltn-message.error-invalid-position-signal', signal } end)
+                tools.log(5, 'UpdateStopOutput', 'Error: signal "%s" not found!', function() return signal end)
+            end
+        end
+        bit = bit32.lshift(bit, 1)
     end
 
     ---@type LogisticFilter[]
     local signals = {}
 
-    ---@type ltn.StationType
-    local stop_type = GetStationType(trainStop)
-
-    if trainStop.parked_train and trainStop.parked_train.valid then
-        -- get train composition
-        local carriages = trainStop.parked_train.carriages
-        local encoded_positions_by_name = {}
-        local encoded_positions_by_type = {}
-
-        ---@type ltn.InventoryType
-        local inventory = {}
-        ---@type ltn.InventoryType
-        local fluidInventory = {}
-
-        if not (ignore_existing_cargo) then
-            for _, item in pairs(trainStop.parked_train.get_contents()) do
-                inventory[tools.createItemIdentifier(item)] = item
-            end
-            for name, amount in pairs(trainStop.parked_train.get_fluid_contents()) do
-                fluidInventory[tools.createFluidIdentifier(name)] = {
-                    name = name,
-                    quality = '',
-                    count = math.floor(amount),
-                }
-            end
-        end
-
-        if #carriages < 32 then                       --prevent circuit network integer overflow error
-            if trainStop.parked_train_faces_stop then --train faces forwards >> iterate normal
-                for i = 1, #carriages do
-                    local signal_type = string.format('ltn-position-any-%s', carriages[i].type)
-                    if prototypes.virtual_signal[signal_type] then
-                        if encoded_positions_by_type[signal_type] then
-                            encoded_positions_by_type[signal_type] = encoded_positions_by_type[signal_type] + 2 ^ (i - 1)
-                        else
-                            encoded_positions_by_type[signal_type] = 2 ^ (i - 1)
-                        end
-                    else
-                        tools.printmsg(1, function()
-                            return { 'ltn-message.error-invalid-position-signal', signal_type }
-                        end)
-
-                        tools.log(5, 'UpdateStopOutput', 'Error: signal "%s" not found!', function()
-                            return signal_type
-                        end)
-                    end
-                    local signal_name = string.format('ltn-position-%s', carriages[i].name)
-                    if prototypes.virtual_signal[signal_name] then
-                        if encoded_positions_by_name[signal_name] then
-                            encoded_positions_by_name[signal_name] = encoded_positions_by_name[signal_name] + 2 ^ (i - 1)
-                        else
-                            encoded_positions_by_name[signal_name] = 2 ^ (i - 1)
-                        end
-                    else
-                        tools.printmsg(1, function()
-                            return { 'ltn-message.error-invalid-position-signal', signal_name }
-                        end)
-
-                        tools.log(5, 'UpdateStopOutput', 'Error: signal "%s" not found!', function()
-                            return signal_name
-                        end)
-                    end
-                end
-            else --train faces backwards >> iterate backwards
-                n = 0
-                for i = #carriages, 1, -1 do
-                    local signal_type = string.format('ltn-position-any-%s', carriages[i].type)
-                    if prototypes.virtual_signal[signal_type] then
-                        if encoded_positions_by_type[signal_type] then
-                            encoded_positions_by_type[signal_type] = encoded_positions_by_type[signal_type] + 2 ^ n
-                        else
-                            encoded_positions_by_type[signal_type] = 2 ^ n
-                        end
-                    else
-                        tools.printmsg(1, function()
-                            return { 'ltn-message.error-invalid-position-signal', signal_type }
-                        end)
-
-                        tools.log(5, 'UpdateStopOutput', 'Error: signal "%s" not found!', function()
-                            return signal_type
-                        end)
-                    end
-                    local signal_name = string.format('ltn-position-%s', carriages[i].name)
-                    if prototypes.virtual_signal[signal_name] then
-                        if encoded_positions_by_name[signal_name] then
-                            encoded_positions_by_name[signal_name] = encoded_positions_by_name[signal_name] + 2 ^ n
-                        else
-                            encoded_positions_by_name[signal_name] = 2 ^ n
-                        end
-                    else
-                        tools.printmsg(1, function()
-                            return { 'ltn-message.error-invalid-position-signal', signal_name }
-                        end)
-
-                        tools.log(5, 'UpdateStopOutput', 'Error: signal "%s" not found!', function()
-                            return signal_name
-                        end)
-                    end
-                    n = n + 1
-                end
-            end
-
-            for k, v in pairs(encoded_positions_by_type) do
-                table.insert(signals, { value = { type = 'virtual', name = k, quality = 'normal', }, min = v, })
-            end
-            for k, v in pairs(encoded_positions_by_name) do
-                table.insert(signals, { value = { type = 'virtual', name = k, quality = 'normal', }, min = v, })
-            end
-        end
-
-        if stop_type == station_type.station then
-            schedule:updateFromSchedule(trainStop.parked_train, inventory, fluidInventory)
-
-            -- output expected inventory contents
-            for _, v in pairs(inventory) do
-                table.insert(signals, { value = { type = 'item', name = v.name, quality = v.quality, }, min = v.count, })
-            end
-            for k, v in pairs(fluidInventory) do
-                table.insert(signals, { value = { type = 'fluid', name = v.name, quality = 'normal', }, min = v.count, })
-            end
-        end -- station
+    for k, v in pairs(encoded_positions) do
+        signals[#signals + 1] = { value = { type = 'virtual', name = k, quality = 'normal', }, min = v, }
     end
 
-    local outputControl = trainStop.output.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
-    assert(outputControl)
+    -- update inventory signals
 
-    if outputControl.sections_count == 0 then
-        assert(outputControl.add_section())
+    ---@type ltn.InventoryType
+    local inventory = {}
+    ---@type ltn.InventoryType
+    local fluidInventory = {}
+
+    if not (ignore_existing_cargo) then
+        for _, item in pairs(train.get_contents()) do
+            inventory[tools.createItemIdentifier(item)] = item
+        end
+        for name, amount in pairs(train.get_fluid_contents()) do
+            fluidInventory[tools.createFluidIdentifier(name)] = {
+                name = name,
+                quality = '',
+                count = math.floor(amount),
+            }
+        end
     end
-    local section = outputControl.sections[1]
-    section.filters = {}
+
+    if GetStationType(train_stop) == station_type.station then
+        local dispatcher = tools.getDispatcher()
+        local delivery = dispatcher.Deliveries[train.id]
+        if delivery then
+            if delivery.from_id == train_stop.entity.unit_number then
+                for shipment, amount in pairs(delivery.shipment) do
+                    -- provider
+                    local value = assert(tools.parseItemIdentifier(shipment))
+                    if value.type == 'item' then
+                        inventory[shipment] = inventory[shipment] or {
+                            name = value.name,
+                            quality = value.quality,
+                            count = 0,
+                        }
+                        inventory[shipment].count = inventory[shipment].count + amount
+                    else
+                        fluidInventory[shipment] = fluidInventory[shipment] or {
+                            name = value.name,
+                            quality = '',
+                            count = 0,
+                        }
+                        fluidInventory[shipment].count = fluidInventory[shipment].count + amount
+                    end
+                end
+            else
+                for shipment in pairs(delivery.shipment) do
+                    -- requester
+                    local value = assert(tools.parseItemIdentifier(shipment))
+                    if value.type == 'item' then
+                        inventory[shipment] = nil
+                    else
+                        fluidInventory[shipment] = {
+                            name = value.name,
+                            quality = '',
+                            count = -1,
+                        }
+                    end
+                end
+            end
+        end
+    end
+
+    -- output expected inventory contents
+    for _, v in pairs(inventory) do
+        signals[#signals + 1] = { value = { type = 'item', name = v.name, quality = v.quality, }, min = v.count, }
+    end
+    for _, v in pairs(fluidInventory) do
+        signals[#signals + 1] = { value = { type = 'fluid', name = v.name, quality = 'normal', }, min = v.count, }
+    end
 
     for idx, signal in pairs(signals) do
         section.set_slot(idx, signal)

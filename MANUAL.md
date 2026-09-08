@@ -40,3 +40,29 @@ When creating a delivery, it is possible that LTN could not select a provider, e
 * `Train is too short` - A selected train is too short to match the provider and/or requester minimum train length.
 * `Train is too long` - A selected train is too long to match the provider and/or requester maximum train length.
 * `No wagons` - A selected train has no wagons.
+
+## Signals
+
+The LTN train stop sends out signals when a train arrives:
+
+The bit encoded (0 = front of train, 31 = back of train) composition of the train. It will report at most 31 locomotives and wagons, any locomotive and wagon after this will be ignored.
+
+* `ltn-position-any-locomotive` for locomotives
+* `ltn-position-any-cargo-wagon` for cargo wagons
+* `ltn-position-any-fluid-wagon` for fluid wagons
+* `ltn-position-any-artillery-wagon` for artillery wagons
+
+e.g. a train composed of `locomotive - cargo - cargo - fluid - artillery` would send
+
+|            | Binary | Decimal |
+|------------|--------|---------|
+| locomotive |  00001 |    1    |
+| cargo      |  00110 |    6    |
+| fluid      |  01000 |    8    |
+| artillery  |  10000 |   16    |
+
+Those signals are the same for any type of locomotives and wagons. In addition, there are specific signals for all locomotives and wagons that are defined in the game. E.g. for the standard locomotives, there is `ltn-position-locomotive`.
+
+For provider and requester stations, the cargo and fluid in the current delivery are sent out as signals.
+
+For any station, it will also add the amount of cargo and fluid on the current train unless the `ltn-provider-ignore-stopped-train` setting is true.

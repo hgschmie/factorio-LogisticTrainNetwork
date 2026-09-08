@@ -5,6 +5,7 @@ Date: ????
     - use native pluralization instead of helper
     - split stop updates and request updates into two settings
     - distance cache also caches negative results, keep cache statistics
+    - optimize stop output signal calculation, no longer parse the schedule
   Bugfixes:
     - compute station and request loops correctly
     - reset ticker when changing frequency
