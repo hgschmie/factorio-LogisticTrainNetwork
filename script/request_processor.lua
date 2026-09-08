@@ -724,7 +724,8 @@ local function create_merged_delivery(loading_list, free_train, provider, reques
 
                 tools.log(5, 'create_merged_delivery', 'inserted into order %s >> %s: %d %s in %d/%d stacks.', function()
                     local to = storage.LogisticTrainStops[request.stopID]
-                    return provider.stop.entity.backer_name, to.entity.backer_name, loading_element.count, merge_item, loading_element.stacks, free_train.inventory_size
+                    return provider.stop.entity.backer_name, to.entity.backer_name, loading_element.count, merge_item, loading_element.stacks,
+                        free_train.inventory_size
                 end)
             end
         end
@@ -844,7 +845,8 @@ function RequestProcessor:processRequest(reqIndex, request)
     local dispatcher = tools.getDispatcher()
 
     tools.log(5, 'RequestProcessor:processRequest', 'request %d/%d: %d(%d) %s to %s {%s} priority: %d min length: %d max length: %d', function()
-        return reqIndex, #dispatcher.Requests, request.count, request_stop.requesting_threshold, request.item, to, to_network_ids, request.priority, request_stop.min_carriages, request_stop.max_carriages
+        return reqIndex, #dispatcher.Requests, request.count, request_stop.requesting_threshold, request.item, to, to_network_ids, request.priority,
+            request_stop.min_carriages, request_stop.max_carriages
     end)
 
     if not (dispatcher.Requests_by_Stop[to_id] and dispatcher.Requests_by_Stop[to_id][request.item]) then
@@ -874,7 +876,9 @@ function RequestProcessor:processRequest(reqIndex, request)
     if capacity == 0 then
         create_alert(request_stop.entity, 'depot-empty', { primary_is_item and 'ltn-message.empty-depot-item' or 'ltn-message.empty-depot-fluid' }, force)
 
-        tools.printmsg(1, function() return { primary_is_item and 'ltn-message.empty-depot-item' or 'ltn-message.empty-depot-fluid' } end, force)
+        tools.printmsg(1, function()
+            return { primary_is_item and 'ltn-message.empty-depot-item' or 'ltn-message.empty-depot-fluid' }
+        end, force)
 
         -- no train available, bail out.
         ---@type ltn.EventData.no_train_found_item
@@ -913,16 +917,17 @@ function RequestProcessor:processRequest(reqIndex, request)
     local provider = select_provider(providers, trains_for_provider)
     if not provider then
         if not request_stop.no_warnings then
-
             for _, provider_to_train_metric in pairs(provider_to_train_metrics) do
                 if provider_to_train_metric:get('match_count') == 0 then provider_metrics:inc('no_train_available') end
             end
 
             local total_count = provider_metrics:get('total_count')
             local msg = (total_count == 0) and 'ltn-message.no-provider-found' or 'ltn-message.no-provider-available'
-            local metrics_result = provider_metrics:summarize({'', }, 'PROCESS_REQUEST_METRICS')
+            local metrics_result = provider_metrics:summarize({ '', }, 'PROCESS_REQUEST_METRICS')
 
-            tools.printmsg(1, function() return { msg, to_gps, tools.prettyPrint(item_info), { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result, total_count } end, force)
+            tools.printmsg(1, function()
+                return { msg, to_gps, tools.prettyPrint(item_info), { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result, total_count }
+            end, force)
         end
 
         return nil
@@ -940,7 +945,10 @@ function RequestProcessor:processRequest(reqIndex, request)
     local min_carriages = math.max(request_stop.min_carriages, provider_stop.min_carriages)
     local max_carriages = math.min(request_stop.max_carriages, provider_stop.max_carriages)
 
-    tools.printmsg(3, function() return { 'ltn-message.provider-found', from_gps, tostring(provider.priority), tostring(provider.activeDeliveryCount), provider.count, tools.prettyPrint(item_info) } end, force)
+    tools.printmsg(3, function()
+        return { 'ltn-message.provider-found', from_gps, tostring(provider.priority), tostring(provider.activeDeliveryCount), provider.count,
+            tools.prettyPrint(item_info) }
+    end, force)
 
     -- limit delivery_size to minimum between provider and requester
     local delivery_size = math.min(request.count, provider.count)
@@ -962,8 +970,12 @@ function RequestProcessor:processRequest(reqIndex, request)
 
     local free_train = select_train(trains_for_provider[from_id], provider_stop.entity.surface_index, stacks)
     if not free_train then
-        create_alert(request_stop.entity, 'depot-empty', { 'ltn-message.no-train-found', provider_stop.entity.backer_name, request_stop.entity.backer_name, matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }, force)
-        tools.printmsg(1, function() return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_str, tostring(min_carriages), tostring(max_carriages) } end, force)
+        create_alert(request_stop.entity, 'depot-empty', { 'ltn-message.no-train-found', provider_stop.entity.backer_name, request_stop.entity.backer_name,
+            matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }, force)
+
+        tools.printmsg(1, function()
+            return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }
+        end, force)
 
         ---@type ltn.EventData.no_train_found_shipment
         local data = {
@@ -1008,15 +1020,21 @@ function RequestProcessor:processRequest(reqIndex, request)
     loading_list = { limit_to_train_capacity(free_train.inventory_size, loading_list[1]) }
 
     ---@type LocalisedString
-    local total_stacks_str = primary_is_item and { 'ltn-message.stack', create_merged_delivery(loading_list, free_train, provider, request) } or { '', tostring(loading_list[1].stacks)}
+    local total_stacks_str = primary_is_item
+        and { 'ltn-message.stack', create_merged_delivery(loading_list, free_train, provider, request) }
+        or { '', tostring(loading_list[1].stacks) }
 
-    tools.printmsg(3, function() return { 'ltn-message.train-found', from_gps, to_gps, matched_network_id_str, tostring(free_train.inventory_size), total_stacks_str } end, force)
+    tools.printmsg(3, function()
+        return { 'ltn-message.train-found', from_gps, to_gps, matched_network_id_str, tostring(free_train.inventory_size), total_stacks_str }
+    end, force)
 
     tools.printmsg(2, function()
         if #loading_list == 1 then
-            return { 'ltn-message.creating-delivery', from_gps, to_gps, tools.richTextForTrain(train), tools.printLoadingList(loading_list), matched_network_id_str }
+            return { 'ltn-message.creating-delivery', from_gps, to_gps, tools.richTextForTrain(train), tools.printLoadingList(loading_list),
+                matched_network_id_str }
         else
-            return { 'ltn-message.creating-delivery-merged', from_gps, to_gps, tools.richTextForTrain(train), tools.printLoadingList(loading_list), matched_network_id_str, total_stacks_str }
+            return { 'ltn-message.creating-delivery-merged', from_gps, to_gps, tools.richTextForTrain(train), tools.printLoadingList(loading_list),
+                matched_network_id_str, total_stacks_str }
         end
     end, force)
 
