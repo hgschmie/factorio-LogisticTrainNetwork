@@ -5,6 +5,8 @@ Date: ????
     - use native pluralization instead of helper
     - split stop updates and request updates into two settings
     - distance cache also caches negative results, keep cache statistics
+  Bugfixes:
+    - compute station and request loops correctly
 ---------------------------------------------------------------------------------------------------
 Version: 3.1.0
 Date: 2026-08-09

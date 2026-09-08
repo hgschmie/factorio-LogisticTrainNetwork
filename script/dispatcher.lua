@@ -105,9 +105,8 @@ local function DispatcherUpdateStops(event)
                 UpdateStop(stopID, stop)
             end
             stop_count = stop_count - 1
+            storage.tick_stop_index = stopID
         until stop_count == 0 or not stopID
-
-        storage.tick_stop_index = stopID
     end
 
     -- if there are more stops, stay in the current state, otherwise switch to next state
@@ -244,9 +243,8 @@ local function DispatcherDispatchTrains(event)
                     request_processor:processRequest(request_index, request)
                 end
                 request_count = request_count - 1
+                storage.tick_request_index = request_index
             until request_count == 0 or not request_index
-
-            storage.tick_request_index = request_index
         end
     else
         tools.printmsg(1, function()
