@@ -212,7 +212,6 @@ local function get_providers(request, request_stop, metrics)
             and match_stops_by_train_length(request_stop, provider_stop, metrics)
             -- the provider must still accept another train
             and can_accept_train(provider_stop, metrics) then
-
             providers[provider_stop.entity.unit_number] = {
                 stop = provider_stop,
                 network_id = matched_networks,
@@ -274,7 +273,6 @@ local function get_free_trains(provider, request_stop, primary_is_item, train_me
             if train_matches_stop_by_force(train_data, provider.stop, metrics)
                 and train_matches_stop_by_length(train_data, request_stop, metrics)
                 and train_matches_stop_by_length(train_data, provider.stop, metrics) then
-
                 free_trains[train_id] = {
                     train = train_data.train,
                     surface = train_data.surface,
@@ -336,7 +334,39 @@ local function map_train_candidates(providers, request_stop, primary_is_item, pr
     return train_candidates
 end
 
-local DISTANCE_CACHE_LIFETIME = 60 * 60 * 2 -- 2 minutes
+--- Returns the smaller value from the StopDistance cache if it exists.
+---@param distance ltn.StopDistance?
+---@return ltn.DistanceResult
+---@return number? distance Returns nil if there is no result
+local function get_stop_distance(distance)
+    if not distance then return DISTANCE_RESULT.UNREACHABLE, nil end
+
+    local forward_distance = (distance.distance or 0)
+    local backward_distance = (distance.backwards_distance or 0)
+
+    if forward_distance == 0 and backward_distance == 0 then return DISTANCE_RESULT.UNREACHABLE, nil end
+
+    -- on a different surface
+    if forward_distance == DISTANCE_RESULT.OTHER_SURFACE or backward_distance == DISTANCE_RESULT.OTHER_SURFACE then
+        return DISTANCE_RESULT.OTHER_SURFACE, nil
+    end
+
+    if forward_distance <= 0 then
+        if (backward_distance > 0) then
+            return DISTANCE_RESULT.PATH_AVAILABLE, backward_distance
+        else
+            return DISTANCE_RESULT.UNREACHABLE, nil
+        end
+    elseif backward_distance <= 0 then
+        if (forward_distance > 0) then
+            return DISTANCE_RESULT.PATH_AVAILABLE, forward_distance
+        else
+            return DISTANCE_RESULT.UNREACHABLE, nil
+        end
+    else
+        return DISTANCE_RESULT.PATH_AVAILABLE, math.min(forward_distance, backward_distance)
+    end
+end
 
 --- Always returns a result that is a reference into storage so modifying the
 --- the result changes all refernces to it.
@@ -349,17 +379,31 @@ local function get_cached_distance(from, to)
     ---@type ltn.StopDistance?
     local stop_distance = storage.StopDistances[stop_pair]
     if not stop_distance or type(stop_distance) ~= 'table' then
-        storage.StopDistances[stop_pair] = {}
+        storage.StopDistances[stop_pair] = {
+            distance = DISTANCE_RESULT.UNKNOWN,
+            backwards_distance = DISTANCE_RESULT.UNKNOWN
+        }
+
         stop_distance = storage.StopDistances[stop_pair]
+        return stop_distance
     end
 
     if not stop_distance.tick or (stop_distance.tick <= game.tick) then
         stop_distance.tick = nil
-        stop_distance.distance = nil
-        stop_distance.backwards_distance = nil
+        stop_distance.distance = DISTANCE_RESULT.EXPIRED
+        stop_distance.backwards_distance = DISTANCE_RESULT.EXPIRED
     end
 
     return stop_distance
+end
+
+---@param stop_distance ltn.StopDistance
+---@param distance number?
+---@param backwards_distance number?
+local function update_distance(stop_distance, distance, backwards_distance)
+    stop_distance.tick = game.tick + DISTANCE_CACHE_LIFETIME
+    if distance then stop_distance.distance = distance end
+    if backwards_distance then stop_distance.backwards_distance = backwards_distance end
 end
 
 ---@param from_stop LuaEntity
@@ -367,7 +411,8 @@ end
 ---@param reverse boolean
 ---@return integer? stop_id
 local function compute_path(from_stop, to_stops, reverse)
-    local rail_direction = (reverse and ((from_stop.connected_rail_direction == defines.rail_direction.front) and defines.rail_direction.back or defines.rail_direction.front)) or from_stop.connected_rail_direction
+    local rail_direction = (reverse and ((from_stop.connected_rail_direction == defines.rail_direction.front) and defines.rail_direction.back or defines.rail_direction.front))
+        or from_stop.connected_rail_direction
 
     local path_result = #to_stops > 0 and game.train_manager.request_train_path {
         type = 'path',
@@ -385,12 +430,11 @@ local function compute_path(from_stop, to_stops, reverse)
         local result_stop = to_stops[path_result.goal_index]
 
         local distance = get_cached_distance(from_stop, result_stop)
-        distance.tick = game.tick + DISTANCE_CACHE_LIFETIME
 
-        if reverse then
-            distance.backwards_distance = result
+        if not reverse then
+            update_distance(distance, result)
         else
-            distance.distance = result
+            update_distance(distance, nil, result)
         end
 
         return result_stop.unit_number
@@ -398,10 +442,11 @@ local function compute_path(from_stop, to_stops, reverse)
         -- remove unreachable stops
         for _, stop in pairs(to_stops) do
             local distance = get_cached_distance(from_stop, stop)
-            if reverse then
-                distance.backwards_distance = nil
+
+            if not reverse then
+                update_distance(distance, DISTANCE_RESULT.UNREACHABLE)
             else
-                distance.distance = nil
+                update_distance(distance, nil, DISTANCE_RESULT.UNREACHABLE)
             end
         end
     end
@@ -413,7 +458,8 @@ end
 --- prune it from the list of candidates.
 ---@param train_candidate ltn.TrainCandidate
 ---@param provider_to_train_metrics table<integer, ltn.Metrics>
-local function validate_reachable_stops(train_candidate, provider_to_train_metrics)
+---@param cache_metrics ltn.Metrics
+local function validate_reachable_stops(train_candidate, provider_to_train_metrics, cache_metrics)
     local train = train_candidate.free_train.train
 
     -- depot where the train is currently sitting
@@ -434,21 +480,55 @@ local function validate_reachable_stops(train_candidate, provider_to_train_metri
         for _, provider in pairs(train_candidate.providers) do
             local provider_stop = provider.provider.stop.entity
             local distance = get_cached_distance(depot_stop, provider_stop)
-            if provider_stop.surface_index == depot_stop.surface_index then
-                if needs_front_path and not distance.distance then forward_stops[#forward_stops + 1] = provider_stop end
-                if needs_back_path and not distance.backwards_distance then backward_stops[#backward_stops + 1] = provider_stop end
+
+            if provider_stop.surface_index ~= depot_stop.surface_index then
+                update_distance(distance, DISTANCE_RESULT.OTHER_SURFACE, DISTANCE_RESULT.OTHER_SURFACE)
+                cache_metrics:inc('other_surface')
             else
-                distance.distance = -1
-                distance.backwards_distance = -1
+                if needs_front_path and distance.distance <= 0 then
+                    if distance.distance == DISTANCE_RESULT.UNKNOWN then cache_metrics:inc('unknown_forward') end
+                    if distance.distance == DISTANCE_RESULT.EXPIRED then cache_metrics:inc('expired_forward') end
+
+                    if distance.distance == DISTANCE_RESULT.UNREACHABLE then
+                        cache_metrics:inc('unreachable_forward')
+                    else
+                        forward_stops[#forward_stops + 1] = provider_stop
+                    end
+                end
+
+                if needs_back_path and distance.backwards_distance <= 0 then
+                    if distance.backwards_distance == DISTANCE_RESULT.UNKNOWN then cache_metrics:inc('unknown_backward') end
+                    if distance.backwards_distance == DISTANCE_RESULT.EXPIRED then cache_metrics:inc('expired_backward') end
+
+                    if distance.backwards_distance == DISTANCE_RESULT.UNREACHABLE then
+                        cache_metrics:inc('unreachable_backward')
+                    else
+                        backward_stops[#backward_stops + 1] = provider_stop
+                    end
+                end
             end
+
             provider.distance = distance
         end
 
-        if #forward_stops > 0 then compute_path(depot_stop, forward_stops, false) end
-        if #backward_stops > 0 then compute_path(depot_stop, backward_stops, true) end
+        if #forward_stops == 0 and #backward_stops == 0 then
+            cache_metrics:inc('cached_result')
+        else
+            if #forward_stops > 0 then
+                compute_path(depot_stop, forward_stops, false)
+                cache_metrics:inc('compute_forward')
+            end
+            if #backward_stops > 0 then
+                compute_path(depot_stop, backward_stops, true)
+                cache_metrics:inc('compute_backward')
+            end
+        end
 
         for provider_id, provider in pairs(train_candidate.providers) do
-            if not tools.getStopDistance(provider.distance) then
+            local stop_result = get_stop_distance(provider.distance)
+            if stop_result == DISTANCE_RESULT.UNREACHABLE then
+                cache_metrics:inc('unreachable')
+
                 train_candidate.providers[provider_id] = nil
 
                 provider_to_train_metrics[provider_id]:inc('unreachable')
@@ -466,13 +546,16 @@ end
 -- find all trains that can serve a provider, prune out the ones that don't
 ---@param train_candidates table<integer, ltn.TrainCandidate>
 ---@param provider_to_train_metrics table<integer, ltn.Metrics>
+---@param request_stop ltn.TrainStop
 ---@return table<integer, ltn.FreeTrain[]>
-local function prune_train_candidates(train_candidates, provider_to_train_metrics)
+local function prune_train_candidates(train_candidates, provider_to_train_metrics, request_stop)
+    local cache_metrics = Metrics.create()
+
     ---@type table<integer, ltn.FreeTrain[]>
     local trains_for_provider = {}
 
     for train_candidate_id, train_candidate in pairs(train_candidates) do
-        validate_reachable_stops(train_candidate, provider_to_train_metrics)
+        validate_reachable_stops(train_candidate, provider_to_train_metrics, cache_metrics)
         if table_size(train_candidate.providers) == 0 then
             train_candidates[train_candidate_id] = nil
         else
@@ -481,10 +564,26 @@ local function prune_train_candidates(train_candidates, provider_to_train_metric
                 local free_trains = trains_for_provider[provider_id]
 
                 local free_train = util.copy(train_candidate.free_train)
-                free_train.provider_distance = tools.getStopDistance(provider.distance)
+                local _, stop_distance = get_stop_distance(provider.distance)
+                free_train.provider_distance = stop_distance
                 free_trains[#free_trains + 1] = free_train
             end
         end
+    end
+
+    local force = request_stop.entity.force
+
+    local metrics_result = cache_metrics:summarize({ '', }, 'CACHE_METRICS')
+
+    if table_size(cache_metrics) > 0 then
+        tools.printmsg(3, function()
+            local request_network_id = request_stop.network_id
+            local to = request_stop.entity.backer_name
+            local to_gps = tools.richTextForStop(request_stop.entity) or to
+            local to_network_ids, to_network_id_count = tools.networkList(request_network_id)
+
+            return { 'ltn-message.cache-metrics', to_gps, { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result }
+        end, force)
     end
 
     return trains_for_provider
@@ -551,8 +650,8 @@ local function select_train(free_trains, provider_surface_index, stacks)
             return b.inventory_size < stacks and b.inventory_size < a.inventory_size
         else
             -- if one stop is on the same surface and the other is not, return
-            if not a.provider_distance or a.provider_distance == -1 then return false end
-            if not b.provider_distance or b.provider_distance == -1 then return true end
+            if not a.provider_distance or a.provider_distance <= 0 then return false end
+            if not b.provider_distance or b.provider_distance <= 0 then return true end
 
             if math.abs(a.provider_distance - b.provider_distance) >= fudge_factor then
                 return a.provider_distance < b.provider_distance
@@ -804,7 +903,7 @@ function RequestProcessor:processRequest(reqIndex, request)
     -- 2) find all trains that can actually serve the routes
 
     ---@type table<integer, ltn.FreeTrain[]>
-    local trains_for_provider = prune_train_candidates(train_candidates, provider_to_train_metrics)
+    local trains_for_provider = prune_train_candidates(train_candidates, provider_to_train_metrics, request_stop)
 
     provider_metrics:set('match_count', table_size(trains_for_provider))
 

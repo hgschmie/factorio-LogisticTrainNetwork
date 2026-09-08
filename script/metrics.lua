@@ -27,6 +27,20 @@ Metrics.PROCESS_REQUEST_METRICS = {
     'invalid_stop',
 }
 
+Metrics.CACHE_METRICS = {
+    'cached_result',
+    'compute_forward',
+    'unknown_forward',
+    'expired_forward',
+    'unreachable_forward',
+    'compute_backward',
+    'unknown_backward',
+    'expired_backward',
+    'unreachable_backward',
+    'other_surface',
+    'unreachable',
+}
+
 Metrics.__index = Metrics
 
 --- Sets a metric to a given value. Creates the metric if it does not exist yet.
@@ -81,9 +95,7 @@ function Metrics:add_metric(result_collector, metrics_key)
     local metrics_value = rawget(self, metrics_key)
     if metrics_value and (metrics_value > 0) then
         result_collector[#result_collector + 1] = { 'metrics.' .. metrics_key }
-        result_collector[#result_collector + 1] = ': '
-        result_collector[#result_collector + 1] = tostring(metrics_value)
-        result_collector[#result_collector + 1] = ', '
+        result_collector[#result_collector + 1] = tostring(metrics_value) .. ', '
     end
 
     return result_collector
@@ -97,7 +109,9 @@ function Metrics:summarize(result_collector, metrics_names)
     for _, metrics_key in pairs(metrics_keys) do
         self:add_metric(result_collector, metrics_key)
     end
-    if #result_collector > 1 then result_collector[#result_collector] = nil end
+    if #result_collector > 1 then
+        result_collector[#result_collector] = result_collector[#result_collector]:sub(1, #result_collector[#result_collector] - 2)
+    end
 
     return result_collector
 end

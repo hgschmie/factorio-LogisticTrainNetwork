@@ -187,19 +187,6 @@ function Tools.printLoadingList(loading_list)
     return elements
 end
 
---- Returns the smaller value from the StopDistance cache if it exists.
----@param distance ltn.StopDistance?
----@return number? distance
-function Tools.getStopDistance(distance)
-    if not distance then return nil end
-    local forward_distance = (distance.distance or 0)
-    local backward_distance = (distance.backwards_distance or 0)
-    if forward_distance == -1 or backward_distance == -1 then return -1 end -- -1: on a different surface
-    if forward_distance == 0 then return (backward_distance > 0) and backward_distance or nil end
-    if backward_distance == 0 then return (forward_distance > 0) and forward_distance or nil end
-    return math.min(forward_distance, backward_distance)
-end
-
 --- Create backwards compatible loading list for API use.
 ---@param loadingList ltn.ItemLoadingElement[]
 ---@return ltn.LoadingList
