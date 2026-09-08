@@ -118,7 +118,7 @@ local function initialize(oldVersion, newVersion)
     -- update to 1.8.0
     if oldVersion and oldVersion < '01.08.00' then
         for _, stop in pairs(storage.LogisticTrainStops) do
-            local control = stop.entity.get_or_create_control_behavior --[[@as LuaTrainStopControlBehavior]]
+            local control = assert(stop.entity.get_or_create_control_behavior()) --[[@as LuaTrainStopControlBehavior]]
             control.send_to_train = true
             control.read_from_train = true
         end

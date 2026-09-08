@@ -139,13 +139,10 @@ function CreateStop(entity)
 
     -- connect lamp and control
 
-    local lampctrl_control = lampctrl.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
-    assert(lampctrl_control)
-    if lampctrl_control.sections_count == 0 then
-        assert(lampctrl_control.add_section())
-    end
+    local lampctrl_control = assert(lampctrl.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior ]]
+    local section = lampctrl_control.get_section(1) or assert(lampctrl_control.add_section())
 
-    lampctrl_control.sections[1].set_slot(1, {
+    section.set_slot(1, {
         value = {
             type = 'virtual',
             name = 'signal-white',
@@ -159,17 +156,14 @@ function CreateStop(entity)
 
     input_wire_connectors[defines.wire_connector_id.circuit_green].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_green], false, defines.wire_origin.script)
 
-    local input_control = input.get_or_create_control_behavior() --[[@as LuaLampControlBehavior ]]
-    assert(input_control)
-    input_control.use_colors = true
+    local input_control = assert(input.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior ]]
 
-    ---@diagnostic disable: missing-fields
+    input_control.use_colors = true
     input_control.circuit_condition = {
         comparator = '>',
         first_signal = { type = 'virtual', name = 'signal-anything', quality = 'normal' },
         constant = 0,
     }
-    ---@diagnostic enable: missing-fields
 
     if output == nil then -- create new
         output = entity.surface.create_entity {

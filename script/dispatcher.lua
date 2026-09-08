@@ -91,7 +91,7 @@ local function DispatcherUpdateStops(event)
         return ltn_tick_state.reset
     end
 
-    local stop_count = LtnSettings:getStopUpdatesPerTick()
+    local stop_count = LtnSettings.dispatcher_stop_updates_per_tick
 
     if stop_count > 0 then
         ---@type ltn.TrainStop
@@ -231,7 +231,7 @@ local function DispatcherDispatchTrains(event)
             return ltn_tick_state.reset
         end
 
-        local request_count = LtnSettings:getRequestUpdatesPerTick()
+        local request_count = LtnSettings.dispatcher_updates_per_tick
 
         if request_count > 0 then
             ---@type ltn.Request

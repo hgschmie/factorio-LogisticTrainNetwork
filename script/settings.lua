@@ -60,10 +60,7 @@ local change_settings = {
     ['ltn-dispatcher-finish-loading'] = function(ltn_settings, name) ltn_settings.finish_loading = settings.global[name].value end,
     ['ltn-dispatcher-requester-delivery-reset'] = function(ltn_settings, name) ltn_settings.requester_delivery_reset = settings.global[name].value end,
     ['ltn-dispatcher-enabled'] = function(ltn_settings, name) ltn_settings.dispatcher_enabled = settings.global[name].value end,
-    ['ltn-dispatcher-nth_tick'] = function(ltn_settings, name)
-        ltn_settings.dispatcher_nth_tick = settings.global[name].value
-        return true
-    end,
+    ['ltn-dispatcher-nth_tick'] = function(ltn_settings, name) ltn_settings.dispatcher_nth_tick = settings.global[name].value end,
     ['ltn-dispatcher-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_updates_per_tick = settings.global[name].value end,
     ['ltn-dispatcher-stop-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_stop_updates_per_tick = settings.global[name].value end,
     ['ltn-dispatcher-route-cache-lifetime'] = function(ltn_settings, name) ltn_settings.route_cache_lifetime = settings.global[name].value * 3600 end,
@@ -81,19 +78,10 @@ local change_settings = {
     ['ltn-depot-fudge-factor'] = function(ltn_settings, name) ltn_settings.depot_fudge_factor = settings.global[name].value end,
     ['ltn-depot-stop-limit-trains'] = function(ltn_settings, name) ltn_settings.depot_limit_trains = tonumber(settings.startup[name].value) end,
 }
-
 function LtnSettings:init()
     for name in pairs(change_settings) do
         change_settings[name](self, name)
     end
-end
-
-function LtnSettings:getRequestUpdatesPerTick()
-    return self.dispatcher_updates_per_tick
-end
-
-function LtnSettings:getStopUpdatesPerTick()
-    return self.dispatcher_stop_updates_per_tick
 end
 
 ---@param event EventData.on_runtime_mod_setting_changed
