@@ -29,6 +29,7 @@ ltn_depot_train_limit = {
 ---@field schedule_cc boolean
 ---@field stop_timeout integer
 ---@field dispatcher_updates_per_tick integer
+---@field dispatcher_stop_updates_per_tick integer
 ---@field depot_reset_filters boolean
 ---@field depot_fluid_cleaning integer
 ---@field default_network integer
@@ -63,6 +64,7 @@ local change_settings = {
         return true
     end,
     ['ltn-dispatcher-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_updates_per_tick = settings.global[name].value end,
+    ['ltn-dispatcher-stop-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_stop_updates_per_tick = settings.global[name].value end,
     ['ltn-depot-reset-filters'] = function(ltn_settings, name) ltn_settings.depot_reset_filters = settings.global[name].value end,
     ['ltn-depot-fluid-cleaning'] = function(ltn_settings, name) ltn_settings.depot_fluid_cleaning = settings.global[name].value end,
     ['ltn-stop-default-network'] = function(ltn_settings, name) ltn_settings.default_network = settings.global[name].value end,
@@ -84,8 +86,12 @@ function LtnSettings:init()
     end
 end
 
-function LtnSettings:getUpdatesPerTick()
-    return (self.dispatcher_nth_tick == 1) and self.dispatcher_updates_per_tick or 1
+function LtnSettings:getRequestUpdatesPerTick()
+    return self.dispatcher_updates_per_tick
+end
+
+function LtnSettings:getStopUpdatesPerTick()
+    return self.dispatcher_stop_updates_per_tick
 end
 
 ---@param event EventData.on_runtime_mod_setting_changed

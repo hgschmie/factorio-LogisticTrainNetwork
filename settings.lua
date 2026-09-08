@@ -23,17 +23,26 @@ data:extend {
     },
     {
         type = 'int-setting',
-        name = 'ltn-dispatcher-updates-per-tick',
+        name = 'ltn-dispatcher-stop-updates-per-tick',
         order = 'ac',
+        setting_type = 'runtime-global',
+        default_value = 2,
+        minimum_value = 1,
+        maximum_value = 100, -- processing too many stops per tick will produce lag spikes
+    },
+    {
+        type = 'int-setting',
+        name = 'ltn-dispatcher-updates-per-tick',
+        order = 'ad',
         setting_type = 'runtime-global',
         default_value = 1,
         minimum_value = 1,
-        maximum_value = 100, -- processing too many stops/requests per tick will produce lag spikes
+        maximum_value = 100, -- processing too many requests per tick will produce lag spikes
     },
     {
         type = 'string-setting',
         name = 'ltn-interface-console-level',
-        order = 'ad',
+        order = 'ae',
         setting_type = 'runtime-global',
         default_value = '2',
         allowed_values = { '0', '1', '2', '3' }

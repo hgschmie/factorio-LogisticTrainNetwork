@@ -6,15 +6,19 @@ Most LTN settings are per-map and can be changed while the game is running. Exce
 
 If `true`, the dispatcher will create new deliveries. Set to `false` if you want LTN to pause scheduling new deliveries.
 
-## Update Frequency (in ticks) (ltn-dispatcher-nth_tick) - integer, 1-60, default is 2
+## Request Update Frequency (in ticks) (ltn-dispatcher-nth_tick) - integer, 1-60, default is 2
 
 Number of ticks between running the dispatcher. Higher numbers spread the load more but stations and requests are not updated as often. Default is `2` (every other tick).
 
-If set to a value > `1`, the Updates per tick for stops and requests updated is forced to `1`.
+## Stop Updates per tick (ltn-dispatcher-stop-updates-per-tick) - integer, 1-100, default is 2
 
-## Updates per tick (ltn-dispatcher-updates-per-tick) - integer, 1-100, default is 1
+Number of stops that are updated at each update cycle. Higher numbers can lead to load spikes which in turn lag the game. Default value is `2`.
 
-Number of stops and requests that is updated at each update cycle. Higher numbers can lead to load spikes which in turn lag the game. Default value is `1` (see above).
+If the Update frequency is set to a value > `1`, this value is forced to be `1`.
+
+## Dispatcher Updates per tick (ltn-dispatcher-updates-per-tick) - integer, 1-100, default is 1
+
+Number of requests that are updated at each update cycle. Higher numbers can lead to load spikes which in turn lag the game. Default value is `1`.
 
 If the Update frequency is set to a value > `1`, this value is forced to be `1`.
 
