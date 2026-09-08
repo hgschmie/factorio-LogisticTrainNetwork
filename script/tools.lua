@@ -227,11 +227,11 @@ function Tools.getTrainName(train)
     return loco and loco.backer_name
 end
 
---- Calculate the distance between two positions. -- from flib
+--- Calculate the eucledian distance between two positions. -- from flib
 --- @param pos1 MapPosition
 --- @param pos2 MapPosition
 --- @return number
-function Tools.getDistance(pos1, pos2)
+function Tools.getEucledianDistance(pos1, pos2)
     local x1 = pos1.x or pos1[1]
     local y1 = pos1.y or pos1[2]
     local x2 = pos2.x or pos2[1]

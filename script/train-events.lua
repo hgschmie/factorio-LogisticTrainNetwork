@@ -38,8 +38,8 @@ function TrainArrives(train)
     stop.parked_train = train
     stop.parked_train_id = train.id
 
-    local frontDistance = tools.getDistance(train.front_stock.position, train.station.position)
-    local backDistance = tools.getDistance(train.back_stock.position, train.station.position)
+    local frontDistance = tools.getEucledianDistance(train.front_stock.position, train.station.position)
+    local backDistance = tools.getEucledianDistance(train.back_stock.position, train.station.position)
     if frontDistance > backDistance then
         stop.parked_train_faces_stop = false
     else
