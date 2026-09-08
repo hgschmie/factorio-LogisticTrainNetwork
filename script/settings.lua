@@ -30,6 +30,7 @@ ltn_depot_train_limit = {
 ---@field stop_timeout integer
 ---@field dispatcher_updates_per_tick integer
 ---@field dispatcher_stop_updates_per_tick integer
+---@field route_cache_lifetime integer
 ---@field depot_reset_filters boolean
 ---@field depot_fluid_cleaning integer
 ---@field default_network integer
@@ -65,6 +66,7 @@ local change_settings = {
     end,
     ['ltn-dispatcher-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_updates_per_tick = settings.global[name].value end,
     ['ltn-dispatcher-stop-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_stop_updates_per_tick = settings.global[name].value end,
+    ['ltn-dispatcher-route-cache-lifetime'] = function(ltn_settings, name) ltn_settings.route_cache_lifetime = settings.global[name].value * 3600 end,
     ['ltn-depot-reset-filters'] = function(ltn_settings, name) ltn_settings.depot_reset_filters = settings.global[name].value end,
     ['ltn-depot-fluid-cleaning'] = function(ltn_settings, name) ltn_settings.depot_fluid_cleaning = settings.global[name].value end,
     ['ltn-stop-default-network'] = function(ltn_settings, name) ltn_settings.default_network = settings.global[name].value end,

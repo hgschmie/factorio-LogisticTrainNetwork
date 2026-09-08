@@ -6,6 +6,7 @@ Date: ????
     - split stop updates and request updates into two settings
     - distance cache also caches negative results, keep cache statistics
     - optimize stop output signal calculation, no longer parse the schedule
+    - add setting for route cache lifetime
   Bugfixes:
     - compute station and request loops correctly
     - reset ticker when changing frequency

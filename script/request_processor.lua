@@ -401,7 +401,7 @@ end
 ---@param distance number?
 ---@param backwards_distance number?
 local function update_distance(stop_distance, distance, backwards_distance)
-    stop_distance.tick = game.tick + DISTANCE_CACHE_LIFETIME
+    stop_distance.tick = game.tick + LtnSettings.route_cache_lifetime
     if distance then stop_distance.distance = distance end
     if backwards_distance then stop_distance.backwards_distance = backwards_distance end
 end

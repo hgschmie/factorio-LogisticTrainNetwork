@@ -78,8 +78,6 @@ MATCH_STRING = '([^,]+),([^,]+)'
 -- LTN Interrupt name
 LTN_INTERRUPT_NAME = 'LTN Fuel'
 
-DISTANCE_CACHE_LIFETIME = 60 * 60 * 2 -- 2 minutes
-
 ---@enum ltn.DistanceResult
 DISTANCE_RESULT = {
     PATH_AVAILABLE = 0,

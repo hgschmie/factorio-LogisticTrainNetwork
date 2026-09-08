@@ -40,9 +40,18 @@ data:extend {
         maximum_value = 100, -- processing too many requests per tick will produce lag spikes
     },
     {
+        type = 'int-setting',
+        name = 'ltn-dispatcher-route-cache-lifetime',
+        order = 'ae',
+        setting_type = 'runtime-global',
+        default_value = 2,
+        minimum_value = 2,
+        maximum_value = 120,
+    },
+    {
         type = 'string-setting',
         name = 'ltn-interface-console-level',
-        order = 'ae',
+        order = 'af',
         setting_type = 'runtime-global',
         default_value = '2',
         allowed_values = { '0', '1', '2', '3' }
@@ -50,21 +59,21 @@ data:extend {
     {
         type = 'bool-setting',
         name = 'ltn-interface-message-gps',
-        order = 'af',
+        order = 'ag',
         setting_type = 'runtime-global',
         default_value = false
     },
     {
         type = 'bool-setting',
         name = 'ltn-interface-factorio-alerts',
-        order = 'ag',
+        order = 'ah',
         setting_type = 'runtime-per-user',
         default_value = true
     },
     {
         type = 'int-setting',
         name = 'ltn-interface-debug-logfile',
-        order = 'ah',
+        order = 'ai',
         setting_type = 'runtime-global',
         default_value = 0,
         allowed_values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 },

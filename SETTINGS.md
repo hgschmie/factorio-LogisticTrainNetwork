@@ -22,6 +22,10 @@ Number of requests that are updated at each update cycle. Higher numbers can lea
 
 If the Update frequency is set to a value > `1`, this value is forced to be `1`.
 
+## Dispatcher Route cache lifetime in minutes (ltn-dispatcher-route-cache-lifetime) - integer 2-120, default is 2
+
+Controls how long LTN will store computed routes which in turn control what train is selected for a delivery. The default is 2 minutes. For very large maps that don't update too much, longer lifetimes will reduce the number of route computing requests, which helps with FPS/UPS.
+
 ## Message Level (ltn-interface-console-level) - select, 1-4, default is 2
 
 Selects the level of messages sent to the game console:
