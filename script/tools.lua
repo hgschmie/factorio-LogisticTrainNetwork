@@ -582,6 +582,7 @@ function Tools.updateDispatchTicker()
     local stops = Tools.getAllStops()
     if next(stops) then
         -- bring up dispatcher and Train State ticker
+        script.on_nth_tick(nil)
         script.on_nth_tick(LtnSettings.dispatcher_nth_tick, OnTick)
         script.on_event(defines.events.on_train_changed_state, OnTrainStateChanged)
         script.on_event(defines.events.on_train_created, OnTrainCreated)

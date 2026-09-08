@@ -3,6 +3,7 @@ Version: 2.9.1
 Date: ????
   Bugfixes:
     - compute station and request loops correctly
+    - reset ticker when changing frequency
 ---------------------------------------------------------------------------------------------------
 Version: 2.9.0
 Date: 2026-08-06
