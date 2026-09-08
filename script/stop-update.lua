@@ -310,7 +310,7 @@ function UpdateStop(stopID, stop)
                     },
                     comparator = '<=',
                     constant = math.abs(count)
-                })
+                }
             end
         end
 
@@ -439,13 +439,13 @@ function UpdateStop(stopID, stop)
                 count = count * -1
                 local ageIndex = item .. ',' .. stopID
                 dispatcher.RequestAge[ageIndex] = dispatcher.RequestAge[ageIndex] or game.tick
-                table.insert(dispatcher.Requests, {
+                dispatcher.Requests[#dispatcher.Requests + 1] = {
                     age = dispatcher.RequestAge[ageIndex],
                     stopID = stopID,
                     priority = ltn_state.requester_priority,
                     item = item,
                     count = count
-                })
+                }
 
                 dispatcher.Requests_by_Stop[stopID] = dispatcher.Requests_by_Stop[stopID] or {}
                 dispatcher.Requests_by_Stop[stopID][item] = count

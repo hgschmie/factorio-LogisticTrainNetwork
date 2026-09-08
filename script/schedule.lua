@@ -97,7 +97,7 @@ function ScheduleManager:selectDepot(train, network_id)
     ---@type LuaEntity[]
     local depots = {}
     for _, depot in pairs(all_depots) do
-        table.insert(depots, depot.entity)
+        depots[#depots + 1] = depot.entity
     end
 
     if table_size(depots) == 0 then
@@ -127,7 +127,7 @@ function ScheduleManager:selectDepot(train, network_id)
 
     for idx, accessible in pairs(path_results.accessible) do
         if accessible and tools.isStopValid(all_stops[depots[idx].unit_number]) then
-            table.insert(accessible_stations, all_stops[depots[idx].unit_number])
+            accessible_stations[#accessible_stations + 1] = all_stops[depots[idx].unit_number]
         end
     end
 
@@ -152,7 +152,7 @@ function ScheduleManager:selectFuelStation(train, network_id)
     for _, station in pairs(all_fuel_stations) do
         assert(station.fuel_signals)
         if #station.fuel_signals > 0 then -- must provide some threshold signal
-            table.insert(stations, station.entity)
+            stations[#stations + 1] = station.entity
         end
     end
 
@@ -325,12 +325,12 @@ function ScheduleManager:updateRefuelSchedule(train, network_id)
     local interrupt_conditions = {}
 
     for _, circuit_condition in pairs(fuel_station.fuel_signals) do
-        table.insert(interrupt_conditions, {
+        interrupt_conditions[#interrupt_conditions + 1] = {
             type = 'fuel_item_count_any',
             condition = util.copy(circuit_condition),
             compare_type = 'or',
-        })
-        table.insert(interrupt_conditions, {
+        }
+        interrupt_conditions[#interrupt_conditions + 1] = {
             type = 'fuel_item_count_any',
             condition = {
                 comparator = '>',
@@ -338,7 +338,7 @@ function ScheduleManager:updateRefuelSchedule(train, network_id)
                 constant = 0,
             },
             compare_type = 'and',
-        })
+        }
     end
 
     ---@type ScheduleInterrupt
@@ -524,20 +524,20 @@ local INACTIVITY_CONDITION = {
 ---@param wait_conditions WaitCondition[]
 function ScheduleManager:addControlSignals(wait_conditions)
     if LtnSettings.finish_loading then
-        table.insert(wait_conditions, INACTIVITY_CONDITION)
+        wait_conditions[#wait_conditions + 1] = INACTIVITY_CONDITION
     end
 
     -- with circuit control enabled keep trains waiting until red = 0 and force them out with green ≥ 1
     if LtnSettings.schedule_cc then
-        table.insert(wait_conditions, RED_SIGNAL_CONDITION)
-        table.insert(wait_conditions, GREEN_SIGNAL_CONDITION)
+        wait_conditions[#wait_conditions + 1 ] = RED_SIGNAL_CONDITION
+        wait_conditions[#wait_conditions + 1 ] = GREEN_SIGNAL_CONDITION
     end
 
     if LtnSettings.stop_timeout > 0 then -- send stuck trains away when stop_timeout is set
-        table.insert(wait_conditions, { compare_type = 'or', type = 'time', ticks = LtnSettings.stop_timeout })
+        wait_conditions[#wait_conditions + 1 ] = { compare_type = 'or', type = 'time', ticks = LtnSettings.stop_timeout }
         -- should it also wait for red = 0?
         if LtnSettings.schedule_cc then
-            table.insert(wait_conditions, RED_SIGNAL_CONDITION)
+            wait_conditions[#wait_conditions + 1 ] = RED_SIGNAL_CONDITION
         end
     end
 end
@@ -549,7 +549,7 @@ function ScheduleManager:providerStop(train, stop, loadingList)
     local wait_conditions = {}
 
     for _, loadingElement in pairs(loadingList) do
-        table.insert(wait_conditions, {
+        wait_conditions[#wait_conditions + 1 ] = {
             compare_type = 'and',
             type = loadingElement.item.type == 'item' and 'item_count' or 'fluid_count',
             condition = {
@@ -557,7 +557,7 @@ function ScheduleManager:providerStop(train, stop, loadingList)
                 first_signal = loadingElement.item,
                 constant = loadingElement.count,
             }
-        })
+        }
     end
 
     self:addControlSignals(wait_conditions)
@@ -578,7 +578,7 @@ function ScheduleManager:requesterStop(train, stop, loadingList)
     local wait_conditions = {}
 
     for _, loadingElement in pairs(loadingList) do
-        table.insert(wait_conditions, {
+        wait_conditions[#wait_conditions + 1 ] = {
             compare_type = 'and',
             type = loadingElement.item.type == 'item' and 'item_count' or 'fluid_count',
             condition = {
@@ -586,7 +586,7 @@ function ScheduleManager:requesterStop(train, stop, loadingList)
                 first_signal = loadingElement.item,
                 constant = 0, -- since 1.1.0, fluids will only be 0 if empty (see https://wiki.factorio.com/Train_stop)
             }
-        })
+        }
     end
 
     self:addControlSignals(wait_conditions)

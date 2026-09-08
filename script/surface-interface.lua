@@ -107,7 +107,7 @@ function SurfaceInterface.FindSurfaceConnections(surface1, surface2, force, netw
     for entity_pair_key, connection in pairs(surface_connections) do
         if connection.entity1.valid and connection.entity2.valid then
             if bit32.btest(network_id, connection.network_id) and connection.entity1.force == force and connection.entity2.force == force then
-                table.insert(matching_connections, connection)
+                matching_connections[#matching_connections + 1] =  connection
             end
         else
             tools.log(5, 'FindSurfaceConnections', 'removing invalid surface connection %s betwen surfaces %s', function()
