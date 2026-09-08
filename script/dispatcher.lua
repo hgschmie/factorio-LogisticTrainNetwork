@@ -129,7 +129,8 @@ local function DispatcherUpdateDeliveries(event)
             local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
 
             tools.printmsg(1, function()
-                return { 'ltn-message.delivery-removed-train-invalid', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to }
+                return { 'ltn-message.delivery-removed-train-invalid', tools.richTextForStop(from_entity) or delivery.from,
+                    tools.richTextForStop(to_entity) or delivery.to }
             end, delivery.force)
 
             tools.log(6, 'OnTick', 'Delivery from %s to %s removed. Train no longer valid.', function()
@@ -149,7 +150,8 @@ local function DispatcherUpdateDeliveries(event)
             local to_entity = storage.LogisticTrainStops[delivery.to_id] and storage.LogisticTrainStops[delivery.to_id].entity
 
             tools.printmsg(1, function()
-                return { 'ltn-message.delivery-removed-timeout', tools.richTextForStop(from_entity) or delivery.from, tools.richTextForStop(to_entity) or delivery.to, event.tick - delivery.started }
+                return { 'ltn-message.delivery-removed-timeout', tools.richTextForStop(from_entity) or delivery.from,
+                    tools.richTextForStop(to_entity) or delivery.to, event.tick - delivery.started }
             end, delivery.force)
 
             tools.log(6, 'OnTick', 'Delivery from %s to %s removed. Timed out after %d/%d ticks.', function()

@@ -161,6 +161,7 @@ function Tools.printLoadingList(loading_list)
     local elements = { '' }
 
     for _, loading_element in pairs(loading_list) do
+        ---@type LocalisedString
         local sub_element = { '' }
         sub_element[#sub_element + 1] = tostring(loading_element.count)
         if loading_element.item.type == 'item' then
