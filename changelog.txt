@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.1
-Date: ????
+Date: 2026-09-10
   Changes:
     - make sure that a manually disrupted delivery (send train back to depot) removes all the
       LTN created temp stops.
