@@ -376,6 +376,19 @@ function ScheduleManager:updateRefuelSchedule(train, network_id)
     end
 end
 
+-- Removes all temp stops that were created by the scheduler. Leave all other temp stops alone
+---@param record ScheduleRecord
+---@return boolean remove True if the stop should be removed
+local function match_scheduled_temp_stop(record)
+    if not record.temporary then return false end
+
+    local wait_conditions = record.wait_conditions
+    if not wait_conditions or #wait_conditions < 2 then return false end
+    return wait_conditions[1].type == 'not_at_station'
+        and wait_conditions[2].type == 'time'
+        and wait_conditions[2].compare_type == 'or'
+end
+
 --- Reset the train schedule to get ready for the next delivery.
 --- This moves the depot into the first position, retains potential temporary stops
 --- and reorganizes the schedule to be depot - (temp) - provider - (temp) - requester
@@ -409,7 +422,7 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
     if #records > 0 then
         for index = #records, 1, -1 do
             -- remove all stops that are not the depot stop or any temporary stops
-            if not (records[index].temporary or records[index].station == depot_stop.entity.backer_name) then
+            if match_scheduled_temp_stop(records[index]) or ((records[index].station ~= depot_stop.entity.backer_name) and not records[index].temporary) then
                 train_schedule.remove_record { schedule_index = index }
             end
         end
@@ -479,8 +492,13 @@ function ScheduleManager:temporaryStop(train, rail, rail_direction, stop_schedul
         allows_unloading = false,
         wait_conditions = {
             {
+                type = 'not_at_station',
+                station = '[virtual-signal=ltn-depot] LTN',
+            },
+            {
                 type = 'time',
                 ticks = 0,
+                compare_type = 'or',
             }
         },
     }
@@ -529,15 +547,15 @@ function ScheduleManager:addControlSignals(wait_conditions)
 
     -- with circuit control enabled keep trains waiting until red = 0 and force them out with green ≥ 1
     if LtnSettings.schedule_cc then
-        wait_conditions[#wait_conditions + 1 ] = RED_SIGNAL_CONDITION
-        wait_conditions[#wait_conditions + 1 ] = GREEN_SIGNAL_CONDITION
+        wait_conditions[#wait_conditions + 1] = RED_SIGNAL_CONDITION
+        wait_conditions[#wait_conditions + 1] = GREEN_SIGNAL_CONDITION
     end
 
     if LtnSettings.stop_timeout > 0 then -- send stuck trains away when stop_timeout is set
-        wait_conditions[#wait_conditions + 1 ] = { compare_type = 'or', type = 'time', ticks = LtnSettings.stop_timeout }
+        wait_conditions[#wait_conditions + 1] = { compare_type = 'or', type = 'time', ticks = LtnSettings.stop_timeout }
         -- should it also wait for red = 0?
         if LtnSettings.schedule_cc then
-            wait_conditions[#wait_conditions + 1 ] = RED_SIGNAL_CONDITION
+            wait_conditions[#wait_conditions + 1] = RED_SIGNAL_CONDITION
         end
     end
 end
@@ -549,7 +567,7 @@ function ScheduleManager:providerStop(train, stop, loadingList)
     local wait_conditions = {}
 
     for _, loadingElement in pairs(loadingList) do
-        wait_conditions[#wait_conditions + 1 ] = {
+        wait_conditions[#wait_conditions + 1] = {
             compare_type = 'and',
             type = loadingElement.item.type == 'item' and 'item_count' or 'fluid_count',
             condition = {
@@ -578,7 +596,7 @@ function ScheduleManager:requesterStop(train, stop, loadingList)
     local wait_conditions = {}
 
     for _, loadingElement in pairs(loadingList) do
-        wait_conditions[#wait_conditions + 1 ] = {
+        wait_conditions[#wait_conditions + 1] = {
             compare_type = 'and',
             type = loadingElement.item.type == 'item' and 'item_count' or 'fluid_count',
             condition = {
