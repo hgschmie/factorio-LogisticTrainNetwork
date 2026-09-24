@@ -1,7 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.2
 Date: ????
-  Changes:
+  Bugfixes:
+    - If fuel inventory is empty and refueling is enabled, send the train to refueling if there is
+      still something left in the burner
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.1
 Date: 2026-09-10

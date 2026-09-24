@@ -946,8 +946,8 @@ function RequestProcessor:processRequest(reqIndex, request)
     local max_carriages = math.min(request_stop.max_carriages, provider_stop.max_carriages)
 
     tools.printmsg(3, function()
-        return { 'ltn-message.provider-found', from_gps, tostring(provider.priority), tostring(provider.activeDeliveryCount), provider.count,
-            tools.prettyPrint(item_info) }
+        return { 'ltn-message.provider-found',
+            from_gps, tostring(provider.priority), tostring(provider.activeDeliveryCount), provider.count, tools.prettyPrint(item_info) }
     end, force)
 
     -- limit delivery_size to minimum between provider and requester
@@ -970,8 +970,12 @@ function RequestProcessor:processRequest(reqIndex, request)
 
     local free_train = select_train(trains_for_provider[from_id], provider_stop.entity.surface_index, stacks)
     if not free_train then
-        create_alert(request_stop.entity, 'depot-empty', { 'ltn-message.no-train-found', provider_stop.entity.backer_name, request_stop.entity.backer_name,
-            matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }, force)
+        create_alert(request_stop.entity,
+            'depot-empty', {
+                'ltn-message.no-train-found',
+                provider_stop.entity.backer_name, request_stop.entity.backer_name, matched_network_id_str, tostring(min_carriages), tostring(max_carriages)
+            },
+            force)
 
         tools.printmsg(1, function()
             return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }

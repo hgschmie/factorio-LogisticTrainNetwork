@@ -225,16 +225,30 @@ local function must_refuel(train, fuel_signals)
             ---@type table<string, number>
             local fuel = {}
             if not storage.ExcludedFromRefuel[locomotive.name] then
+                local key
+
+                ---@type ItemIDAndQualityIDPair
+                local current_fuel = locomotive.burner.currently_burning
+                if current_fuel then
+                    key = table.concat({
+                        current_fuel.name.type,
+                        current_fuel.name.name,
+                        current_fuel.quality and current_fuel.quality.name or nil,
+                    }, ',')
+                    -- set the fuel key but quantity is 0
+                    fuel[key] = (fuel[key] or 0)
+                end
+
                 local fuelInventory = locomotive.get_fuel_inventory()
                 if fuelInventory then
                     for _, item in pairs(fuelInventory.get_contents()) do
-                        local key = tools.createItemIdentifier(item)
+                        key = tools.createItemIdentifier(item)
                         fuel[key] = (fuel[key] or 0) + item.count
                     end
                 end
                 for _, fuel_signal in pairs(fuel_signals) do
                     assert(fuel_signal.constant)
-                    local key = tools.createItemIdentifier(fuel_signal.first_signal)
+                    key = tools.createItemIdentifier(fuel_signal.first_signal)
                     if fuel[key] and fuel[key] < fuel_signal.constant then return true end
                 end
             end
