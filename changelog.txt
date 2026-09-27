@@ -4,6 +4,10 @@ Date: ????
   Bugfixes:
     - If fuel inventory is empty and refueling is enabled, send the train to refueling if there is
       still something left in the burner
+    - A train is only eligible for a delivery when its depot network shares a bit with both the
+      requester and the provider. Previously the depot was matched against the provider stop alone,
+      so a provider present on several networks could send a train from one network to a requester
+      on another.
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.1
 Date: 2026-09-10
