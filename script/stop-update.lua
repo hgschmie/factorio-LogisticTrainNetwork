@@ -589,35 +589,39 @@ function UpdateStopOutput(train_stop, ignore_existing_cargo)
             if delivery.from_id == train_stop.entity.unit_number then
                 for shipment, amount in pairs(delivery.shipment) do
                     -- provider
-                    local value = assert(tools.parseItemIdentifier(shipment))
-                    if value.type == 'item' then
-                        inventory[shipment] = inventory[shipment] or {
-                            name = value.name,
-                            quality = value.quality,
-                            count = 0,
-                        }
-                        inventory[shipment].count = inventory[shipment].count + amount
-                    else
-                        fluidInventory[shipment] = fluidInventory[shipment] or {
-                            name = value.name,
-                            quality = '',
-                            count = 0,
-                        }
-                        fluidInventory[shipment].count = fluidInventory[shipment].count + amount
+                    local value = tools.parseItemIdentifier(shipment)
+                    if value then -- if a prototype was removed while train is moving, this can be nil
+                        if value.type == 'item' then
+                            inventory[shipment] = inventory[shipment] or {
+                                name = value.name,
+                                quality = value.quality,
+                                count = 0,
+                            } --[[@as ItemWithQualityCount ]]
+                            inventory[shipment].count = inventory[shipment].count + amount
+                        else
+                            fluidInventory[shipment] = fluidInventory[shipment] or {
+                                name = value.name,
+                                quality = '',
+                                count = 0,
+                            } --[[@as ItemWithQualityCount ]]
+                            fluidInventory[shipment].count = fluidInventory[shipment].count + amount
+                        end
                     end
                 end
-            else
+            elseif delivery.to_id == train_stop.entity.unit_number then
                 for shipment in pairs(delivery.shipment) do
                     -- requester
-                    local value = assert(tools.parseItemIdentifier(shipment))
-                    if value.type == 'item' then
-                        inventory[shipment] = nil
-                    else
-                        fluidInventory[shipment] = {
-                            name = value.name,
-                            quality = '',
-                            count = -1,
-                        }
+                    local value = tools.parseItemIdentifier(shipment)
+                    if value then -- if a prototype was removed while train is moving, this can be nil
+                        if value.type == 'item' then
+                            inventory[shipment] = nil
+                        else
+                            fluidInventory[shipment] = {
+                                name = value.name,
+                                quality = '',
+                                count = -1,
+                            } --[[@as ItemWithQualityCount ]]
+                        end
                     end
                 end
             end
