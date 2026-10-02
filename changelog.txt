@@ -1,7 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.3
 Date: ????
-  Changes:
+  Bugfixes:
+    - Make sure that for each priority at least one stop exists if it is reachable. This fixes the
+      problem described in #73. Reported by @mitasamodel, thank you for the save to reproduce it
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.2
 Date: 2026-09-27
