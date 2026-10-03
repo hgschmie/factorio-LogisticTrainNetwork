@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.4
-Date: ????
+Date: 2026-10-03
   Changes:
     - Added per-player setting "Console messages" to silence LTN chat notifications without
       affecting other players. - contributed by @lexwebb on github (#71) - Thank you!
