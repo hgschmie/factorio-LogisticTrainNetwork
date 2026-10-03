@@ -456,8 +456,8 @@ local function compute_path(from_stop, to_stops, reverse)
                 update_distance(distance, nil, result)
             end
         else
-            -- remove unreachable stops
-            for _, stop in pairs(to_stops) do
+            -- Mark only the stops in this priority group as unreachable.
+            for _, stop in pairs(priority_stops) do
                 local distance = get_cached_distance(from_stop, stop)
 
                 if not reverse then

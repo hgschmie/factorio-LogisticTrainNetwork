@@ -5,6 +5,8 @@ Date: ????
     - Added per-player setting "Console messages" to silence LTN chat notifications without
       affecting other players. - contributed by @lexwebb on github (#71) - Thank you!
   Bugfixes:
+    - Fix a crash when pathfinding finds no route to a provider priority group in one direction.
+      Fixes #77. Thanks to @TilTisback on github for the report, reproduction save and proposed fix!
     - Respect each provider's locked slots when a train can serve multiple providers.
       Fixes #72, reported by @mariz on github, thank you!
     - A train is only eligible for a delivery when its depot network shares a bit with both the
