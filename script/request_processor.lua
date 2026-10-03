@@ -404,51 +404,61 @@ local function update_distance(stop_distance, distance, backwards_distance)
 end
 
 ---@param from_stop LuaEntity
----@param to_stops LuaEntity[]
+---@param to_stops ltn.Provider[]
 ---@param reverse boolean
----@return integer? stop_id
 local function compute_path(from_stop, to_stops, reverse)
-    local rail_direction = (reverse and ((from_stop.connected_rail_direction == defines.rail_direction.front) and defines.rail_direction.back or defines.rail_direction.front))
-        or from_stop.connected_rail_direction
 
-    local path_result = #to_stops > 0 and game.train_manager.request_train_path {
-        type = 'path',
-        starts = {
-            {
-                rail = from_stop.connected_rail,
-                direction = rail_direction,
-            }
-        },
-        goals = to_stops,
-    } or nil
+    ---@type table<integer, LuaEntity[]>
+    local stops_by_priority = {}
 
-    if path_result and path_result.found_path then
-        local result = (path_result.total_length or 0) + (path_result.penalty or 0)
-        local result_stop = to_stops[path_result.goal_index]
+    for _, to_stop in pairs(to_stops) do
+        stops_by_priority[to_stop.priority] = stops_by_priority[to_stop.priority] or {}
+        local priority_list = stops_by_priority[to_stop.priority]
+        priority_list[#priority_list + 1] = to_stop.stop.entity
+    end
 
-        local distance = get_cached_distance(from_stop, result_stop)
+    for _, priority_stops in pairs(stops_by_priority) do
 
-        if not reverse then
-            update_distance(distance, result)
-        else
-            update_distance(distance, nil, result)
-        end
+        local rail_direction = (reverse and ((from_stop.connected_rail_direction == defines.rail_direction.front) and defines.rail_direction.back or defines.rail_direction.front))
+            or from_stop.connected_rail_direction
 
-        return result_stop.unit_number
-    else
-        -- remove unreachable stops
-        for _, stop in pairs(to_stops) do
-            local distance = get_cached_distance(from_stop, stop)
+        local path_result = #to_stops > 0 and game.train_manager.request_train_path {
+            type = 'path',
+            starts = {
+                {
+                    rail = from_stop.connected_rail,
+                    direction = rail_direction,
+                }  --[[@as RailEndStart ]]
+            },
+            goals = priority_stops,
+        } or nil
+
+        if path_result and path_result.found_path then
+            ---@cast path_result TrainPathFinderOneGoalResult
+            local result = (path_result.total_length or 0) + (path_result.penalty or 0)
+            ---@cast path_result.goal_index uint32
+            local result_stop = assert(priority_stops[path_result.goal_index])
+
+            local distance = get_cached_distance(from_stop, result_stop)
 
             if not reverse then
-                update_distance(distance, DISTANCE_RESULT.UNREACHABLE)
+                update_distance(distance, result)
             else
-                update_distance(distance, nil, DISTANCE_RESULT.UNREACHABLE)
+                update_distance(distance, nil, result)
+            end
+        else
+            -- remove unreachable stops
+            for _, stop in pairs(to_stops) do
+                local distance = get_cached_distance(from_stop, stop)
+
+                if not reverse then
+                    update_distance(distance, DISTANCE_RESULT.UNREACHABLE)
+                else
+                    update_distance(distance, nil, DISTANCE_RESULT.UNREACHABLE)
+                end
             end
         end
     end
-
-    return nil
 end
 
 --- Finds all the stops that each train can actually go to. If a stop is unreachable,
@@ -468,10 +478,10 @@ local function validate_reachable_stops(train_candidate, provider_to_train_metri
     if not (needs_front_path or needs_back_path) then
         train_candidate.providers = {} -- can not reach any provider
     else
-        ---@type LuaEntity[]
+        ---@type ltn.Provider[]
         local forward_stops = {}
 
-        ---@type LuaEntity[]
+        ---@type ltn.Provider[]
         local backward_stops = {}
 
         for _, provider in pairs(train_candidate.providers) do
@@ -489,7 +499,7 @@ local function validate_reachable_stops(train_candidate, provider_to_train_metri
                     if distance.distance == DISTANCE_RESULT.UNREACHABLE then
                         cache_metrics:inc('unreachable_forward')
                     else
-                        forward_stops[#forward_stops + 1] = provider_stop
+                        forward_stops[#forward_stops + 1] = provider.provider
                     end
                 end
 
@@ -500,7 +510,7 @@ local function validate_reachable_stops(train_candidate, provider_to_train_metri
                     if distance.backwards_distance == DISTANCE_RESULT.UNREACHABLE then
                         cache_metrics:inc('unreachable_backward')
                     else
-                        backward_stops[#backward_stops + 1] = provider_stop
+                        backward_stops[#backward_stops + 1] = provider.provider
                     end
                 end
             end

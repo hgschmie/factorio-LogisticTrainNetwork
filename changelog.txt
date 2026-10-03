@@ -1,6 +1,16 @@
 ---------------------------------------------------------------------------------------------------
-Version: 3.2.2
+Version: 3.2.4
 Date: ????
+  Changes:
+---------------------------------------------------------------------------------------------------
+Version: 3.2.3
+Date: 2026-10-02
+  Bugfixes:
+    - Make sure that for each priority at least one stop exists if it is reachable. This fixes the
+      problem described in #73. Reported by @mitasamodel, thank you for the save to reproduce it
+---------------------------------------------------------------------------------------------------
+Version: 3.2.2
+Date: 2026-09-27
   Bugfixes:
     - If fuel inventory is empty and refueling is enabled, send the train to refueling if there is
       still something left in the burner

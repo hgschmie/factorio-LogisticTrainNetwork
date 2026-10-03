@@ -65,4 +65,4 @@ Those signals are the same for any type of locomotives and wagons. In addition, 
 
 For provider and requester stations, the cargo and fluid in the current delivery are sent out as signals.
 
-For any station, it will also add the amount of cargo and fluid on the current train unless the `ltn-provider-ignore-stopped-train` setting is true.
+For any station, it will only add the amount of cargo and fluid on the current train if the `ltn-provider-show-existing-cargo` setting is true (default).

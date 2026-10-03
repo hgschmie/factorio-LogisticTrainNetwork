@@ -24,7 +24,7 @@
 ---------------------------------------------------------
 
 --- A shipment, consisting of comma-separated description strings and an amount.
----@alias ltn.Shipment table<ltn.ItemIdentifier, number>
+---@alias ltn.Shipment table<ltn.ItemIdentifier, uint32>
 
 --- typed string for the item identifiers
 ---@alias ltn.ItemIdentifier string
