@@ -108,6 +108,19 @@ local function train_matches_stop_by_force(train, stop, metrics)
 end
 
 ---@param train ltn.Train
+---@param provider ltn.Provider
+---@param metrics ltn.Metrics
+---@return integer network_mask
+local function train_matches_stop_by_network(train, provider, metrics)
+    -- provider.network_id is already the requester/provider intersection. The train
+    -- must share one of those bits. Matching only the provider stop accepts a depot
+    -- that overlaps a different bit of a multi-network provider.
+    local network_mask = bit32.band(train.network_id, provider.network_id)
+    if network_mask == 0 then metrics:inc('no_matching_network') end
+    return network_mask
+end
+
+---@param train ltn.Train
 ---@param stop ltn.TrainStop
 ---@param network_mask integer
 ---@param metrics ltn.Metrics
@@ -254,15 +267,8 @@ local function get_free_trains(provider, request_stop, primary_is_item, train_me
             local inventory_size = get_train_inventory_size(train_data, provider.locked_slots, primary_is_item, metrics)
             if inventory_size == 0 then goto continue end
 
-            -- provider.network_id is already the requester/provider intersection. The train
-            -- must share one of those bits. Matching only the provider stop accepts a depot
-            -- that overlaps a different bit of a multi-network provider.
-            local delivery_network = bit32.band(provider.network_id, request_stop.network_id)
-            local matched_networks = bit32.band(train_data.network_id, delivery_network)
-            if matched_networks == 0 then
-                metrics:inc('no_matching_network')
-                goto continue
-            end
+            local matched_networks = train_matches_stop_by_network(train_data, provider, metrics)
+            if matched_networks == 0 then goto continue end
 
             local surface_connections = train_matches_stop_by_surface(train_data, provider.stop, matched_networks, metrics)
             if not (surface_connections and (#surface_connections == 0 or LtnSettings.advanced_cross_surface_delivery)) then goto continue end
