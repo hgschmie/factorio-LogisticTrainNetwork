@@ -58,6 +58,13 @@ data:extend {
     },
     {
         type = 'bool-setting',
+        name = 'ltn-interface-console-messages',
+        order = 'af-a',
+        setting_type = 'runtime-per-user',
+        default_value = true
+    },
+    {
+        type = 'bool-setting',
         name = 'ltn-interface-message-gps',
         order = 'ag',
         setting_type = 'runtime-global',

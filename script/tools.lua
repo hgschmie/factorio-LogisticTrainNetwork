@@ -57,7 +57,7 @@ end
 -----------------------------------------------------------------------
 
 ---@type PrintSettings
-local settings = {
+local print_settings = {
     sound = defines.print_sound.use_player_settings,
     skip = defines.print_skip.if_visible,
 }
@@ -72,7 +72,17 @@ function Tools.printmsg(level, msg_func, target)
     if LtnSettings and ((not LtnSettings.message_level) or (LtnSettings.message_level < level)) then return end
 
     if not target then target = game end
-    target.print(msg_func(), settings)
+    if target.object_name == 'LuaPlayer' then
+        target.print(msg_func(), print_settings)
+    else
+        local msg = msg_func()
+        for _, player in pairs(target.players) do
+            ---@cast player LuaPlayer
+            if player.valid and settings.get_player_settings(player)['ltn-interface-console-messages'].value then
+                player.print(msg, print_settings)
+            end
+        end
+    end
 end
 
 -----------------------------------------------------------------------

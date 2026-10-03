@@ -1,6 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.4
 Date: ????
+  Changes:
+    - Added per-player setting "Console messages" to silence LTN chat notifications without
+      affecting other players. - contributed by @lexwebb on github (#71) - Thank you!
   Bugfixes:
     - A train is only eligible for a delivery when its depot network shares a bit with both the
       requester and the provider. Previously the depot was matched against the provider stop alone,
