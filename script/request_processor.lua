@@ -257,8 +257,7 @@ local function get_free_trains(provider, request_stop, primary_is_item, train_me
             -- provider.network_id is already the requester/provider intersection. The train
             -- must share one of those bits. Matching only the provider stop accepts a depot
             -- that overlaps a different bit of a multi-network provider.
-            local delivery_network = bit32.band(provider.network_id, request_stop.network_id)
-            local matched_networks = bit32.band(train_data.network_id, delivery_network)
+            local matched_networks = bit32.band(train_data.network_id, provider.network_id)
             if matched_networks == 0 then
                 metrics:inc('no_matching_network')
                 goto continue
