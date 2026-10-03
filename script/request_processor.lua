@@ -12,10 +12,11 @@ local Metrics = require('script.metrics')
 
 ---@class ltn.CandidateProvider
 ---@field provider ltn.Provider
+---@field free_train ltn.FreeTrain
 ---@field distance ltn.StopDistance?
 
 ---@class ltn.TrainCandidate
----@field free_train ltn.FreeTrain
+---@field train LuaTrain
 ---@field providers table<integer, ltn.CandidateProvider>
 
 
@@ -323,13 +324,15 @@ local function map_train_candidates(providers, request_stop, primary_is_item, pr
 
         for free_train_id, free_train in pairs(free_trains) do
             train_candidates[free_train_id] = train_candidates[free_train_id] or {
-                free_train = free_train,
+                train = free_train.train,
                 providers = {},
             }
 
             local train_candidate = train_candidates[free_train_id]
             train_candidate.providers[provider_id] = {
                 provider = provider,
+                -- Capacity and surface connections depend on the provider.
+                free_train = free_train,
             }
         end
     end
@@ -473,7 +476,7 @@ end
 ---@param provider_to_train_metrics table<integer, ltn.Metrics>
 ---@param cache_metrics ltn.Metrics
 local function validate_reachable_stops(train_candidate, provider_to_train_metrics, cache_metrics)
-    local train = train_candidate.free_train.train
+    local train = train_candidate.train
 
     -- depot where the train is currently sitting
     local depot_stop = assert(train.station)
@@ -576,7 +579,7 @@ local function prune_train_candidates(train_candidates, provider_to_train_metric
                 trains_for_provider[provider_id] = trains_for_provider[provider_id] or {}
                 local free_trains = trains_for_provider[provider_id]
 
-                local free_train = util.copy(train_candidate.free_train)
+                local free_train = util.copy(provider.free_train)
                 local _, stop_distance = get_stop_distance(provider.distance)
                 free_train.provider_distance = stop_distance
                 free_trains[#free_trains + 1] = free_train
