@@ -147,11 +147,13 @@ function Tools.parseItemIdentifier(identifier)
 end
 
 --- returns the string "number1|number2" in consistent order: the smaller number is always placed first
----@param number1 number
----@param number2 number
+---@param left integer?
+---@param right integer?
 ---@return ltn.EntityPairKey
-function Tools.sortedPair(number1, number2)
-    return (number1 < number2) and (number1 .. '|' .. number2) or (number2 .. '|' .. number1)
+function Tools.sortedPair(left, right)
+    assert(left)
+    assert(right)
+    return (left < right) and (left .. '|' .. right) or (right .. '|' .. left)
 end
 
 ---@param item_info SignalID
@@ -367,7 +369,7 @@ function Tools.isStopValid(stop, metrics)
     local result = false
     if stop then
         local entity = type(stop) == 'userdata' and stop or stop.entity
-        result = entity.valid and entity.connected_rail and entity.connected_rail.valid and true or false
+        result = entity and entity.valid and entity.connected_rail and entity.connected_rail.valid and true or false
     end
     if metrics and not result then metrics:inc('invalid_stop') end
 

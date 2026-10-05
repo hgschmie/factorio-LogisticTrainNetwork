@@ -19,6 +19,19 @@
 ---@field Depots                ltn.TrainStop[][]
 ---@field ExcludedFromRefuel    string[]
 
+---@type ltn.Storage
+storage = {}
+
+---@class (partial) LuaRemote.InterfaceMap
+---@field PickerDollies PickerDollies.RemoteInterface
+---@field creative-mode CreativeMode.RemoteInterface
+
+---@class PickerDollies.RemoteInterface
+---@field add_blacklist_name fun(name: string, value: boolean): boolean
+
+---@class CreativeMode.RemoteInterface
+---@field exclude_from_instant_blueprint fun(name: string)
+
 ---------------------------------------------------------
 --- Type aliases
 ---------------------------------------------------------
@@ -135,12 +148,12 @@
 ---@field pickupDone           boolean?
 
 ---@class ltn.LoadingElement
----@field type             ltn.ItemFluid 'item' or 'fluid'
----@field name             string        Item or fluid name
----@field quality          string?       *Since 2.1.0* Requested quality. If missing, 'normal' quality was requested
----@field localname        string        Localized name
----@field count            integer       number of elements
----@field stacks           integer       stack size for items
+---@field type             ltn.ItemFluid   'item' or 'fluid'
+---@field name             string          Item or fluid name
+---@field quality          string?         *Since 2.1.0* Requested quality. If missing, 'normal' quality was requested
+---@field localname        LocalisedString Localized name
+---@field count            integer         number of elements
+---@field stacks           integer         stack size for items
 
 
 ---@class ltn.SurfaceConnection
@@ -183,9 +196,9 @@
 
 ---@class ltn.ItemLoadingElement
 ---@field item      SignalID
----@field localname string   Localized name
----@field count     integer  number of elements
----@field stacks    integer  stack size for items
+---@field localname LocalisedString   Localized name
+---@field count     integer           number of elements
+---@field stacks    integer           stack size for items
 
 ---@class ltn.SignalState
 ---@field is_depot                    boolean

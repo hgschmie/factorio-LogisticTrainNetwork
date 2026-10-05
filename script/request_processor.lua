@@ -851,6 +851,7 @@ function RequestProcessor:processRequest(reqIndex, request)
     -- ensure validity of request stop
     local request_stop = storage.LogisticTrainStops[to_id]
     if not tools.isStopValid(request_stop) then return nil end
+    ---@cast request_stop ltn.TrainStop
 
     local request_network_id = request_stop.network_id
     local to = request_stop.entity.backer_name
@@ -882,6 +883,8 @@ function RequestProcessor:processRequest(reqIndex, request)
 
         return nil
     end
+    ---@cast item_info.name string
+    ---@cast item_info.type SignalIDType
     local primary_is_item = (item_info.type == 'item')
 
     -- quick check if any trains are available
@@ -942,7 +945,7 @@ function RequestProcessor:processRequest(reqIndex, request)
             local metrics_result = provider_metrics:summarize({ '', }, 'PROCESS_REQUEST_METRICS')
 
             tools.printmsg(1, function()
-                return { msg, to_gps, tools.prettyPrint(item_info), { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result, total_count }
+                return { msg, to_gps, tools.prettyPrint(item_info), { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result, total_count } --[[@as LocalisedString ]]
             end, force)
         end
 
@@ -963,7 +966,7 @@ function RequestProcessor:processRequest(reqIndex, request)
 
     tools.printmsg(3, function()
         return { 'ltn-message.provider-found',
-            from_gps, tostring(provider.priority), tostring(provider.activeDeliveryCount), provider.count, tools.prettyPrint(item_info) }
+            from_gps, tostring(provider.priority), tostring(provider.activeDeliveryCount), provider.count, tools.prettyPrint(item_info) } --[[@as LocalisedString ]]
     end, force)
 
     -- limit delivery_size to minimum between provider and requester
