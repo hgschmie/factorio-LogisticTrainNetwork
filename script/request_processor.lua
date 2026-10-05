@@ -30,9 +30,9 @@ local RequestProcessor = {}
 ---@param count integer
 ---@param name string
 ---@param is_item boolean
----@return number stack_count
+---@return integer stack_count
 local function compute_stack_size(count, name, is_item)
-    return is_item and count / assert(prototypes.item[name]).stack_size or count
+    return is_item and math.ceil(count / assert(prototypes.item[name]).stack_size) or count
 end
 
 ---@param request_stop ltn.TrainStop
@@ -128,6 +128,7 @@ end
 ---@return ltn.SurfaceConnection[]?
 local function train_matches_stop_by_surface(train, stop, network_mask, metrics)
     if network_mask == 0 then return nil end
+    if not train.train.station then return nil end
 
     local result = SurfaceInterface.FindSurfaceConnections(train.train.station.surface, stop.entity.surface, train.force, network_mask)
 
@@ -143,6 +144,7 @@ end
 ---@return integer inventory_size
 local function get_train_inventory_size(train, locked_slots, primary_is_item, metrics)
     local item_inventory_size = (train.capacity - (locked_slots * #train.train.cargo_wagons))
+    ---@cast item_inventory_size integer
     local fluid_inventory_size = train.fluid_capacity
 
     if primary_is_item then
@@ -202,6 +204,7 @@ local function get_providers(request, request_stop, metrics)
 
         -- stop must be valid and match requester force
         if not tools.isStopValid(provider_stop, metrics) then goto continue end
+        ---@cast provider_stop -?
 
         -- network must match
         local matched_networks = match_stops_by_network(request_stop, provider_stop, metrics)
@@ -284,7 +287,7 @@ local function get_free_trains(provider, request_stop, primary_is_item, train_me
                     depot_priority = train_data.depot_priority,
                     surface_connections = surface_connections,
                     select_count = train_data.select_count or 0,
-                }
+                } --[[@as ltn.FreeTrain ]]
             end
         else
             metrics:inc('train_invalid')
@@ -382,15 +385,15 @@ end
 local function get_cached_distance(from, to)
     local stop_pair = tools.sortedPair(from.unit_number, to.unit_number)
 
-    ---@type ltn.StopDistance?
     local stop_distance = storage.StopDistances[stop_pair]
     if not stop_distance or type(stop_distance) ~= 'table' then
-        storage.StopDistances[stop_pair] = {
+        stop_distance = {
             distance = DISTANCE_RESULT.UNKNOWN,
-            backwards_distance = DISTANCE_RESULT.UNKNOWN
+            backwards_distance = DISTANCE_RESULT.UNKNOWN,
+            tick = game.tick,
         }
 
-        stop_distance = storage.StopDistances[stop_pair]
+        storage.StopDistances[stop_pair] = stop_distance
         return stop_distance
     end
 
@@ -547,13 +550,16 @@ local function validate_reachable_stops(train_candidate, provider_to_train_metri
 
                 train_candidate.providers[provider_id] = nil
 
-                provider_to_train_metrics[provider_id]:inc('unreachable')
-                provider_to_train_metrics[provider_id]:dec('match_count')
-                assert(not provider_to_train_metrics[provider_id].trains[train.id])
+                local provider_metric = provider_to_train_metrics[provider_id]
+                ---@cast provider_metric -?
+
+                provider_metric:inc('unreachable')
+                provider_metric:dec('match_count')
+                assert(not provider_metric.trains[train.id])
 
                 local train_metrics = Metrics.create()
                 train_metrics:set('unreachable', 1)
-                provider_to_train_metrics[provider_id].trains[train.id] = train_metrics
+                provider_metric.trains[train.id] = train_metrics
             end
         end
     end
@@ -598,7 +604,7 @@ local function prune_train_candidates(train_candidates, provider_to_train_metric
             local to_gps = tools.richTextForStop(request_stop.entity) or to
             local to_network_ids, to_network_id_count = tools.networkList(request_network_id)
 
-            return { 'ltn-message.cache-metrics', to_gps, { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result }
+            return { 'ltn-message.cache-metrics', to_gps, { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result } --[[@as LocalisedString]]
         end, force)
     end
 
@@ -636,12 +642,12 @@ local function select_provider(providers, trains_for_provider)
 end
 
 -- Selects a train for the delivery
----@param free_trains ltn.FreeTrain[]
+---@param free_trains ltn.FreeTrain[]?
 ---@param provider_surface_index integer
 ---@param stacks integer
 ---@return ltn.FreeTrain?
 local function select_train(free_trains, provider_surface_index, stacks)
-    if #free_trains < 1 then return nil end
+    if not free_trains or #free_trains < 1 then return nil end
 
     local fudge_factor = LtnSettings.depot_fudge_factor or 0
 
@@ -691,7 +697,7 @@ local function limit_to_train_capacity(train_capacity, loading_element)
     else
         -- clamp the delivery to the actually available capacity on the train
         loading_element.stacks = math.min(loading_element.stacks, train_capacity)
-        loading_element.count = math.min(loading_element.count, loading_element.stacks * prototypes.item[loading_element.item.name].stack_size)
+        loading_element.count = math.min(loading_element.count, loading_element.stacks * assert(prototypes.item[loading_element.item.name]).stack_size)
     end
 
     return loading_element
@@ -705,27 +711,31 @@ end
 ---@param request ltn.Request
 ---@return integer total_stacks
 local function create_merged_delivery(loading_list, free_train, provider, request)
-    local stacks_available = free_train.inventory_size - loading_list[1].stacks
+    if #loading_list < 1 then return 0 end
+ local stacks_available = free_train.inventory_size - loading_list[1].stacks
 
     local dispatcher = tools.getDispatcher()
     local provider_id = provider.stop.entity.unit_number
 
     -- temporary remove the request in the dispatcher, otherwise the primary
     -- will be picked up as a potential merge item
-    local primary_request_count = dispatcher.Requests_by_Stop[request.stopID][request.item]
-    dispatcher.Requests_by_Stop[request.stopID][request.item] = nil
+    local dispatched_request = dispatcher.Requests_by_Stop[request.stopID]
+    ---@cast dispatched_request -?
+    local primary_request_count = dispatched_request[request.item]
+    dispatched_request[request.item] = nil
 
-    for merge_item, merge_request_count in pairs(dispatcher.Requests_by_Stop[request.stopID]) do
+    for merge_item, merge_request_count in pairs(dispatched_request) do
         if stacks_available <= 0 then break end
 
         local merge_item_info = tools.parseItemIdentifier(merge_item)
         if merge_item_info and merge_item_info.type == 'item' then
-            local merge_localname = prototypes.item[merge_item_info.name].localised_name
+            local merge_item_prototype = assert(prototypes.item[merge_item_info.name])
+            local merge_localname = merge_item_prototype.localised_name
             -- get current provider for requested item
             if dispatcher.Provided[merge_item] and dispatcher.Provided[merge_item][provider_id] then
                 -- smaller of provider and requester is the amount that can be transferred.
                 local merge_delivery_size = math.min(dispatcher.Provided[merge_item][provider_id], merge_request_count)
-                local merge_stacks = math.ceil(merge_delivery_size / prototypes.item[merge_item_info.name].stack_size)
+                local merge_stacks = math.ceil(merge_delivery_size / merge_item_prototype.stack_size)
 
                 local loading_element = limit_to_train_capacity(stacks_available, {
                     item = merge_item_info,
@@ -739,7 +749,7 @@ local function create_merged_delivery(loading_list, free_train, provider, reques
                 stacks_available = stacks_available - loading_element.stacks
 
                 tools.log(5, 'create_merged_delivery', 'inserted into order %s >> %s: %d %s in %d/%d stacks.', function()
-                    local to = storage.LogisticTrainStops[request.stopID]
+                    local to = assert(storage.LogisticTrainStops[request.stopID])
                     return provider.stop.entity.backer_name, to.entity.backer_name, loading_element.count, merge_item, loading_element.stacks,
                         free_train.inventory_size
                 end)
@@ -747,7 +757,7 @@ local function create_merged_delivery(loading_list, free_train, provider, reques
         end
     end
 
-    dispatcher.Requests_by_Stop[request.stopID][request.item] = primary_request_count
+    dispatched_request[request.item] = primary_request_count
 
     return free_train.inventory_size - stacks_available
 end
@@ -764,37 +774,42 @@ local function update_dispatcher_provided(loading_element, provider, to_id)
     local from_id = assert(provider.stop.entity.unit_number)
 
     local provided = dispatcher.Provided[loading_element_id]
+    ---@cast provided -?
+
     -- subtract Delivery from Provided items and check thresholds
-    provided[from_id] = provided[from_id] - loading_element.count
+    provided[from_id] = assert(provided[from_id]) - loading_element.count
 
     local use_stack_threshold = false
     local provided_stacks = 0
     if loading_element.item.type == 'item' then
-        provided_stacks = math.floor(provided[from_id] / prototypes.item[loading_element.item.name].stack_size)
+        provided_stacks = math.floor(provided[from_id] / assert(prototypes.item[loading_element.item.name]).stack_size)
         use_stack_threshold = provider.providing_threshold_stacks > 0
     end
 
+    local provided_by_stop = assert(dispatcher.Provided_by_Stop[from_id])
     if (use_stack_threshold and provided_stacks >= provider.providing_threshold_stacks) or
         (not use_stack_threshold and provided[from_id] >= provider.providing_threshold) then
-        dispatcher.Provided_by_Stop[from_id][loading_element_id] = provided[from_id]
+        provided_by_stop[loading_element_id] = provided[from_id]
     else
         provided[from_id] = nil
-        dispatcher.Provided_by_Stop[from_id][loading_element_id] = nil
+        provided_by_stop[loading_element_id] = nil
     end
 
     -- remove Request and reset age
-    dispatcher.Requests_by_Stop[to_id][loading_element_id] = nil
+    local requests_by_stop = assert(dispatcher.Requests_by_Stop[to_id])
+    requests_by_stop[loading_element_id] = nil
     dispatcher.RequestAge[loading_element_id .. ',' .. to_id] = nil
 
     tools.log(5, 'update_dispatcher_provided', '  %s, %d in %d stacks', function()
         return loading_element_id, loading_element.count, loading_element.stacks
     end)
 
+    local pending_requests = assert(dispatcher.Pending_Requests[to_id])
     -- update pending requests so that Dispatcher Update API call is correct
-    local pending_amount = dispatcher.Pending_Requests[to_id][loading_element_id]
+    local pending_amount = pending_requests[loading_element_id]
     if pending_amount then
         pending_amount = pending_amount - loading_element.count
-        dispatcher.Pending_Requests[to_id][loading_element_id] = (pending_amount > 0) and pending_amount or nil
+        pending_requests[loading_element_id] = (pending_amount > 0) and pending_amount or nil
     end
 
     return loading_element_id
@@ -802,11 +817,13 @@ end
 
 -- Create the schedule for the train
 ---@param train LuaTrain
----@param loading_list ltn.LoadingList
+---@param loading_list ltn.ItemLoadingElement[]
 ---@param provider_stop ltn.TrainStop
 ---@param request_stop ltn.TrainStop
 ---@return ltn.TrainStop depot
 local function create_train_schedule(train, loading_list, provider_stop, request_stop)
+
+    ---@cast train.station -?
     local depot = assert(storage.LogisticTrainStops[train.station.unit_number])
 
     schedule:resetSchedule(train, depot)
@@ -842,7 +859,7 @@ end
 
 -- parse single request from dispatcher Request={stopID, item, age, count}
 -- returns created delivery ID or nil
----@param reqIndex number
+---@param reqIndex integer
 ---@param request ltn.Request
 ---@return number?
 function RequestProcessor:processRequest(reqIndex, request)
@@ -851,7 +868,7 @@ function RequestProcessor:processRequest(reqIndex, request)
     -- ensure validity of request stop
     local request_stop = storage.LogisticTrainStops[to_id]
     if not tools.isStopValid(request_stop) then return nil end
-    ---@cast request_stop ltn.TrainStop
+    ---@cast request_stop -?
 
     local request_network_id = request_stop.network_id
     local to = request_stop.entity.backer_name
@@ -883,8 +900,8 @@ function RequestProcessor:processRequest(reqIndex, request)
 
         return nil
     end
-    ---@cast item_info.name string
-    ---@cast item_info.type SignalIDType
+    ---@cast item_info.name -?
+    ---@cast item_info.type -?
     local primary_is_item = (item_info.type == 'item')
 
     -- quick check if any trains are available
@@ -954,7 +971,7 @@ function RequestProcessor:processRequest(reqIndex, request)
 
     local provider_stop = provider.stop
 
-    local from_id = provider_stop.entity.unit_number
+    local from_id = assert(provider_stop.entity.unit_number)
     local from = provider_stop.entity.backer_name
     local from_gps = tools.richTextForStop(provider_stop.entity) or from
 
@@ -981,7 +998,7 @@ function RequestProcessor:processRequest(reqIndex, request)
     local loading_list = {
         {
             item = item_info,
-            localname = prototypes[item_info.type][item_info.name].localised_name,
+            localname = assert(prototypes[item_info.type][item_info.name]).localised_name,
             count = delivery_size,
             stacks = stacks
         }
@@ -993,11 +1010,11 @@ function RequestProcessor:processRequest(reqIndex, request)
             'depot-empty', {
                 'ltn-message.no-train-found',
                 provider_stop.entity.backer_name, request_stop.entity.backer_name, matched_network_id_str, tostring(min_carriages), tostring(max_carriages)
-            },
+            }  --[[@as LocalisedString]],
             force)
 
         tools.printmsg(1, function()
-            return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }
+            return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }  --[[@as LocalisedString]]
         end, force)
 
         ---@type ltn.EventData.no_train_found_shipment
@@ -1040,7 +1057,7 @@ function RequestProcessor:processRequest(reqIndex, request)
     -- 5) create load list, merge deliveries if possible
 
     -- fix the loading list, now that we know the train size
-    loading_list = { limit_to_train_capacity(free_train.inventory_size, loading_list[1]) }
+    loading_list = { limit_to_train_capacity(free_train.inventory_size, assert(loading_list[1])) }
 
     ---@type LocalisedString
     local total_stacks_str = primary_is_item
@@ -1048,16 +1065,16 @@ function RequestProcessor:processRequest(reqIndex, request)
         or { '', tostring(loading_list[1].stacks) }
 
     tools.printmsg(3, function()
-        return { 'ltn-message.train-found', from_gps, to_gps, matched_network_id_str, tostring(free_train.inventory_size), total_stacks_str }
+        return { 'ltn-message.train-found', from_gps, to_gps, matched_network_id_str, tostring(free_train.inventory_size), total_stacks_str }  --[[@as LocalisedString]]
     end, force)
 
     tools.printmsg(2, function()
         if #loading_list == 1 then
             return { 'ltn-message.creating-delivery', from_gps, to_gps, tools.richTextForTrain(train), tools.printLoadingList(loading_list),
-                matched_network_id_str }
+                matched_network_id_str }  --[[@as LocalisedString]]
         else
             return { 'ltn-message.creating-delivery-merged', from_gps, to_gps, tools.richTextForTrain(train), tools.printLoadingList(loading_list),
-                matched_network_id_str, total_stacks_str }
+                matched_network_id_str, total_stacks_str }  --[[@as LocalisedString]]
         end
     end, force)
 
@@ -1076,16 +1093,17 @@ function RequestProcessor:processRequest(reqIndex, request)
     local depot_stop = create_train_schedule(train, loading_list, provider_stop, request_stop)
 
     -- increase select count for the train, now that it has a schedule
-    dispatcher.knownTrains[train.id].select_count = (dispatcher.knownTrains[train.id].select_count or 0) + 1
+    local known_train = assert(dispatcher.knownTrains[train.id])
+    known_train.select_count = (known_train.select_count or 0) + 1
 
     dispatcher.new_Deliveries[#dispatcher.new_Deliveries + 1] = train.id
 
     dispatcher.Deliveries[train.id] = {
         force = force,
         train = train,
-        from = from,
+        from = from or '',
         from_id = from_id,
-        to = to,
+        to = to or '',
         to_id = to_id,
         network_id = provider.network_id,
         started = game.tick,
@@ -1108,7 +1126,7 @@ function RequestProcessor:processRequest(reqIndex, request)
 
         local current_signal = getLamp(stop)
         -- only update blue signal count; change to yellow if it wasn't blue
-        local color = (current_signal and current_signal.value.name == 'signal-blue') and 'blue' or 'yellow'
+        local color = (current_signal and current_signal.value and current_signal.value.name == 'signal-blue') and 'blue' or 'yellow'
         setLamp(stop, color, #stop.active_deliveries)
     end
 

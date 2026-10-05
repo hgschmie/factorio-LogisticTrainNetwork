@@ -74,29 +74,29 @@ storage = {}
 
 --- LTN stop information
 ---@class ltn.TrainStop
----@field active_deliveries           integer[]   List of train ids that are either requesting or providing to this stop
+---@field active_deliveries           integer[]  List of train ids that are either requesting or providing to this stop
 ---@field entity                      LuaEntity  The Train stop entity itself
 ---@field input                       LuaEntity  The Lamp entity (input) of the Train stop
 ---@field output                      LuaEntity  The combinator entity (output) of the Train stop
 ---@field lamp_control                LuaEntity  Hidden combinator that controls the input lamp
----@field error_code                  integer     Current error state of the stop
+---@field error_code                  integer    Current error state of the stop
 ---@field is_depot                    boolean    True if the stop is a depot
 ---@field is_fuel_station             boolean    True if the stop is a fuel station
----@field depot_priority              integer     Depot priority value
----@field network_id                  integer     Encoded network id for the stop
----@field min_carriages               integer     minimum train length for this stop
----@field max_carriages               integer     maximum train length for this stop
----@field max_trains                  integer     maximum number of trains allowed to this stop
----@field providing_threshold         number     Provider threshold value (items and fluids)
----@field providing_threshold_stacks  integer     Provider stack threshold value (for items only)
----@field provider_priority           integer     Provider priority value
----@field requesting_threshold        number     Requester threshold value (items and fluids)
----@field requesting_threshold_stacks integer     Requester stack threshold value (for items only)
----@field requester_priority          integer     Requester priority value
----@field locked_slots                integer     Locked slots per wagon for this stop
+---@field depot_priority              integer    Depot priority value
+---@field network_id                  integer    Encoded network id for the stop
+---@field min_carriages               integer    minimum train length for this stop
+---@field max_carriages               integer    maximum train length for this stop
+---@field max_trains                  integer    maximum number of trains allowed to this stop
+---@field providing_threshold         integer    Provider threshold value (items and fluids)
+---@field providing_threshold_stacks  integer    Provider stack threshold value (for items only)
+---@field provider_priority           integer    Provider priority value
+---@field requesting_threshold        integer    Requester threshold value (items and fluids)
+---@field requesting_threshold_stacks integer    Requester stack threshold value (for items only)
+---@field requester_priority          integer    Requester priority value
+---@field locked_slots                integer    Locked slots per wagon for this stop
 ---@field no_warnings                 boolean    If true, warnings are disabled for this stop
 ---@field parked_train                LuaTrain?  The currently parked train at this stop
----@field parked_train_id             integer?    The train id of the currently parked train
+---@field parked_train_id             integer?   The train id of the currently parked train
 ---@field parked_train_faces_stop     boolean?   True if the train faces the stop, false otherwise
 ---@field fuel_signals                (CircuitCondition[])? Fuel Signals for a fuel station, used to create refuel interrupt condition
 
@@ -177,7 +177,7 @@ storage = {}
 ---@field activeDeliveryCount         integer
 ---@field item                        ltn.ItemIdentifier
 ---@field count                       integer
----@field providing_threshold         number
+---@field providing_threshold         integer
 ---@field providing_threshold_stacks  integer
 ---@field min_carriages               integer
 ---@field max_carriages               integer
@@ -208,11 +208,11 @@ storage = {}
 ---@field min_carriages               integer
 ---@field max_carriages               integer
 ---@field max_trains                  integer
----@field requesting_threshold        number
+---@field requesting_threshold        integer
 ---@field requesting_threshold_stacks integer
 ---@field requester_priority          integer
 ---@field no_warnings                 boolean
----@field providing_threshold         number
+---@field providing_threshold         integer
 ---@field providing_threshold_stacks  integer
 ---@field provider_priority           integer
 ---@field locked_slots                integer
