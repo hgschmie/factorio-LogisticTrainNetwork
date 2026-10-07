@@ -15,7 +15,9 @@ function TrainArrives(train)
     local dispatcher = tools.getDispatcher()
     local stopped_trains = tools.getStoppedTrains()
 
+    ---@cast train.station -?
     local stopID = train.station.unit_number
+    ---@cast stopID -?
     local stop = storage.LogisticTrainStops[stopID]
     if not stop then return end
 
@@ -38,8 +40,8 @@ function TrainArrives(train)
     stop.parked_train = train
     stop.parked_train_id = train.id
 
-    local frontDistance = tools.getEucledianDistance(train.front_stock.position, train.station.position)
-    local backDistance = tools.getEucledianDistance(train.back_stock.position, train.station.position)
+    local frontDistance = tools.getEucledianDistance(train.front_stock, train.station.position)
+    local backDistance = tools.getEucledianDistance(train.back_stock, train.station.position)
     if frontDistance > backDistance then
         stop.parked_train_faces_stop = false
     else
@@ -48,7 +50,7 @@ function TrainArrives(train)
     local is_provider = false
 
     tools.printmsg(3, function()
-        return { 'ltn-message.train-arrived', tools.richTextForTrain(train), tools.richTextForStop(train.station) }
+        return { 'ltn-message.train-arrived', tools.richTextForTrain(train), tools.richTextForStop(train.station) } --[[@as LocalisedString]]
     end, trainForce)
 
     tools.log(5, 'TrainArrives', 'Train [%d] "%s": arrived at LTN-stop [%d] "%s"; train_faces_stop: %s', function()
@@ -107,10 +109,10 @@ function TrainArrives(train)
 
             -- check for leftover cargo
             if table_size(train_items) > 0 then
-                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name }, trainForce)
+                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name } --[[@as LocalisedString]], trainForce)
             end
             if table_size(train_fluids) > 0 then
-                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name }, trainForce)
+                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name } --[[@as LocalisedString]], trainForce)
             end
 
             tools.increaseAvailableCapacity(train, stop)
@@ -147,7 +149,11 @@ function TrainArrives(train)
             local delivery = dispatcher.Deliveries[train.id]
             if delivery then
                 is_provider = delivery.from_id == stop.entity.unit_number
+
                 if delivery.to_id == stop.entity.unit_number then
+                    ---@cast delivery.to_id -?
+
+                    -- requester
                     local requester_unscheduled_cargo = false
 
                     ---@type ltn.Shipment
@@ -170,7 +176,7 @@ function TrainArrives(train)
                     end
 
                     if requester_unscheduled_cargo then
-                        create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_unscheduled_cargo', trainName, stop_name }, trainForce)
+                        create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_unscheduled_cargo', trainName, stop_name } --[[@as LocalisedString]], trainForce)
 
                         ---@type ltn.EventData.unscheduled_cargo
                         local data = {
@@ -214,13 +220,13 @@ end
 
 --- update stop output when train leaves stop
 --- when called from on_train_created stoppedTrain.train will be invalid
----@param trainID number
+---@param trainID integer
 function TrainLeaves(trainID)
     local dispatcher = tools.getDispatcher()
     local stopped_trains = tools.getStoppedTrains()
 
     local leavingTrain = stopped_trains[trainID] -- checked before every call of TrainLeaves
-    assert(leavingTrain)                         -- TODO: test this!
+    ---@cast leavingTrain -?
 
     local train = leavingTrain.train.valid and leavingTrain.train or nil
 

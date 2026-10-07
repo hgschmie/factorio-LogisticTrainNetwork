@@ -258,11 +258,13 @@ function Tools.getTrainName(train)
     return loco and loco.backer_name
 end
 
---- Calculate the eucledian distance between two positions. -- from flib
---- @param pos1 MapPosition
+--- Calculate the eucledian distance between an entity and a position.
+--- @param entity LuaEntity?
 --- @param pos2 MapPosition
 --- @return number
-function Tools.getEucledianDistance(pos1, pos2)
+function Tools.getEucledianDistance(entity, pos2)
+    assert(entity)
+    local pos1 = entity.position
     local x1 = pos1.x or pos1[1]
     local y1 = pos1.y or pos1[2]
     local x2 = pos2.x or pos2[1]

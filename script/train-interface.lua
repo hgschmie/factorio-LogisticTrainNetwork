@@ -89,6 +89,8 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
         return
     end
 
+    ---@cast stop -?
+
     -- isStopValid has validated that a rail is connected
     local rail = assert(stop.entity.connected_rail)
     local rail_direction = stop.entity.connected_rail_direction
@@ -104,7 +106,6 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
 
     -- insert temp stop in schedule
     local train_schedule = schedule:getSchedule(train)
-    assert(train_schedule)
     local previous_record = train_schedule[stop_schedule_index - 1]
     if previous_record and previous_record.temporary then return stop_schedule_index - 1 end -- schedule already up-to-date for stop_position
 

@@ -8,8 +8,8 @@ function SurfaceInterface.ClearAllSurfaceConnections()
 end
 
 --- removes the surface connection between the given entities from storage.SurfaceConnections. Does nothing if the connection doesn't exist.
----@param entity1 LuaEntity
----@param entity2 LuaEntity
+---@param entity1 LuaEntity?
+---@param entity2 LuaEntity?
 function SurfaceInterface.DisconnectSurfaces(entity1, entity2)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
@@ -38,9 +38,9 @@ function SurfaceInterface.DisconnectSurfaces(entity1, entity2)
 end
 
 --- adds a surface connection between the given entities; the network_id will be used in delivery processing to discard providers that don't match the surface connection's network_id
----@param entity1 LuaEntity
----@param entity2 LuaEntity
----@param network_id string|number
+---@param entity1 LuaEntity?
+---@param entity2 LuaEntity?
+---@param network_id any?
 function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
