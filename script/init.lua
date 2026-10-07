@@ -7,8 +7,8 @@
 ---- INITIALIZATION ----
 
 local tools = require('script.tools')
-
 local Console = require('script.console')
+local RailCache = require('script.cache')
 
 local function initialize(oldVersion, newVersion)
     tools.log(0, 'initialize', 'oldVersion: %s, newVersion: %s', function()
@@ -247,8 +247,9 @@ end
 local function updateAllTrains()
     -- reset global lookup tables
     storage.StoppedTrains = {} -- trains stopped at LTN stops
-    storage.StopDistances = {} -- reset station distance lookup table
     storage.WagonCapacity = {}
+
+    RailCache.clear()
 
     storage.Dispatcher.availableTrains_total_capacity = 0
     storage.Dispatcher.availableTrains_total_fluid_capacity = 0

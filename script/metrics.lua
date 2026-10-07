@@ -28,17 +28,17 @@ Metrics.PROCESS_REQUEST_METRICS = {
 }
 
 Metrics.CACHE_METRICS = {
-    'cached_result',
-    'compute_forward',
-    'unknown_forward',
-    'expired_forward',
-    'unreachable_forward',
-    'compute_backward',
-    'unknown_backward',
-    'expired_backward',
-    'unreachable_backward',
     'other_surface',
-    'unreachable',
+    'cached_forward',
+    'cached_backward',
+    'compute_forward',
+    'compute_backward',
+    'unknown_forward',
+    'unknown_backward',
+    'expired_forward',
+    'expired_backward',
+    'unreachable_forward',
+    'unreachable_backward',
 }
 
 Metrics.__index = Metrics

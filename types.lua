@@ -7,8 +7,9 @@
 --- storage layout
 ---@class ltn.Storage
 ---@field tick_state            ltn.TickState
----@field tick_interval_start   integer
+---@field tick_interval_start   integer?
 ---@field tick_stop_index       integer?
+---@field tick_request_index    integer?
 ---@field Dispatcher            ltn.Dispatcher
 ---@field LogisticTrainStops    table<integer, ltn.TrainStop>
 ---@field ConnectedSurfaces     table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
@@ -162,9 +163,8 @@ storage = {}
 ---@field network_id integer
 
 ---@class ltn.StopDistance
----@field distance           number?
----@field backwards_distance number?
----@field tick               uint64
+---@field distance   number?
+---@field tick       uint64
 
 ---------------------------------------------------------
 --- Internal types used in various methods
@@ -216,6 +216,11 @@ storage = {}
 ---@field providing_threshold_stacks  integer
 ---@field provider_priority           integer
 ---@field locked_slots                integer
+
+---@class ltn.PriorityTrainGroup
+---@field priority integer
+---@field same_surface boolean
+---@field free_trains ltn.FreeTrain[]
 
 ---------------------------------------------------------
 --- Event payloads

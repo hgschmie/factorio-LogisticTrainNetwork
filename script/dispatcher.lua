@@ -242,7 +242,7 @@ local function DispatcherDispatchTrains(event)
                     tools.log(6, 'OnTick', '%d parsing request %d/%d', function()
                         return event.tick, request_index, #dispatcher.Requests
                     end)
-                    request_processor:processRequest(request_index, request)
+                    request_processor.processRequest(request_index, request)
                 end
                 request_count = request_count - 1
                 storage.tick_request_index = request_index

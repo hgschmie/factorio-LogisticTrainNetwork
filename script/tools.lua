@@ -135,6 +135,7 @@ function Tools.parseItemIdentifier(identifier)
     local type, name, quality = identifier:match('^([^,]+),([^,]+),?([^,]*)')
 
     type = type or 'item'
+    ---@cast type SignalIDType
 
     if not name or #name == 0 then return nil end
     if not prototypes[type][name] then return nil end
@@ -149,11 +150,28 @@ end
 --- returns the string "number1|number2" in consistent order: the smaller number is always placed first
 ---@param left integer?
 ---@param right integer?
+---@param suffix (number|string)?
 ---@return ltn.EntityPairKey
-function Tools.sortedPair(left, right)
+function Tools.sortedPair(left, right, suffix)
     assert(left)
     assert(right)
-    return (left < right) and (left .. '|' .. right) or (right .. '|' .. left)
+    local key = (left < right) and (left .. '|' .. right) or (right .. '|' .. left)
+    if suffix then key = key .. '_' .. tostring(suffix) end
+    return key
+end
+
+---@param key ltn.EntityPairKey
+---@param id integer
+function Tools.matchPair(key, id)
+    local separator = key:find("|", 1, true)
+    if not separator then return false end
+    local suffix = key:find("_", 1, true)
+    if suffix then
+        key = key:sub(1, suffix - 1)
+    end
+
+    return (id == tonumber(key:sub(1, separator - 1)))
+            or (id == tonumber(key:sub(separator + 1)))
 end
 
 ---@param item_info SignalID

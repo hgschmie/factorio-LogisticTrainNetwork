@@ -5,6 +5,7 @@
 --]]
 
 local tools = require('script.tools')
+local RailCache = require('script.cache')
 
 --create stop
 ---@param entity LuaEntity
@@ -232,15 +233,11 @@ function OnEntityCreated(event)
 end
 
 -- stop removed
----@param stopID number
+---@param stopID integer
 ---@param create_ghosts boolean?
 function RemoveStop(stopID, create_ghosts)
     -- clean lookup tables
-    for k in pairs(storage.StopDistances) do
-        if k:find(stopID) then
-            storage.StopDistances[k] = nil
-        end
-    end
+    RailCache.clearStopEntries(stopID)
 
     local stop = storage.LogisticTrainStops[stopID]
 
