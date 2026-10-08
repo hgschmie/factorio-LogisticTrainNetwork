@@ -110,12 +110,11 @@ storage = {}
 ---@field surface           LuaSurface
 ---@field depot_priority    integer
 ---@field network_id        integer
----@field select_count      integer     How often the train was selected for a delivery
 
 --- LTN Train memory
 ---@class ltn.KnownTrain
 ---@field train             LuaTrain
----@field select_count      integer?    How often the train was selected for a delivery
+---@field select_count      integer     How often the train was selected for a delivery
 ---@field invalid_tick      integer?
 
 

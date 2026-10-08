@@ -294,13 +294,16 @@ local function get_free_trains(provider, request_stop, primary_is_item, train_me
             if train_matches_stop_by_force(train_data, provider.stop, metrics)
                 and train_matches_stop_by_length(train_data, request_stop, metrics)
                 and train_matches_stop_by_length(train_data, provider.stop, metrics) then
+
+                local known_train = tools.getOrCreateKnownTrain(train_data.train)
+
                 free_trains[train_id] = {
                     train = train_data.train,
                     surface = train_data.surface,
                     inventory_size = inventory_size,
                     depot_priority = train_data.depot_priority,
                     surface_connections = surface_connections,
-                    select_count = train_data.select_count or 0,
+                    select_count = known_train.select_count,
                 } --[[@as ltn.FreeTrain ]]
             end
         else
@@ -548,7 +551,7 @@ local function select_train(free_trains, provider_surface_index, stacks)
             if not a.provider_distance or a.provider_distance <= 0 then return false end
             if not b.provider_distance or b.provider_distance <= 0 then return true end
 
-            if math.abs(a.provider_distance - b.provider_distance) >= fudge_factor then
+            if math.abs(a.provider_distance - b.provider_distance) > fudge_factor then
                 return a.provider_distance < b.provider_distance
             end
 
@@ -958,8 +961,8 @@ function RequestProcessor.processRequest(reqIndex, request)
     local depot_stop = create_train_schedule(train, loading_list, provider_stop, request_stop)
 
     -- increase select count for the train, now that it has a schedule
-    local known_train = assert(dispatcher.knownTrains[train.id])
-    known_train.select_count = (known_train.select_count or 0) + 1
+    local known_train = tools.getOrCreateKnownTrain(train)
+    known_train.select_count = known_train.select_count + 1
 
     dispatcher.new_Deliveries[#dispatcher.new_Deliveries + 1] = train.id
 

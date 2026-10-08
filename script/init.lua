@@ -254,7 +254,7 @@ local function updateAllTrains()
     storage.Dispatcher.availableTrains_total_capacity = 0
     storage.Dispatcher.availableTrains_total_fluid_capacity = 0
     storage.Dispatcher.availableTrains = {}
-    storage.Dispatcher.knownTrains = {}
+
 
     -- remove all parked train from logistic stops
     for _, stop in pairs(storage.LogisticTrainStops) do

@@ -539,13 +539,6 @@ function OnTrainCreated(event)
         return tostring(tools.getTrainName(event.train)), tostring(event.train.id), tostring(event.old_train_id_1), tostring(event.old_train_id_2), tostring(event.train.state)
     end)
 
-    local dispatcher = tools.getDispatcher()
-
-    dispatcher.knownTrains[event.train.id] = dispatcher.knownTrains[event.train.id] or {
-        train = event.train,
-        select_count = 0,
-    }
-
     -- on_train_created always sets train.state to 9 manual, scripts have to set the train back to its former state.
     if event.old_train_id_1 then Update_Delivery(event.old_train_id_1, event.train) end
     if event.old_train_id_2 then Update_Delivery(event.old_train_id_2, event.train) end

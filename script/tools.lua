@@ -421,11 +421,6 @@ function Tools.reduceAvailableCapacity(trainId)
 
     if not dispatcher.availableTrains[trainId] then return false end
 
-    dispatcher.knownTrains[trainId] = dispatcher.knownTrains[trainId] or {
-        train = dispatcher.availableTrains[trainId].train,
-        select_count = 0,
-    }
-
     dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[trainId].capacity
     dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainId].fluid_capacity
     dispatcher.availableTrains[trainId] = nil
@@ -449,11 +444,6 @@ function Tools.increaseAvailableCapacity(train, stop)
 
     local capacity, fluid_capacity = Tools.getTrainCapacity(train)
 
-    dispatcher.knownTrains[train.id] = dispatcher.knownTrains[train.id] or {
-        train = train,
-        select_count = 0,
-    }
-
     dispatcher.availableTrains[train.id] = {
         train = train,
         surface = stop.entity.surface,
@@ -462,7 +452,6 @@ function Tools.increaseAvailableCapacity(train, stop)
         network_id = stop.network_id,
         capacity = capacity,
         fluid_capacity = fluid_capacity,
-        select_count = dispatcher.knownTrains[train.id].select_count,
     }
 
     dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity + capacity
@@ -482,17 +471,13 @@ end
 --- @param new_train LuaTrain? new train object
 --- @return boolean success
 function Tools.reassignTrainRecord(old_train_id, new_train)
-    local dispatcher = Tools.getDispatcher()
-
     if not old_train_id or not (new_train and new_train.valid) then return false end
 
-    dispatcher.knownTrains[new_train.id] = dispatcher.knownTrains[new_train.id] or {
-        train = new_train,
-        select_count = 0
-    }
+    local old_known_train = Tools.findKnownTrain(old_train_id)
+    local new_known_train = Tools.getOrCreateKnownTrain(new_train)
 
-    if dispatcher.knownTrains[old_train_id] and dispatcher.knownTrains[old_train_id].select_count then
-        dispatcher.knownTrains[new_train.id].select_count = dispatcher.knownTrains[new_train.id].select_count + dispatcher.knownTrains[old_train_id].select_count
+    if old_known_train then
+        new_known_train.select_count = new_known_train.select_count + old_known_train.select_count
     end
 
     return true
@@ -597,6 +582,54 @@ function Tools.updateDispatchTicker()
         script.on_event(defines.events.on_train_changed_state, nil)
         script.on_event(defines.events.on_train_created, nil)
     end
+end
+
+-----------------------------------------------------------------------
+-- Known Trains Management
+-----------------------------------------------------------------------
+
+-- amount of time a "knownTrain" record is retained even though the
+-- train has gone away. This allows reassigning information e.g. when
+-- traveling through a space elevator even though the train was destroyed
+local DEAD_TRAIN_LINGER_TIME = 240
+
+function Tools.clearKnownTrains()
+    local dispatcher = Tools.getDispatcher()
+    dispatcher.knownTrains = {}
+end
+
+function Tools.cleanupKnownTrains()
+    local dispatcher = Tools.getDispatcher()
+
+    for index, knownTrain in pairs(dispatcher.knownTrains) do
+        if knownTrain.invalid_tick then
+            if knownTrain.invalid_tick < game.tick then
+                dispatcher.knownTrains[index] = nil
+            end
+        elseif not (knownTrain.train and knownTrain.train.valid) then
+            knownTrain.invalid_tick = game.tick + DEAD_TRAIN_LINGER_TIME
+        end
+    end
+end
+
+---@param train LuaTrain
+---@return ltn.KnownTrain
+function Tools.getOrCreateKnownTrain(train)
+    local dispatcher = Tools.getDispatcher()
+
+    dispatcher.knownTrains[train.id] = dispatcher.knownTrains[train.id] or {
+        train = train,
+        select_count = 0,
+    }
+
+    return dispatcher.knownTrains[train.id]
+end
+
+---@param train_id integer
+---@return ltn.KnownTrain?
+function Tools.findKnownTrain(train_id)
+    local dispatcher = Tools.getDispatcher()
+    return dispatcher.knownTrains[train_id]
 end
 
 return Tools

@@ -31,6 +31,7 @@ Date: ????
       matching partial IDs.
     - Guard against missing stop entities, trains no longer at a station, and missing lamp
       signal values during delivery processing.
+    - Fix train selection count was not really doing anything
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.4
 Date: 2026-10-03
