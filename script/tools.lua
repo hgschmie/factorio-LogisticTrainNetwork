@@ -227,9 +227,9 @@ function Tools.createLoadingList(loadingList)
 
     for _, element in pairs(loadingList) do
         result[#result + 1] = {
-            name = element.item.name,
-            type = element.item.type,
-            quality = element.item.quality,
+            name = element.item.name --[[@as string]],
+            type = element.item.type --[[@as ltn.ItemFluid]],
+            quality = element.item.quality --[[@as string]],
             count = element.count,
             localname = element.localname,
             stacks = element.stacks,
@@ -265,10 +265,10 @@ end
 function Tools.getEucledianDistance(entity, pos2)
     assert(entity)
     local pos1 = entity.position
-    local x1 = pos1.x or pos1[1]
-    local y1 = pos1.y or pos1[2]
-    local x2 = pos2.x or pos2[1]
-    local y2 = pos2.y or pos2[2]
+    local x1 = pos1.x or pos1[1] or 0
+    local y1 = pos1.y or pos1[2] or 0
+    local x2 = pos2.x or pos2[1] or 0
+    local y2 = pos2.y or pos2[2] or 0
     return math.sqrt((x1 - x2) ^ 2 + (y1 - y2) ^ 2)
 end
 
@@ -282,11 +282,11 @@ local function get_wagon_capacity(wagon, cap_function)
 
     storage.WagonCapacity[name][quality] = capacity
 
-    return capacity
+    return math.floor(capacity)
 end
 
 ---@param wagon LuaEntity
----@return number
+---@return integer
 function Tools.getCargoWagonCapacity(wagon)
     return get_wagon_capacity(wagon, function()
         return wagon.prototype.get_inventory_size(defines.inventory.cargo_wagon, wagon.quality)
@@ -294,18 +294,18 @@ function Tools.getCargoWagonCapacity(wagon)
 end
 
 ---@param wagon LuaEntity
----@return number
+---@return integer
 function Tools.getFluidWagonCapacity(wagon)
     return get_wagon_capacity(wagon, function()
         local capacity = wagon.prototype.fluid_capacity
-        return math.floor(capacity * (1 + 0.3 * wagon.quality.level))
+        return capacity * (1 + 0.3 * wagon.quality.level)
     end)
 end
 
 -- returns inventory and fluid capacity of a given train
 ---@param train LuaTrain
----@return number inventorySize
----@return number fluidCapacity
+---@return integer inventorySize
+---@return integer fluidCapacity
 function Tools.getTrainCapacity(train)
     local inventorySize = 0
     local fluidCapacity = 0
@@ -323,7 +323,7 @@ function Tools.getTrainCapacity(train)
 end
 
 -- returns rich text string for train stops, or nil if entity is invalid
----@param entity LuaEntity
+---@param entity LuaEntity?
 ---@return string?
 function Tools.richTextForStop(entity)
     if not (entity and entity.valid) then return nil end
@@ -412,8 +412,8 @@ end
 -- Train capacity management
 -----------------------------------------------------------------------
 
----@param trainId number?
----@return boolean True if capacity was really reduced
+---@param trainId integer?
+---@return boolean reduced_capacity True if capacity was really reduced
 function Tools.reduceAvailableCapacity(trainId)
     if not trainId then return false end
 
@@ -435,7 +435,7 @@ end
 
 ---@param train LuaTrain
 ---@param stop ltn.TrainStop
----@return boolean True if capacity was really increased
+---@return boolean increased_capacity True if capacity was really increased
 function Tools.increaseAvailableCapacity(train, stop)
     local dispatcher = Tools.getDispatcher()
 
@@ -503,23 +503,23 @@ end
 -----------------------------------------------------------------------
 
 ---@param stop ltn.TrainStop
----@param stop_list ltn.TrainStop[]
+---@param stop_list ltn.TrainStop[][]
 ---@param network_id integer
 function Tools.updateStopList(stop, stop_list, network_id)
     for i = 1, 32 do
         local stops = stop_list[i] or {}
         local in_network = bit32.btest(network_id, bit32.lshift(1, i - 1))
+        ---@cast stop.entity.unit_number -?
         stops[stop.entity.unit_number] = in_network and stop or nil
         stop_list[i] = stops
     end
 end
 
 --- Find all stations in the stop list that are a match for the given network id.
----@param stop_list ltn.TrainStop[]
+---@param stop_list ltn.TrainStop[][]
 ---@param network_id integer
----@param available boolean? If true, only available stops are returned
 ---@return ltn.TrainStop[] train_stops Available train stops
-function Tools.findMatchingStops(stop_list, network_id, available)
+function Tools.findMatchingStops(stop_list, network_id)
     local all_stops = Tools.getAllStops()
     local result = {}
 

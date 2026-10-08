@@ -7,7 +7,7 @@
 --- storage layout
 ---@class ltn.Storage
 ---@field tick_state            ltn.TickState
----@field tick_interval_start   integer?
+---@field tick_interval_start   uint64?
 ---@field tick_stop_index       integer?
 ---@field tick_request_index    integer?
 ---@field Dispatcher            ltn.Dispatcher
@@ -15,7 +15,7 @@
 ---@field ConnectedSurfaces     table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
 ---@field StoppedTrains         table<integer, ltn.StoppedTrain>
 ---@field StopDistances         table<string, ltn.StopDistance>
----@field WagonCapacity         table<string, number>
+---@field WagonCapacity         table<string, table<string, number>>
 ---@field FuelStations          ltn.TrainStop[][]
 ---@field Depots                ltn.TrainStop[][]
 ---@field ExcludedFromRefuel    string[]

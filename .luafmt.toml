@@ -27,3 +27,7 @@ quote_style = "Single"
 single_arg_call_parens = "Preserve"
 simple_lambda_single_line = "Preserve"
 end_of_line = "LF"
+
+[emmy_doc]
+align_tag_columns = false
+compact_type_or = true

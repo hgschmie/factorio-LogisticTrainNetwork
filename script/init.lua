@@ -41,7 +41,7 @@ local function initialize(oldVersion, newVersion)
     storage.FuelStations = storage.FuelStations or {}
     storage.Depots = storage.Depots or {}
     storage.ExcludedFromRefuel = storage.ExcludedFromRefuel or {
-        ---- ElectricTrain mod - https://mods.factorio.com/mod/ElectricTrain2
+        ---- Electric Locomotives - https://mods.factorio.com/mod/electric-locomotives
         ['et-electric-locomotive-1'] = true,
         ['et-electric-locomotive-2'] = true,
         ['et-electric-locomotive-3'] = true,

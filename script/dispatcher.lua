@@ -46,7 +46,7 @@ end
 
 ---------------------------------- MAIN LOOP STAGES ----------------------------------
 
----@param event EventData.on_tick
+---@param event NthTickEventData
 ---@return ltn.TickState?
 local function DispatcherReset(event)
     local dispatcher = tools.getDispatcher()
@@ -72,7 +72,7 @@ end
 
 ----------------------------------------------------------------------------------------
 
----@param event EventData.on_tick
+---@param event NthTickEventData
 ---@return ltn.TickState?
 local function DispatcherUpdateStops(event)
     ---@type integer?
@@ -80,7 +80,7 @@ local function DispatcherUpdateStops(event)
 
     if stopID and not storage.LogisticTrainStops[stopID] then
         tools.printmsg(2, function()
-            return { 'ltn-message.error-invalid-stop-index', storage.tick_stop_index }
+            return { 'ltn-message.error-invalid-stop-index', storage.tick_stop_index } --[[@as LocalisedString ]]
         end)
 
         tools.log(6, 'OnTick', 'Invalid storage.tick_stop_index %d in storage.LogisticTrainStops. Removing stop and starting over.', function()
@@ -94,7 +94,7 @@ local function DispatcherUpdateStops(event)
     local stop_count = LtnSettings.dispatcher_stop_updates_per_tick
 
     if stop_count > 0 then
-        ---@type ltn.TrainStop
+        ---@type ltn.TrainStop?
         local stop
         repeat
             stopID, stop = next(storage.LogisticTrainStops, storage.tick_stop_index)
@@ -102,6 +102,7 @@ local function DispatcherUpdateStops(event)
                 tools.log(6, 'OnTick', '%d updating stopID %d', function()
                     return event.tick, stopID
                 end)
+                ---@cast stop -?
                 UpdateStop(stopID, stop)
             end
             stop_count = stop_count - 1
@@ -115,7 +116,7 @@ end
 
 ----------------------------------------------------------------------------------------
 
----@param event EventData.on_tick
+---@param event NthTickEventData
 ---@return ltn.TickState?
 local function DispatcherUpdateDeliveries(event)
     local dispatcher = tools.getDispatcher()
@@ -200,7 +201,7 @@ end
 
 ----------------------------------------------------------------------------------------
 
----@param event EventData.on_tick
+---@param event NthTickEventData
 ---@return ltn.TickState?
 local function DispatcherDispatchTrains(event)
     local dispatcher = tools.getDispatcher()
@@ -221,7 +222,7 @@ local function DispatcherDispatchTrains(event)
         -- reset on invalid index
         if request_index and not dispatcher.Requests[request_index] then
             tools.printmsg(1, function()
-                return { 'ltn-message.error-invalid-request-index', storage.tick_request_index }
+                return { 'ltn-message.error-invalid-request-index', storage.tick_request_index }  --[[@as LocalisedString ]]
             end)
 
             tools.log(6, 'OnTick', 'Invalid storage.tick_request_index %s in dispatcher Requests. Starting over.', function()
@@ -234,7 +235,7 @@ local function DispatcherDispatchTrains(event)
         local request_count = LtnSettings.dispatcher_updates_per_tick
 
         if request_count > 0 then
-            ---@type ltn.Request
+            ---@type ltn.Request?
             local request
             repeat
                 request_index, request = next(dispatcher.Requests, request_index)
@@ -265,7 +266,7 @@ end
 ----------------------------------------------------------------------------------------
 
 --- raise events for mod API
----@param event EventData.on_tick
+---@param event NthTickEventData
 ---@return ltn.TickState?
 local function DispatcherApiEvents(event)
     local dispatcher = tools.getDispatcher()
@@ -278,7 +279,7 @@ local function DispatcherApiEvents(event)
 
     ---@type ltn.EventData.on_dispatcher_updated
     local dispatcher_data = {
-        update_interval = event.tick - storage.tick_interval_start,
+        update_interval = event.tick - storage.tick_interval_start --[[@as integer]],
         provided_by_stop = dispatcher.Provided_by_Stop,
         requests_by_stop = dispatcher.Pending_Requests,
         new_deliveries = dispatcher.new_Deliveries,
@@ -311,7 +312,7 @@ end
 
 ---------------------------------- MAIN LOOP ----------------------------------
 
---- @type table<ltn.TickState, fun(event: EventData.on_tick): ltn.TickState?>
+--- @type table<ltn.TickState, fun(event: NthTickEventData): ltn.TickState?>
 local dispatcher_stages = {
     [ltn_tick_state.reset] = DispatcherReset,
     [ltn_tick_state.update_stops] = DispatcherUpdateStops,
@@ -321,7 +322,7 @@ local dispatcher_stages = {
     [ltn_tick_state.cleanup] = DispatcherCleanup,
 }
 
----@param event EventData.on_tick
+---@param event NthTickEventData
 function OnTick(event)
     tools.log(9, 'OnTick', 'Tick: %d, storage.tick_state: %s, storage.tick_stop_index: %s, storage.tick_request_index: %s', function()
         return event.tick, tostring(storage.tick_state), tostring(storage.tick_stop_index), tostring(storage.tick_request_index)
