@@ -2,9 +2,35 @@
 Version: 3.3.0
 Date: ????
   Changes:
-    - train selection logic was once more rewritten.
-      Fixes ltn-space-exploration issue #3, reported by @mariz
-        and ltn-space-exploration issue #1, reported by @nullpunkteins
+    - Reworked provider and train selection to evaluate providers in preference order
+      stopping once a provider and an eligible train priority group can serve the request.
+    - Round available fluid capacity down to whole units.
+    - Compute missing or expired routes only for provider and train groups being considered.
+    - Stagger route-cache expiration to spread pathfinding work across updates.
+  Bugfixes:
+    - Prevent reachable providers from being discarded merely because pathfinding selected
+      another provider as its single result.
+    - Prefer eligible, reachable trains on the provider's surface over trains on other
+      surfaces, including trains at higher-priority remote depots.
+      Addresses the train-selection problem in ltn-space-exploration #3, reported by @maritz.
+    - Calculate paths from the train's actual rail ends and cache results separately by
+      starting rail and direction. Prevent incorrect reachability results from being shared
+      between trains with different lengths or orientations.
+    - Track forward and backward route results independently and use the cheaper reachable
+      direction for bidirectional trains.
+    - Round item stack requirements up to whole stacks when sizing and merging deliveries.
+    - Add a missing requester waypoint when arriving at the provider of a delivery whose
+      depot is on another surface. This pins the intended requester when stops share names
+      and prevents an otherwise completed delivery from remaining active at the depot.
+      Fixes ltn-space-exploration #1, reported by @nullpunkteins, and addresses the delivery
+      completion problem in #3, reported by @maritz.
+    - Only reuse a temporary waypoint when it is scheduler-managed and matches the target
+      rail and direction. Elevator and clearance stops no longer prevent insertion of the
+      required destination waypoint.
+    - Invalidate cached routes using exact entity IDs when removing a stop, instead of
+      matching partial IDs.
+    - Guard against missing stop entities, trains no longer at a station, and missing lamp
+      signal values during delivery processing.
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.4
 Date: 2026-10-03
