@@ -1,7 +1,10 @@
 ---------------------------------------------------------------------------------------------------
-Version: 3.2.5
+Version: 3.3.0
 Date: ????
   Changes:
+    - train selection logic was once more rewritten.
+      Fixes ltn-space-exploration issue #3, reported by @mariz
+        and ltn-space-exploration issue #1, reported by @nullpunkteins
 ---------------------------------------------------------------------------------------------------
 Version: 3.2.4
 Date: 2026-10-03

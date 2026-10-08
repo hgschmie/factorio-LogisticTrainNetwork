@@ -393,7 +393,7 @@ end
 -- Removes all temp stops that were created by the scheduler. Leave all other temp stops alone
 ---@param record ScheduleRecord
 ---@return boolean remove True if the stop should be removed
-local function match_scheduled_temp_stop(record)
+function ScheduleManager.matchScheduledTempStop(record)
     if not record.temporary then return false end
 
     local wait_conditions = record.wait_conditions
@@ -429,14 +429,15 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
 
         local loco = tools.getMainLocomotive(train)
 
-        if loco then create_alert(loco, 'depot-warning', { 'ltn-message.warning-no-depot-found', loco.backer_name }, loco.force) end
+        if loco then create_alert(loco, 'depot-warning', { 'ltn-message.warning-no-depot-found', loco.backer_name } --[[@as LocalisedString]] , loco.force) end
         return
     end
 
     if #records > 0 then
         for index = #records, 1, -1 do
+            ---@cast records[index] -?
             -- remove all stops that are not the depot stop or any temporary stops
-            if match_scheduled_temp_stop(records[index]) or ((records[index].station ~= depot_stop.entity.backer_name) and not records[index].temporary) then
+            if self.matchScheduledTempStop(records[index]) or ((records[index].station ~= depot_stop.entity.backer_name) and not records[index].temporary) then
                 train_schedule.remove_record { schedule_index = index }
             end
         end
@@ -632,8 +633,23 @@ function ScheduleManager:requesterStop(train, stop, loadingList)
     }
 end
 
+--- Inserts a temporary stop if the next stop in this train's schedule
+--- matches the provided stop id.
 ---@param train LuaTrain
----@param index number
+---@param stop_id uint64
+function ScheduleManager:ensureTemporaryStop(train, stop_id)
+    local schedule, current = self:getSchedule(train)
+    local stop = storage.LogisticTrainStops[stop_id]
+    if not stop then return end
+    local next_stop_index = (current + 1) > #schedule and 1 or current + 1
+    local stop_name = self:getStopName(train, next_stop_index)
+    if stop_name ~= stop.entity.backer_name then return end
+    if not stop.entity.connected_rail then return end
+    self:temporaryStop(train, stop.entity.connected_rail, stop.entity.connected_rail_direction, next_stop_index)
+end
+
+---@param train LuaTrain
+---@param index uint32
 ---@return string? stop_name
 function ScheduleManager:getStopName(train, index)
     local train_schedule = train.get_schedule()

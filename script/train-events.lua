@@ -150,7 +150,11 @@ function TrainArrives(train)
             if delivery then
                 is_provider = delivery.from_id == stop.entity.unit_number
 
-                if delivery.to_id == stop.entity.unit_number then
+                if is_provider then
+                    -- If this is a cross-surface delivery where the depot is on a different
+                    -- surface, there is currently no temp stop to lock down the requester
+                    schedule:ensureTemporaryStop(train, delivery.to_id)
+                elseif delivery.to_id == stop.entity.unit_number then
                     ---@cast delivery.to_id -?
 
                     -- requester

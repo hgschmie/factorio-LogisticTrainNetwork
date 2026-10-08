@@ -95,6 +95,8 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
     local rail = assert(stop.entity.connected_rail)
     local rail_direction = stop.entity.connected_rail_direction
 
+    ---@cast train.carriages[1] -?
+
     -- the engine does not allow temp_stops on different surfaces
     -- locomotive might not work here, a new train on another surface could still be incomplete
     if train.carriages[1].surface_index ~= stop.entity.surface_index then
@@ -107,7 +109,13 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
     -- insert temp stop in schedule
     local train_schedule = schedule:getSchedule(train)
     local previous_record = train_schedule[stop_schedule_index - 1]
-    if previous_record and previous_record.temporary then return stop_schedule_index - 1 end -- schedule already up-to-date for stop_position
+    if previous_record
+        and schedule.matchScheduledTempStop(previous_record)
+        and previous_record.rail == rail
+        and previous_record.rail_direction == rail_direction then
+            -- schedule already up-to-date for stop_position
+            return stop_schedule_index - 1
+        end
 
     tools.log(5, 'GetOrCreateNextTempStop', 'adding new temp-stop before stop [%d] at rail [%d] to train [%d] ', function()
         return stop_id, rail.unit_number, train.id
