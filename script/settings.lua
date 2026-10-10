@@ -43,6 +43,7 @@ ltn_depot_train_limit = {
 ---@field advanced_cross_surface_delivery boolean
 ---@field depot_fudge_factor integer
 ---@field depot_limit_trains ltn.DepotTrainLimit
+---@field limit_eligible_trains integer
 ---@diagnostic disable-next-line: missing-fields
 LtnSettings = LtnSettings or {}
 
@@ -77,6 +78,7 @@ local change_settings = {
     ['ltn-advanced-cross-surface-delivery'] = function(ltn_settings, name) ltn_settings.advanced_cross_surface_delivery = settings.global[name].value end,
     ['ltn-depot-fudge-factor'] = function(ltn_settings, name) ltn_settings.depot_fudge_factor = settings.global[name].value end,
     ['ltn-depot-stop-limit-trains'] = function(ltn_settings, name) ltn_settings.depot_limit_trains = tonumber(settings.startup[name].value) end,
+    ['ltn-limit-eligible-trains'] = function(ltn_settings, name) ltn_settings.limit_eligible_trains = tonumber(settings.global[name].value) end,
 }
 function LtnSettings:init()
     for name in pairs(change_settings) do

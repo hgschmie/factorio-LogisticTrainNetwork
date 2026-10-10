@@ -267,11 +267,9 @@ local function updateAllTrains()
     local train_manager = game.train_manager
     for _, force in pairs(game.forces) do
         local trains = train_manager.get_trains { force = force }
-        if trains then
-            for _, train in pairs(trains) do
-                if train.station and ltn_stop_entity_names[train.station.name] then
-                    TrainArrives(train)
-                end
+        for _, train in pairs(trains) do
+            if train.station and ltn_stop_entity_names[train.station.name] then
+                TrainArrives(train)
             end
         end
     end

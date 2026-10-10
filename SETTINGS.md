@@ -22,9 +22,9 @@ Number of requests that are updated at each update cycle. Higher numbers can lea
 
 If the Update frequency is set to a value > `1`, this value is forced to be `1`.
 
-## Dispatcher Route cache lifetime in minutes (ltn-dispatcher-route-cache-lifetime) - integer 2-120, default is 2
+## [CHANGED in 3.3.0] Dispatcher Route cache lifetime in minutes (ltn-dispatcher-route-cache-lifetime) - integer 2-120, default is 10
 
-Controls how long LTN will store computed routes which in turn control what train is selected for a delivery. The default is 2 minutes. For very large maps that don't update too much, longer lifetimes will reduce the number of route computing requests, which helps with FPS/UPS.
+Controls how long LTN will store computed routes which in turn control what train is selected for a delivery. The default is 10 minutes. For very large maps that don't update too much, longer lifetimes will reduce the number of route computing requests, which helps with FPS/UPS.
 
 ## Message Level (ltn-interface-console-level) - select, 1-4, default is 2
 
@@ -132,7 +132,7 @@ Pre-2.2.0 release, when requesting multiple deliveries to the same station of th
 
 If this setting is `true`, LTN will ignore any currently unloading train and request the full amount for a delivery. This makes bulk deliveries (e.g. fluids or plates) more efficient as there will always be the configured requester size be delivered. For expensive items, this may lead to "over delivery".
 
-The pre-2.2.0 default behavior has been restored with 2.4.0 (see https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues/26)
+The pre-2.2.0 default behavior has been restored with 2.4.0 (see <https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues/26>)
 
 ## [NEW in 2.3.0] Enable fuel station (ltn-schedule-fuel-station) - boolean, default is false
 
@@ -182,3 +182,7 @@ Select behavior of the 'Enable Train Limit' setting for Depot stops.
 0: (default) Same behavior as all other stop types: No train limit can be set and any manual override is reset.
 1: Set Train Limit to 1. Each depot can only accommodate a single train; the routing mechanism in the game will send only one train at a time to the stop. This requires enough depot stops for all trains associated with it. If a train can not find an available depot stop, it will be stuck at the requester until a stop frees up.
 2: Do not modify the Train Limit settings. Train Limit can be set manually or through the circuit network. LTN does not change or reset the value here. Chances are that this might deadlock or interfere with the normal LTN operations. Only select if you know what you are doing.
+
+## [NEW in 3.3.0] Limit eligible trains (ltn-limit-eligible-trains) - integer, 0..max, default is 0
+
+When selecting a train for a delivery from the pool of eligible trains, limit the train choices. This might result in choosing trains that have a slightly longer travel than optimal or cluster deliveries around a subset of trains as long as they are available but reduces the amount of path lookups especially for very large networks. Set this value to 5-10 if you experience sudden lag spikes (FPS dropping below 50) when LTN selects a new delivery.

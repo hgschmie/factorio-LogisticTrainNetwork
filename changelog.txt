@@ -1,12 +1,15 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.3.0
 Date: ????
+  Minor Features:
+    - add 'ltn-limit-eligible-trains' to control number of trains evaluated when choosing a provider
   Changes:
     - Reworked provider and train selection to evaluate providers in preference order
       stopping once a provider and an eligible train priority group can serve the request.
     - Round available fluid capacity down to whole units.
     - Compute missing or expired routes only for provider and train groups being considered.
     - Stagger route-cache expiration to spread pathfinding work across updates.
+    - Default lifetime of entries in the route cache is now 10 minutes (was 2 minutes).
   Bugfixes:
     - Prevent reachable providers from being discarded merely because pathfinding selected
       another provider as its single result.

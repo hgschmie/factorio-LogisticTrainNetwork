@@ -36,6 +36,14 @@ If you have a network across multiple surfaces, then normally a train can be dis
 
 With this setting, LTN will schedule trains to go through the space elevator first if necessary to pick up a delivery from a different surface. It may even schedule a delivery where both provider and requester are on a different surface as the depot. The train will still return to its original depot.
 
+### I have a really large base with multiple networks and I see lag-spikes when LTN choose a train for delivery
+
+Managing performance for LTN boils down to a single thing: Managing the cache that holds the precomputed routes between depot stops and providers. The better the cache hit rate is, the fewer actual route computations LTN has to do. This is a consequence of the 2.x introduction of [LuaTrainManager](https://lua-api.factorio.com/latest/classes/LuaTrainManager.html). There are a few settings that are most relevant here:
+
+- `Dispatcher Updates per tick` controls how many trains are scheduled per tick. Each train requires some work so updating many trains per tick will lead to lags. For a larger base, leave at 1.
+- `Dispatcher Route cache lifetime in minutes` controls how long a route is cached. If your network is fairly static (not a lot of changes to the rails), you can crank this up to the maximum (120 minutes). If your network is under construction (adding new routes, removing existing routes etc.), reduce it (the minimum is 2 minutes). The longer a route is cached, the fewer actual route lookups need to be done.
+- `Limit eligible trains` controls how many trains are evaluated to cover a route. This limits the size of the group of trains that can serve a route. Choosing from a subset may lead to slightly sub-optimal choices but in any case, if there is at least one eligible train, it will be chosen. For a large network, limit this to 5-10 trains.
+
 [LTN - Space Exploration](https://mods.factorio.com/mod/ltn-space-exploration) fully supports this.
 
 If you are using [Space Exploration LTN integration](https://mods.factorio.com/mod/se-ltn-glue), you need to verify that it was updated to support advanced scheduling, otherwise your trains will stall with "No path found".

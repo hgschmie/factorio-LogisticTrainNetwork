@@ -323,6 +323,7 @@ local function get_free_trains(provider, request_stop, primary_is_item, train_me
     return free_trains
 end
 
+---@param limit_eligible_trains integer?
 ---@param target_stop LuaEntity
 ---@param selected_trains ltn.FreeTrain[]
 ---@param seen_train table<integer, boolean>
@@ -330,8 +331,9 @@ end
 ---@param rail_ends RailEndStart[]
 ---@param direction defines.rail_direction
 ---@param all_train_metrics ltn.Metrics
-local function compute_path(target_stop, selected_trains, seen_train, free_trains, rail_ends, direction, all_train_metrics)
-    while #free_trains > 0 do
+---@return integer? limit_eligible_trains_remaining
+local function compute_path(limit_eligible_trains, target_stop, selected_trains, seen_train, free_trains, rail_ends, direction, all_train_metrics)
+    while ((not limit_eligible_trains) or (limit_eligible_trains > 0)) and #free_trains > 0 do
         local path_result = game.train_manager.request_train_path {
             type = "path",
             goals = {
@@ -362,6 +364,10 @@ local function compute_path(target_stop, selected_trains, seen_train, free_train
 
             table.remove(rail_ends, path_result.start_index)
             table.remove(free_trains, path_result.start_index)
+
+            if limit_eligible_trains then
+                limit_eligible_trains = limit_eligible_trains - 1
+            end
         else
             -- Mark only the depot/provider pairs in this priority group as unreachable.
             for _, free_train in pairs(free_trains) do
@@ -376,6 +382,8 @@ local function compute_path(target_stop, selected_trains, seen_train, free_train
             free_trains = {}
         end
     end
+
+    return limit_eligible_trains
 end
 
 ---@param request_stop ltn.TrainStop
@@ -386,6 +394,8 @@ end
 ---@return ltn.FreeTrain[] selected_trains
 local function select_provider_and_trains(request_stop, primary_is_item, providers, provider_to_train_metrics)
     -- loop through the ordered provider to find one that can be served by a train
+
+    local limit_eligible_trains = LtnSettings.limit_eligible_trains > 0 and LtnSettings.limit_eligible_trains or nil
 
     ---@type ltn.FreeTrain[]
     local selected_trains = {}
@@ -500,10 +510,10 @@ local function select_provider_and_trains(request_stop, primary_is_item, provide
             end
 
             if #forward_free_trains > 0 then
-                compute_path(provider_stop, selected_trains, seen_train, forward_free_trains, rail_forwards_starts, defines.rail_direction.front, all_train_metrics)
+                limit_eligible_trains = compute_path(limit_eligible_trains, provider_stop, selected_trains, seen_train, forward_free_trains, rail_forwards_starts, defines.rail_direction.front, all_train_metrics)
             end
             if #backward_free_trains > 0 then
-                compute_path(provider_stop, selected_trains, seen_train, backward_free_trains, rail_backwards_starts, defines.rail_direction.back, all_train_metrics)
+                limit_eligible_trains = compute_path(limit_eligible_trains, provider_stop, selected_trains, seen_train, backward_free_trains, rail_backwards_starts, defines.rail_direction.back, all_train_metrics)
             end
 
             -- at least one train in the priority group is available
