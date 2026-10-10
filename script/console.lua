@@ -9,7 +9,8 @@ local Console = {}
 
 ---@param data CustomCommandData
 local function list_refuel_excluded(data)
-    local player = game.players[data.player_index]
+    -- player_index is nil when the command comes from the server console
+    local player = data.player_index and game.get_player(data.player_index) or nil
     local excluded_locos = { '' }
 
     for name, status in pairs(storage.ExcludedFromRefuel) do
@@ -28,7 +29,7 @@ end
 ---@param text string
 ---@param network_id integer
 local function list_network(data, text, network_id)
-    local player = game.players[data.player_index]
+    local player = data.player_index and game.get_player(data.player_index) or nil
     local stops = {}
     for stop_id, stop in pairs(storage.LogisticTrainStops) do
         if tools.isStopConsistent(stop) then

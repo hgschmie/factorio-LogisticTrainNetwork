@@ -131,6 +131,13 @@ function ScheduleManager:selectDepot(train, network_id)
         end
     end
 
+    if #accessible_stations == 0 then
+        tools.log(1, 'ScheduleManager:selectDepot', 'No valid accessible depot for train %s (%d) found!', function()
+            return tools.getTrainName(train), train.id
+        end)
+        return nil
+    end
+
     local depot = accessible_stations[math.random(#accessible_stations)]
     tools.log(1, 'ScheduleManager:selectDepot', 'Selected %s as depot for train %s (%d)', function()
         return depot.entity.backer_name, tools.getTrainName(train), train.id
@@ -230,11 +237,13 @@ local function must_refuel(train, fuel_signals)
                 ---@type ItemIDAndQualityIDPair
                 local current_fuel = locomotive.burner.currently_burning
                 if current_fuel then
-                    key = table.concat({
-                        current_fuel.name.type,
-                        current_fuel.name.name,
-                        current_fuel.quality and current_fuel.quality.name or nil,
-                    }, ',')
+                    -- build the key the same way as the inventory and the fuel signals below,
+                    -- otherwise 'item,coal,normal' never matches 'item,coal'
+                    key = tools.createItemIdentifier {
+                        type = 'item',
+                        name = current_fuel.name.name,
+                        quality = current_fuel.quality and current_fuel.quality.name or nil,
+                    }
                     -- set the fuel key but quantity is 0
                     fuel[key] = (fuel[key] or 0)
                 end
@@ -450,7 +459,7 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
         -- on_train_state_changed with train.state == wait_station event which may throw
         -- other mods off -- see https://forums.factorio.com/viewtopic.php?t=130803
         if depot_record and depot_record.station == depot_stop.entity.backer_name then
-            if #depot_record.wait_conditions > 0 then return end
+            if #(depot_record.wait_conditions or {}) > 0 then return end
             -- the train was just sent into the depot and the schedule record does not yet have the right wait condition.
             -- use the worst API on LuaSchedule to add one
             train_schedule.add_wait_condition({ schedule_index = depot_record_index }, 1, 'inactivity')

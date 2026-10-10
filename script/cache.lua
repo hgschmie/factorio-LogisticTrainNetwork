@@ -19,6 +19,21 @@ function RailCache.clear()
     storage.StopDistances = {}
 end
 
+--- Remove entries that have expired. Expired entries are recomputed on demand anyway, so
+--- dropping them only bounds the size of the cache (and of the save file).
+---@param current_tick uint64
+---@return integer removed
+function RailCache.sweep(current_tick)
+    local removed = 0
+    for key, stop_distance in pairs(storage.StopDistances) do
+        if type(stop_distance) ~= 'table' or not stop_distance.tick or stop_distance.tick < current_tick then
+            storage.StopDistances[key] = nil
+            removed = removed + 1
+        end
+    end
+    return removed
+end
+
 ---@param stop_id integer?
 function RailCache.clearStopEntries(stop_id)
     if not stop_id then return end

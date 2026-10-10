@@ -10,6 +10,7 @@
 ---@field tick_interval_start   uint64?
 ---@field tick_stop_index       integer?
 ---@field tick_request_index    integer?
+---@field last_cache_sweep      uint64?    Tick of the last route cache sweep
 ---@field Dispatcher            ltn.Dispatcher
 ---@field LogisticTrainStops    table<integer, ltn.TrainStop>
 ---@field ConnectedSurfaces     table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
@@ -253,6 +254,17 @@ storage = {}
 ---@field min_carriages    integer?          Minimum train length
 ---@field max_carriages    integer?          Maximum train length
 ---@field shipment         ltn.LoadingList? The loading list to deliver
+
+--- Event raised when the dispatcher has created a new delivery and scheduled a train for it
+---@class ltn.EventData.on_delivery_created
+---@field train_id         integer        The train that will execute the delivery
+---@field train            LuaTrain
+---@field from             string         Provider stop name
+---@field from_id          integer        Provider stop id
+---@field to               string         Requester stop name
+---@field to_id            integer        Requester stop id
+---@field network_id       integer        Network id the delivery runs in
+---@field shipment         ltn.Shipment  The planned shipment
 
 ---@class ltn.EventData.delivery_pickup_complete
 ---@field train            LuaTrain

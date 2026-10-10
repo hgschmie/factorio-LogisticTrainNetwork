@@ -2,6 +2,28 @@
 Version: 3.3.1
 Date: ????
   Changes:
+    - Raise the 'on_delivery_created' API event when a delivery is scheduled. The event id was
+      exposed through the remote interface but never raised.
+    - Add train layout signals for infinity cargo wagons (editor / sandbox maps) instead of
+      printing an error on every arrival of such a train.
+    - Expired route cache entries are swept once a minute so the cache (and the save file) no
+      longer grows without bound.
+    - Provider, request and train sorting use a deterministic final tiebreak.
+  Bugfixes:
+    - Changing 'Update frequency (ticks)' takes effect immediately instead of after the next save/load.
+    - Count the cargo of a parked train with the delivery's quality when adjusting requester and
+      provider amounts. Non-normal quality cargo was never counted, leaving requests open.
+    - Burner refuel check could never match normal quality fuel, so a locomotive with fuel in
+      the burner but an empty fuel inventory was not sent for refueling.
+    - Locked slots larger than the wagon size no longer produce negative train capacities.
+    - Fix a possible 'interval is empty' crash when selecting a depot whose stops became invalid.
+    - Do not crash when the selected train is no longer parked at an LTN depot; drop it from the
+      available trains instead.
+    - Fix a missing locale key when a duplicated train stop unit number is detected.
+    - Console commands no longer crash when issued from the server console.
+    - Provider and requester stop updates only look at the deliveries touching the stop instead
+      of every delivery in the game.
+    - Fuel item prototypes are looked up once instead of on every fuel station update.
 ---------------------------------------------------------------------------------------------------
 Version: 3.3.0
 Date: 2026-10-09

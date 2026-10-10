@@ -61,7 +61,10 @@ local change_settings = {
     ['ltn-dispatcher-finish-loading'] = function(ltn_settings, name) ltn_settings.finish_loading = settings.global[name].value end,
     ['ltn-dispatcher-requester-delivery-reset'] = function(ltn_settings, name) ltn_settings.requester_delivery_reset = settings.global[name].value end,
     ['ltn-dispatcher-enabled'] = function(ltn_settings, name) ltn_settings.dispatcher_enabled = settings.global[name].value end,
-    ['ltn-dispatcher-nth_tick'] = function(ltn_settings, name) ltn_settings.dispatcher_nth_tick = settings.global[name].value end,
+    ['ltn-dispatcher-nth_tick'] = function(ltn_settings, name)
+        ltn_settings.dispatcher_nth_tick = settings.global[name].value
+        return true -- the on_nth_tick handler must be re-registered with the new interval
+    end,
     ['ltn-dispatcher-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_updates_per_tick = settings.global[name].value end,
     ['ltn-dispatcher-stop-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_stop_updates_per_tick = settings.global[name].value end,
     ['ltn-dispatcher-route-cache-lifetime'] = function(ltn_settings, name) ltn_settings.route_cache_lifetime = settings.global[name].value * 3600 end,
