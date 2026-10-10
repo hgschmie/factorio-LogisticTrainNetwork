@@ -102,6 +102,10 @@ If capacity is available but not train could be found that matches the criterias
 
 The two payloads can be differentiated by the presence of the `item` field.
 
+#### on_delivery_created (since 3.3.1)
+
+Raised when the dispatcher has created a delivery and scheduled a train for it. Sends out a `ltn.EventData.on_delivery_created` payload. The event id was exposed through the remote interface for a long time but the event was never raised before 3.3.1.
+
 #### on_delivery_pickup_complete
 
 Raised whenever a pickup is complete and a train leaves the provider stop. Sends out a `ltn.EventData.delivery_pickup_complete` payload.

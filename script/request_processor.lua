@@ -141,7 +141,8 @@ end
 ---@param metrics ltn.Metrics
 ---@return integer inventory_size
 local function get_train_inventory_size(train, locked_slots, primary_is_item, metrics)
-    local item_inventory_size = (train.capacity - (locked_slots * #train.train.cargo_wagons))
+    -- locked slots may exceed the wagon size; never report a negative capacity
+    local item_inventory_size = math.max(0, train.capacity - (locked_slots * #train.train.cargo_wagons))
     ---@cast item_inventory_size integer
     local fluid_inventory_size = math.floor(train.fluid_capacity)
 
@@ -249,9 +250,12 @@ local function get_providers(request, request_stop, metrics)
         -- sort by #deliveries
         elseif a.activeDeliveryCount ~= b.activeDeliveryCount then
             return a.activeDeliveryCount < b.activeDeliveryCount
-        else
-            -- finally sort by item count
+        elseif a.count ~= b.count then
+            -- sort by item count
             return a.count > b.count
+        else
+            -- deterministic tiebreak so the result does not depend on table iteration order
+            return a.stop.entity.unit_number < b.stop.entity.unit_number
         end
     end)
 
@@ -557,15 +561,26 @@ local function select_train(free_trains, provider_surface_index, stacks)
             -- return not(b.inventory_size >= size or b.inventory_size > a.inventory_size)
             return b.inventory_size < stacks and b.inventory_size < a.inventory_size
         else
-            -- if one stop is on the same surface and the other is not, return
-            if not a.provider_distance or a.provider_distance <= 0 then return false end
-            if not b.provider_distance or b.provider_distance <= 0 then return true end
+            -- trains with a known distance to the provider come first
+            local a_has_distance = (a.provider_distance or 0) > 0
+            local b_has_distance = (b.provider_distance or 0) > 0
+            if a_has_distance ~= b_has_distance then return a_has_distance end
 
-            if math.abs(a.provider_distance - b.provider_distance) > fudge_factor then
-                return a.provider_distance < b.provider_distance
+            if a_has_distance then
+                -- With a fudge factor, distances are compared by bucket. This keeps the comparator a
+                -- strict weak ordering (|a-b| <= fudge is not transitive and can make table.sort error out).
+                local a_distance, b_distance = a.provider_distance, b.provider_distance
+                if fudge_factor > 0 then
+                    a_distance = math.floor(a_distance / fudge_factor)
+                    b_distance = math.floor(b_distance / fudge_factor)
+                end
+                if a_distance ~= b_distance then return a_distance < b_distance end
             end
 
-            return a.select_count < b.select_count
+            if a.select_count ~= b.select_count then return a.select_count < b.select_count end
+
+            -- deterministic tiebreak so the result does not depend on table iteration order
+            return a.train.id < b.train.id
         end
     end)
 
@@ -704,15 +719,11 @@ end
 
 -- Create the schedule for the train
 ---@param train LuaTrain
+---@param depot ltn.TrainStop The depot the train is currently parked at
 ---@param loading_list ltn.ItemLoadingElement[]
 ---@param provider_stop ltn.TrainStop
 ---@param request_stop ltn.TrainStop
----@return ltn.TrainStop depot
-local function create_train_schedule(train, loading_list, provider_stop, request_stop)
-
-    ---@cast train.station -?
-    local depot = assert(storage.LogisticTrainStops[train.station.unit_number])
-
+local function create_train_schedule(train, depot, loading_list, provider_stop, request_stop)
     schedule:resetSchedule(train, depot)
 
     -- rail entities have been validated with IsValidStop before
@@ -914,6 +925,16 @@ function RequestProcessor.processRequest(reqIndex, request)
 
     local train = free_train.train
 
+    -- the train was selected from a depot; make sure it is still parked at one before touching its schedule
+    local depot_stop = train.valid and train.station and storage.LogisticTrainStops[train.station.unit_number]
+    if not depot_stop then
+        tools.log(5, 'RequestProcessor:processRequest', 'selected train %d is no longer parked at an LTN depot, dropping it from the available trains', function()
+            return train.id
+        end)
+        tools.reduceAvailableCapacity(train.id)
+        return nil
+    end
+
     -- 4) deduplicate surface connections
 
     local known_connections = {}
@@ -968,7 +989,7 @@ function RequestProcessor.processRequest(reqIndex, request)
 
     -- 7) Create schedule for train
 
-    local depot_stop = create_train_schedule(train, loading_list, provider_stop, request_stop)
+    create_train_schedule(train, depot_stop, loading_list, provider_stop, request_stop)
 
     -- increase select count for the train, now that it has a schedule
     local known_train = tools.getOrCreateKnownTrain(train)
@@ -990,6 +1011,19 @@ function RequestProcessor.processRequest(reqIndex, request)
     }
 
     tools.reduceAvailableCapacity(train.id)
+
+    ---@type ltn.EventData.on_delivery_created
+    local delivery_created_data = {
+        train_id = train.id,
+        train = train,
+        from = from,
+        from_id = from_id,
+        to = to,
+        to_id = to_id,
+        network_id = provider.network_id,
+        shipment = shipment,
+    }
+    script.raise_event(on_delivery_created_event, delivery_created_data)
 
     -- 8) Update the various stops
 

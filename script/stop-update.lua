@@ -63,6 +63,20 @@ local function detectShortCircuit(checkStop)
     return false
 end
 
+---@type table<string, LuaItemPrototype>?
+local fuel_prototypes_cache
+
+--- Prototypes are immutable at runtime, so the fuel item list is built once per game session.
+---@return table<string, LuaItemPrototype>
+local function get_fuel_prototypes()
+    if not fuel_prototypes_cache then
+        fuel_prototypes_cache = prototypes.get_item_filtered {
+            { filter = 'fuel', },
+        }
+    end
+    return fuel_prototypes_cache
+end
+
 -- update stop input signals
 ---@param stopID integer
 ---@param stop ltn.TrainStop
@@ -293,9 +307,7 @@ function UpdateStop(stopID, stop)
         -- Refuel operations
         -- ----------------------------------------------------------------------------------------
 
-        local fuel_prototypes = prototypes.get_item_filtered {
-            { filter = 'fuel', },
-        }
+        local fuel_prototypes = get_fuel_prototypes()
 
         ---@type CircuitCondition[]
         local fuel_signals = {}
@@ -335,8 +347,11 @@ function UpdateStop(stopID, stop)
             local signal_name = signal.name
             local item = tools.createItemIdentifier(signal)
 
-            for trainID, delivery in pairs(dispatcher.Deliveries) do
-                local deliverycount = delivery.shipment[item]
+            -- only deliveries that touch this stop can change its counts; stop.active_deliveries
+            -- is kept in sync by the delivery bookkeeping so there is no need to scan all deliveries
+            for _, trainID in pairs(stop.active_deliveries) do
+                local delivery = dispatcher.Deliveries[trainID]
+                local deliverycount = delivery and delivery.shipment[item]
                 if deliverycount then
                     if stop.parked_train and stop.parked_train_id == trainID then
                         -- calculate items +- train inventory
@@ -346,7 +361,8 @@ function UpdateStop(stopID, stop)
                             if signal_type == 'fluid' then
                                 traincount = math.floor(stop.parked_train.get_fluid_count(signal_name))
                             else
-                                traincount = stop.parked_train.get_item_count(signal_name)
+                                -- a bare item name only counts normal quality; the delivery is keyed by quality
+                                traincount = stop.parked_train.get_item_count { name = signal_name, quality = signal.quality or 'normal' }
                             end
                         end
 
@@ -544,7 +560,11 @@ function UpdateStopOutput(train_stop, ignore_existing_cargo)
 
     local bit = 1
     for i = start, stop, inc do
-        for _, signal in pairs { string.format('ltn-position-any-%s', carriages[i].type), string.format('ltn-position-%s', carriages[i].name) } do
+        local carriage_type = carriages[i].type
+        -- infinity cargo wagons are cargo wagons for the purpose of the train layout signals
+        if carriage_type == 'infinity-cargo-wagon' then carriage_type = 'cargo-wagon' end
+
+        for _, signal in pairs { string.format('ltn-position-any-%s', carriage_type), string.format('ltn-position-%s', carriages[i].name) } do
             if prototypes.virtual_signal[signal] then
                 encoded_positions[signal] = bit32.bor((encoded_positions[signal] or 0), bit)
             else

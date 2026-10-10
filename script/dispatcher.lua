@@ -9,6 +9,10 @@ local util = require('util')
 local tools = require('script.tools')
 
 local request_processor = require('script.request_processor')
+local RailCache = require('script.cache')
+
+-- how often expired route cache entries are swept (in ticks)
+local CACHE_SWEEP_INTERVAL = 3600
 
 -- update dispatcher Deliveries.force when forces are removed/merged
 script.on_event(defines.events.on_forces_merging, function(event)
@@ -117,7 +121,7 @@ local function DispatcherUpdateDeliveries(event)
     local dispatcher = tools.getDispatcher()
 
     -- clean up deliveries in case train was destroyed or removed
-    local activeDeliveryTrains = ''
+    local activeDeliveryTrains = {}
 
     for trainID, delivery in pairs(dispatcher.Deliveries) do
         if not (delivery.train and delivery.train.valid) then
@@ -163,12 +167,12 @@ local function DispatcherUpdateDeliveries(event)
 
             RemoveDelivery(trainID)
         else
-            activeDeliveryTrains = activeDeliveryTrains .. ' ' .. trainID
+            activeDeliveryTrains[#activeDeliveryTrains + 1] = trainID
         end
     end
 
     tools.log(6, 'OnTick', 'Trains on deliveries: %s', function()
-        return activeDeliveryTrains
+        return table.concat(activeDeliveryTrains, ' ')
     end)
 
     -- remove no longer active requests from dispatcher RequestAge[stopID]
@@ -186,8 +190,13 @@ local function DispatcherUpdateDeliveries(event)
     table.sort(dispatcher.Requests, function(a, b)
         if a.priority ~= b.priority then
             return a.priority > b.priority
-        else
+        elseif a.age ~= b.age then
             return a.age < b.age
+        elseif a.stopID ~= b.stopID then
+            -- deterministic tiebreak so the result does not depend on table iteration order
+            return a.stopID < b.stopID
+        else
+            return a.item < b.item
         end
     end)
 
@@ -288,9 +297,19 @@ end
 
 ----------------------------------------------------------------------------------------
 
+---@param event NthTickEventData
 ---@return ltn.TickState?
-local function DispatcherCleanup()
+local function DispatcherCleanup(event)
     tools.cleanupKnownTrains()
+
+    if (storage.last_cache_sweep or 0) + CACHE_SWEEP_INTERVAL <= event.tick then
+        storage.last_cache_sweep = event.tick
+        local removed = RailCache.sweep(event.tick)
+        tools.log(6, 'OnTick', 'Route cache sweep removed %d expired entries, %d remaining', function()
+            return removed, table_size(storage.StopDistances)
+        end)
+    end
+
     return nil
 end
 
