@@ -10,6 +10,8 @@ local tools = require('script.tools')
 local Console = require('script.console')
 local RailCache = require('script.cache')
 
+---@param oldVersion string?
+---@param newVersion string
 local function initialize(oldVersion, newVersion)
     tools.log(0, 'initialize', 'oldVersion: %s, newVersion: %s', function()
         return tostring(oldVersion), tostring(newVersion)
@@ -53,20 +55,20 @@ local function initialize(oldVersion, newVersion)
     storage.ConnectedSurfaces = storage.ConnectedSurfaces or {}
 
     -- clean obsolete global
-    storage.Dispatcher.Requested = nil
-    storage.Dispatcher.Orders = nil
-    storage.Dispatcher.OrderAge = nil
-    storage.Dispatcher.Storage = nil
-    storage.useRailTanker = nil
-    storage.tickCount = nil
-    storage.stopIdStartIndex = nil
-    storage.Dispatcher.UpdateInterval = nil
-    storage.Dispatcher.UpdateStopsPerTick = nil
-    storage.TrainStopNames = nil
+    storage.Dispatcher.Requested = nil ---@diagnostic disable-line: inject-field
+    storage.Dispatcher.Orders = nil ---@diagnostic disable-line: inject-field
+    storage.Dispatcher.OrderAge = nil ---@diagnostic disable-line: inject-field
+    storage.Dispatcher.Storage = nil ---@diagnostic disable-line: inject-field
+    storage.useRailTanker = nil ---@diagnostic disable-line: inject-field
+    storage.tickCount = nil ---@diagnostic disable-line: inject-field
+    storage.stopIdStartIndex = nil ---@diagnostic disable-line: inject-field
+    storage.Dispatcher.UpdateInterval = nil ---@diagnostic disable-line: inject-field
+    storage.Dispatcher.UpdateStopsPerTick = nil ---@diagnostic disable-line: inject-field
+    storage.TrainStopNames = nil ---@diagnostic disable-line: inject-field
 
     -- update to 1.3.0
     if oldVersion and oldVersion < '01.03.00' then
-        for stopID, stop in pairs(storage.LogisticTrainStops) do
+        for _, stop in pairs(storage.LogisticTrainStops) do
             stop.minDelivery = nil ---@diagnostic disable-line: inject-field
             stop.ignoreMinDeliverySize = nil ---@diagnostic disable-line: inject-field
         end
@@ -74,7 +76,7 @@ local function initialize(oldVersion, newVersion)
 
     -- update to 1.5.0 renamed priority to provider_priority
     if oldVersion and oldVersion < '01.05.00' then
-        for stopID, stop in pairs(storage.LogisticTrainStops) do
+        for _, stop in pairs(storage.LogisticTrainStops) do
             stop.provider_priority = stop.priority or 0
             stop.priority = nil ---@diagnostic disable-line: inject-field
         end
@@ -84,6 +86,7 @@ local function initialize(oldVersion, newVersion)
 
     -- update to 1.6.1 migrate locomotiveID to trainID
     if oldVersion and oldVersion < '01.06.01' then
+        ---@type table<uint64, uint32>
         local locoID_to_trainID = {} -- id dictionary
         local new_Deliveries = {}
 
@@ -128,7 +131,7 @@ local function initialize(oldVersion, newVersion)
     if oldVersion and oldVersion < '01.12.03' then
         for _, delivery in pairs(storage.Dispatcher.Deliveries) do
             delivery.network_id = delivery.networkID
-            delivery.networkID = nil
+            delivery.networkID = nil ---@diagnostic disable-line: inject-field
         end
     end
 
@@ -369,6 +372,7 @@ script.on_init(function()
     LtnSettings:init()
 
     -- format version string to "00.00.00"
+    ---@type string?, string?
     local oldVersion, newVersion = nil, nil
     local newVersionString = script.active_mods[MOD_NAME]
     if newVersionString then
@@ -387,6 +391,7 @@ end)
 script.on_configuration_changed(function(data)
     if data and data.mod_changes[MOD_NAME] then
         -- format version string to "00.00.00"
+        ---@type string?, string?
         local oldVersion, newVersion = nil, nil
         local oldVersionString = data.mod_changes[MOD_NAME].old_version
         if oldVersionString then

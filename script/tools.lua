@@ -187,7 +187,7 @@ end
 ---@param loading_list ltn.ItemLoadingElement[]
 ---@return LocalisedString result
 function Tools.printLoadingList(loading_list)
-    ---@type LocalisedString
+    ---@type LocalisedString[]
     local elements = { '' }
 
     for _, loading_element in pairs(loading_list) do
@@ -360,6 +360,7 @@ function Tools.networkList(network_id)
     local count = 0
     local result = {}
     local mask = 1
+    ---@type integer?
     local left = nil
     for idx = 1, 32 do
         if bit32.band(network_id, mask) == mask then

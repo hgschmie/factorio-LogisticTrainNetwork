@@ -40,7 +40,7 @@ end
 --- adds a surface connection between the given entities; the network_id will be used in delivery processing to discard providers that don't match the surface connection's network_id
 ---@param entity1 LuaEntity?
 ---@param entity2 LuaEntity?
----@param network_id any?
+---@param network_id (integer|string)?
 function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
@@ -66,7 +66,6 @@ function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
     local surface_pair_key = tools.sortedPair(entity1.surface.index, entity2.surface.index)
 
     storage.ConnectedSurfaces[surface_pair_key] = storage.ConnectedSurfaces[surface_pair_key] or {}
-    ---@type table<ltn.EntityPairKey, ltn.SurfaceConnection>
     local surface_connections = storage.ConnectedSurfaces[surface_pair_key]
 
     local entity_pair_key = tools.sortedPair(entity1.unit_number, entity2.unit_number)

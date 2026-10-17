@@ -121,13 +121,13 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
         return stop_id, rail.unit_number, train.id
     end)
 
-    schedule:temporaryStop(train, rail, rail_direction, stop_schedule_index)
+    schedule.temporaryStop(train, rail, rail_direction, stop_schedule_index)
 
     return stop_schedule_index
 end
 
 ---reassigns an existing delivery from one train to another
----@param old_train_id integer
+---@param old_train_id uint32
 ---@param new_train LuaTrain
 ---@return boolean reassigned true if the old train was executing a delivery, false otherwise
 function TrainInterface.ReassignDelivery(old_train_id, new_train)

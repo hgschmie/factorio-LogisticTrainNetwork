@@ -29,6 +29,7 @@ end
 ---@param network_id integer
 local function list_network(data, text, network_id)
     local player = game.players[data.player_index]
+    ---@type ltn.TrainStop[]
     local stops = {}
     for stop_id, stop in pairs(storage.LogisticTrainStops) do
         if tools.isStopConsistent(stop) then

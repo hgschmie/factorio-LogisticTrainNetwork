@@ -12,15 +12,17 @@
 local flib_data_util = {}
 
 --- Copy a prototype, assigning a new name and minable properties.
---- @param prototype table
+--- @generic T : table<string, any>
+--- @param prototype T?
 --- @param new_name string string
 --- @param remove_icon? boolean
---- @return table
+--- @return T
 function flib_data_util.copy_prototype(prototype, new_name, remove_icon)
   if not prototype.type or not prototype.name then
     error("Invalid prototype: prototypes must have name and type properties.")
-    return --- @diagnostic disable-line
   end
+
+  ---@type T
   local p = table.deepcopy(prototype)
   p.name = new_name
   if p.minable and p.minable.result then
@@ -52,8 +54,8 @@ end
 ---
 --- Returns `nil` if the prototype's icons are incorrectly or incompletely defined.
 --- @param prototype table
---- @param new_layers? IconData[]
---- @return IconData[]|nil
+--- @param new_layers? data.IconData[]
+--- @return data.IconData[]|nil
 function flib_data_util.create_icons(prototype, new_layers)
   if new_layers then
     for _, new_layer in pairs(new_layers) do

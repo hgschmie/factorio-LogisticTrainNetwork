@@ -263,7 +263,7 @@ end
 ---@param provider ltn.Provider
 ---@param request_stop ltn.TrainStop
 ---@param primary_is_item boolean
----@param train_metrics ltn.Metrics
+---@param train_metrics ltn.TrainMetrics
 ---@return table<integer, ltn.FreeTrain>
 local function get_free_trains(provider, request_stop, primary_is_item, train_metrics)
     local dispatcher = tools.getDispatcher()
@@ -273,7 +273,6 @@ local function get_free_trains(provider, request_stop, primary_is_item, train_me
 
     train_metrics:set('total_count', table_size(dispatcher.availableTrains))
 
-    ---@diagnostic disable-next-line: assign-type-mismatch
     train_metrics.trains = {} -- sub-array for per-train metrics for this provider
 
     for train_id, train_data in pairs(dispatcher.availableTrains) do
@@ -408,6 +407,7 @@ local function select_provider_and_trains(request_stop, primary_is_item, provide
         -- find all trains that can serve this provider
 
         local all_train_metrics = Metrics.create()
+        ---@cast all_train_metrics ltn.TrainMetrics
         local all_free_trains = get_free_trains(provider, request_stop, primary_is_item, all_train_metrics)
         provider_to_train_metrics[provider_id] = all_train_metrics
         all_train_metrics:set('match_count', 0)

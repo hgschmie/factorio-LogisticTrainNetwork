@@ -14,9 +14,16 @@ ltn_depot_train_limit = {
     unchanged = 2,
 }
 
+---@class ltn.PlayerSettings
+---@field console_messages boolean
+---@field factorio_alerts boolean
+
+---@type table<integer, ltn.PlayerSettings>
+local player_settings = {}
+
 ---@class ltn.Settings
 ---@field message_level integer
----@field debug_log number
+---@field debug_log integer?
 ---@field message_include_gps boolean
 ---@field delivery_timeout integer
 ---@field depot_inactivity integer

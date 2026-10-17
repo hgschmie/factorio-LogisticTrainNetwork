@@ -48,6 +48,7 @@ end
 ---@param checkStop ltn.TrainStop
 ---@return boolean True if short circuit detected
 local function detectShortCircuit(checkStop)
+    ---@type table<uint32, uint64>
     local networks = {}
 
     for _, entity in pairs { checkStop.entity, checkStop.output, checkStop.input } do
@@ -155,7 +156,7 @@ function UpdateStop(stopID, stop)
     if not signals then return end -- either lamp and lampctrl are not connected or lampctrl has no output signal
 
     -- initialize control signal values to defaults
-    ---@type ltn.SignalState
+
     local ltn_state = {
         is_depot = false,
         is_fuel_station = false,
@@ -174,9 +175,9 @@ function UpdateStop(stopID, stop)
         provider_priority = 0,
         locked_slots = 0,
         fuel_signals = {},
-    }
+    } --[[@as ltn.SignalState]]
 
-    ---@type table<SignalID, number>
+    ---@type table<SignalID, uint32>
     local signals_filtered = {}
 
     for _, v in pairs(signals) do
@@ -480,7 +481,7 @@ end
 
 ---@param train_stop ltn.TrainStop
 ---@param color string
----@param count number
+---@param count integer
 function setLamp(train_stop, color, count)
     -- skip invalid stops and colors
     if not (train_stop and train_stop.lamp_control.valid and ColorLookup[color]) then return false end

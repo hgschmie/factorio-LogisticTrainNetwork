@@ -473,7 +473,7 @@ function OnTrainStateChanged(event)
 end
 
 --- updates or removes delivery references
----@param old_train_id number
+---@param old_train_id uint32
 ---@param new_train LuaTrain
 ---@return ltn.Delivery? The moved delivery, if any.
 function Update_Delivery(old_train_id, new_train)

@@ -21,8 +21,8 @@ script.on_event(defines.events.on_forces_merging, function(event)
     end
 end)
 
----@param id integer
-function DispatcherOnObjectDestroyed(id)
+---@param _id integer
+function DispatcherOnObjectDestroyed(_id)
     local dispatcher = tools.getDispatcher()
 
     -- the destroyed object may have been a surface connection object.
@@ -288,8 +288,9 @@ end
 
 ----------------------------------------------------------------------------------------
 
+---@param _event NthTickEventData
 ---@return ltn.TickState?
-local function DispatcherCleanup()
+local function DispatcherCleanup(_event)
     tools.cleanupKnownTrains()
     return nil
 end

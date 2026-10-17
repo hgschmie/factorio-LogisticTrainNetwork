@@ -52,6 +52,7 @@ end
 ---@return ScheduleRecord? depot_record
 ---@return integer? depot_record_index
 local function find_depot_record(train_schedule)
+    ---@cast train_schedule.owner LuaTrain
     for i = 1, train_schedule.get_record_count(), 1 do
         local record = train_schedule.get_record { schedule_index = i }
         assert(record)
@@ -227,7 +228,6 @@ local function must_refuel(train, fuel_signals)
             if not storage.ExcludedFromRefuel[locomotive.name] then
                 local key
 
-                ---@type ItemIDAndQualityIDPair
                 local current_fuel = locomotive.burner.currently_burning
                 if current_fuel then
                     key = table.concat({
@@ -291,6 +291,7 @@ function ScheduleManager:scheduleDynamicRefueling(train, fuel_station)
         if check_for_stop_in_schedule(train, fuel_station) then return end
 
         local current_stop = records[schedule.current]
+        ---@cast current_stop -?
         -- do not schedule right after a temp stop
         if current_stop.temporary then return end
         schedule.add_record {
@@ -435,7 +436,6 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
 
     if #records > 0 then
         for index = #records, 1, -1 do
-            ---@cast records[index] -?
             -- remove all stops that are not the depot stop or any temporary stops
             if self.matchScheduledTempStop(records[index]) or ((records[index].station ~= depot_stop.entity.backer_name) and not records[index].temporary) then
                 train_schedule.remove_record { schedule_index = index }

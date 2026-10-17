@@ -140,7 +140,8 @@ function CreateStop(entity)
 
     -- connect lamp and control
 
-    local lampctrl_control = assert(lampctrl.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior ]]
+    local lampctrl_control = assert(lampctrl.get_or_create_control_behavior())
+    ---@cast lampctrl_control LuaConstantCombinatorControlBehavior
     local section = lampctrl_control.get_section(1) or assert(lampctrl_control.add_section())
 
     section.set_slot(1, {
@@ -317,7 +318,7 @@ function OnEntityRemoved(event, create_ghosts)
 end
 
 --rename stop
----@param targetID number
+---@param targetID uint64
 ---@param old_name string
 ---@param new_name string
 local function renamedStop(targetID, old_name, new_name)

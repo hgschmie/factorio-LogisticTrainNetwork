@@ -30,15 +30,17 @@ function RailCache.clearStopEntries(stop_id)
     end
 end
 
+---@class ltn.TrainMetrics: ltn.Metrics
+---@field trains table<integer, ltn.Metrics>
+
 ---@param train_id integer
 ---@param all_train_metrics ltn.Metrics
 ---@param direction defines.rail_direction
 function RailCache.updateUnreachable(train_id, all_train_metrics, direction)
+    ---@cast all_train_metrics ltn.TrainMetrics
     local metrics = Metrics.create()
     metrics:set(metric_key(direction, 'unreachable'), 1)
     all_train_metrics:merge(metrics)
-    ---@diagnostic disable-next-line: cast-type-mismatch
-    ---@cast all_train_metrics.trains table<integer, ltn.Metrics>
     if all_train_metrics.trains[train_id] then
         metrics:merge(all_train_metrics.trains[train_id])
     end

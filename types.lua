@@ -18,7 +18,7 @@
 ---@field WagonCapacity         table<string, table<string, number>>
 ---@field FuelStations          ltn.TrainStop[][]
 ---@field Depots                ltn.TrainStop[][]
----@field ExcludedFromRefuel    string[]
+---@field ExcludedFromRefuel    table<string, boolean>
 
 ---@type ltn.Storage
 storage = {}
@@ -63,7 +63,7 @@ storage = {}
 ---@field availableTrains                      table<integer, ltn.Train>
 ---@field availableTrains_total_capacity       number
 ---@field availableTrains_total_fluid_capacity number
----@field Provided                             table<ltn.ItemIdentifier, table<integer, integer>> -- request-type -> stop id -> count
+---@field Provided                             table<ltn.ItemIdentifier, table<uint64, uint32>> -- request-type -> stop id -> count
 ---@field Provided_by_Stop                     table<integer, ltn.Shipment> -- stop id -> request-type -> count
 ---@field Requests                             ltn.Request[]
 ---@field Requests_by_Stop                     table<integer, ltn.Shipment>
@@ -196,7 +196,7 @@ storage = {}
 ---@class ltn.ItemLoadingElement
 ---@field item      SignalID
 ---@field localname LocalisedString   Localized name
----@field count     integer           number of elements
+---@field count     uint32            number of elements
 ---@field stacks    integer           stack size for items
 
 ---@class ltn.SignalState

@@ -92,6 +92,7 @@ end
 ---@param metrics_key string
 ---@return any[] result_collector
 function Metrics:add_metric(result_collector, metrics_key)
+    ---@type integer?
     local metrics_value = rawget(self, metrics_key)
     if metrics_value and (metrics_value > 0) then
         result_collector[#result_collector + 1] = { 'metrics.' .. metrics_key }
