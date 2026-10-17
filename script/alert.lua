@@ -21,8 +21,11 @@ function create_alert(entity, icon, msg, force)
     if not force or not force.valid then
         return
     end
-    for _, player in pairs(force.players) do
-        if settings.get_player_settings(player)['ltn-interface-factorio-alerts'].value then
+
+    assert(icons[icon])
+
+    for player_index, player in pairs(force.players) do
+        if player.valid and LtnSettings.get_player_settings(player_index).factorio_alerts then
             player.add_custom_alert(entity, icons[icon], msg, true)
         end
     end
