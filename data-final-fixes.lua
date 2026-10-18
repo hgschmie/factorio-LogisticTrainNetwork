@@ -35,6 +35,11 @@ for _, wagon in pairs(data.raw['cargo-wagon']) do
     create_signal(wagon, 'b' .. string.format('%02d', wagoncount))
 end
 
+for _, wagon in pairs(data.raw['infinity-cargo-wagon'] or {}) do
+    wagoncount = wagoncount + 1
+    create_signal(wagon, 'b' .. string.format('%02d', wagoncount))
+end
+
 local wagoncount_fluid = 0
 for _, wagon in pairs(data.raw['fluid-wagon']) do
     wagoncount_fluid = wagoncount_fluid + 1

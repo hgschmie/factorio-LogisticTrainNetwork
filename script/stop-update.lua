@@ -545,7 +545,9 @@ function UpdateStopOutput(train_stop, ignore_existing_cargo)
     for i = start, stop, inc do
         local carriage = carriages[i]
         ---@cast carriage -?
-        for _, signal in pairs { string.format('ltn-position-any-%s', carriage.type), string.format('ltn-position-%s', carriage.name) } do
+        local carriage_type = carriage.type
+        if carriage_type == 'infinity-cargo-wagon' then carriage_type = 'cargo-wagon' end
+        for _, signal in pairs { string.format('ltn-position-any-%s', carriage_type), string.format('ltn-position-%s', carriage.name) } do
             if prototypes.virtual_signal[signal] then
                 encoded_positions[signal] = bit32.bor((encoded_positions[signal] or 0), bit)
             else

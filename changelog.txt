@@ -4,6 +4,9 @@ Date: ????
   Changes:
     - removed on_delivery_created() from the remote API, the functionality was removed in 1.18
       and it did nothing ever since. Suggested by @chrisjmendoza on github.
+  Bugfixes:
+    - Generate position signals for infinity cargo wagons and include them in the generic cargo-wagon
+      position signal. Fixes missing-signal errors with editor wagons, reported in #78 by @chrisjmendoza.
 
 ---------------------------------------------------------------------------------------------------
 Version: 3.3.0
