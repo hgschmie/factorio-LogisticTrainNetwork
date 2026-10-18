@@ -50,7 +50,7 @@ function TrainArrives(train)
     local is_provider = false
 
     tools.printmsg(3, function()
-        return { 'ltn-message.train-arrived', tools.richTextForTrain(train), tools.richTextForStop(train.station) } --[[@as LocalisedString]]
+        return { 'ltn-message.train-arrived', tools.richTextForTrain(train), tools.richTextForStop(train.station) }
     end, trainForce)
 
     tools.log(5, 'TrainArrives', 'Train [%d] "%s": arrived at LTN-stop [%d] "%s"; train_faces_stop: %s', function()
@@ -109,16 +109,16 @@ function TrainArrives(train)
 
             -- check for leftover cargo
             if table_size(train_items) > 0 then
-                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name } --[[@as LocalisedString]], trainForce)
+                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name }, trainForce)
             end
             if table_size(train_fluids) > 0 then
-                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name } --[[@as LocalisedString]], trainForce)
+                create_alert(stop.entity, 'cargo-warning', { 'ltn-message.depot_left_over_cargo', trainName, stop_name }, trainForce)
             end
 
             tools.increaseAvailableCapacity(train, stop)
 
             -- reset schedule
-            schedule:resetInterrupts(train)
+            schedule.resetInterrupts(train)
             schedule:resetSchedule(train, stop, true)
             schedule:updateRefuelSchedule(train, stop.network_id)
 
@@ -180,7 +180,7 @@ function TrainArrives(train)
                     end
 
                     if requester_unscheduled_cargo then
-                        create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_unscheduled_cargo', trainName, stop_name } --[[@as LocalisedString]], trainForce)
+                        create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_unscheduled_cargo', trainName, stop_name }, trainForce)
 
                         ---@type ltn.EventData.unscheduled_cargo
                         local data = {
@@ -195,9 +195,9 @@ function TrainArrives(train)
 
                 -- only check dynamic refueling if a delivery exists (which contains the network id)
                 if LtnSettings.enable_fuel_stations and not LtnSettings.use_fuel_station_interrupt then
-                    local fuel_station = schedule:selectFuelStation(train, delivery.network_id)
+                    local fuel_station = schedule.selectFuelStation(train, delivery.network_id)
                     if fuel_station then
-                        schedule:scheduleDynamicRefueling(train, fuel_station)
+                        schedule.scheduleDynamicRefueling(train, fuel_station)
                     end
                 end
             end
@@ -335,7 +335,8 @@ function TrainLeaves(trainID)
                 stopped_trains[trainID] = nil
 
                 if provider_missing_cargo then
-                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_missing_cargo', leavingTrain.name, stop_name }, leavingTrain.force)
+                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_missing_cargo', leavingTrain.name, stop_name },
+                    leavingTrain.force)
 
                     ---@type ltn.EventData.provider_missing_cargo
                     local data = {
@@ -349,7 +350,8 @@ function TrainLeaves(trainID)
                 end
 
                 if provider_unscheduled_cargo then
-                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_unscheduled_cargo', leavingTrain.name, stop_name }, leavingTrain.force)
+                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.provider_unscheduled_cargo', leavingTrain.name, stop_name },
+                    leavingTrain.force)
 
                     ---@type ltn.EventData.unscheduled_cargo
                     local data = {
@@ -374,7 +376,7 @@ function TrainLeaves(trainID)
             elseif delivery.to_id == stop.entity.unit_number then
                 -- reset schedule before API events
                 if LtnSettings.requester_delivery_reset then
-                    local depot = schedule:selectDepot(leavingTrain.train, delivery.network_id)
+                    local depot = schedule.selectDepot(leavingTrain.train, delivery.network_id)
                     schedule:resetSchedule(train, depot, true)
                 end
 
@@ -401,7 +403,8 @@ function TrainLeaves(trainID)
 
                 -- signal completed delivery and remove it
                 if requester_left_over_cargo then
-                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_left_over_cargo', leavingTrain.name, stop_name }, leavingTrain.force)
+                    create_alert(stop.entity, 'cargo-alert', { 'ltn-message.requester_left_over_cargo', leavingTrain.name, stop_name },
+                    leavingTrain.force)
 
                     ---@type ltn.EventData.requester_remaining_cargo
                     local data = {
@@ -443,7 +446,7 @@ function TrainLeaves(trainID)
 
         -- temporarily remove the fuel stop, it gets readded at the depot
         -- otherwise the train could end up in an endless refueling loop
-        if train then schedule:removeFuelInterrupt(train) end
+        if train then schedule.removeFuelInterrupt(train) end
     end
 
     -- remove train reference

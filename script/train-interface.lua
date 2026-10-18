@@ -24,7 +24,7 @@ function TrainInterface.GetNextLogisticStop(train, schedule_index)
         return
     end
 
-    if not schedule:hasSchedule(train) then
+    if not schedule.hasSchedule(train) then
         tools.log(5, 'GetNextLogisticStop', 'train [%d] has no schedule.',
             function() return train.id end)
         return
@@ -48,16 +48,17 @@ function TrainInterface.GetNextLogisticStop(train, schedule_index)
     -- Comparing stop names is not enough to find the provider and the requester,
     -- they might share names with each other or another stop in the schedule.
     -- So use a heuristic that also looks at the wait conditions
-    local records, current = schedule:getSchedule(train)
+    local records, current = schedule.getSchedule(train)
 
-    local record_index = schedule_index or train.schedule.current or 2 -- defaulting to 1 is pointless because that's the depot
+    ---@type integer
+    local record_index = schedule_index or ( train.schedule and train.schedule.current) or 2 -- defaulting to 1 is pointless because that's the depot
     if record_index == current and train.state == defines.train_state.wait_station then
         record_index = record_index + 1
     end
 
     local record = records[record_index]
     while record do
-        local results = schedule:analyzeRecord(record.wait_conditions)
+        local results = schedule.analyzeRecord(record.wait_conditions)
         local result = results[identifier]
         if result then
             if record.station == delivery.from and result.provider then
@@ -99,7 +100,9 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
 
     -- the engine does not allow temp_stops on different surfaces
     -- locomotive might not work here, a new train on another surface could still be incomplete
-    if train.carriages[1].surface_index ~= stop.entity.surface_index then
+    local first_carriage = train.carriages[1]
+    ---@cast first_carriage -?
+    if first_carriage.surface_index ~= stop.entity.surface_index then
         tools.log(5, 'GetOrCreateNextTempStop', 'stop [%d] is on a different surface than train [%d]', function()
             return stop_id, train.id
         end)
@@ -107,7 +110,7 @@ function TrainInterface.GetOrCreateNextTempStop(train, schedule_index)
     end
 
     -- insert temp stop in schedule
-    local train_schedule = schedule:getSchedule(train)
+    local train_schedule = schedule.getSchedule(train)
     local previous_record = train_schedule[stop_schedule_index - 1]
     if previous_record
         and schedule.matchScheduledTempStop(previous_record)

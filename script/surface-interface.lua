@@ -142,15 +142,11 @@ function OnSurfaceRemoved(event)
         end
     end
 
-    -- surface connections; surface_index will either be the first half of the key or the second
-    local first_surface = '^' .. surfaceID .. '|'
-    local second_surface = '|' .. surfaceID .. '$'
-
     ---@type table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
     local connected_surfaces = storage.ConnectedSurfaces
 
     for surface_pair_key, _ in pairs(connected_surfaces) do
-        if string.find(surface_pair_key, first_surface) or string.find(surface_pair_key, second_surface) then
+        if tools.matchPair(surface_pair_key, surfaceID) then
             connected_surfaces[surface_pair_key] = nil
         end
     end
@@ -159,9 +155,6 @@ end
 ---@param id integer
 ---@return boolean was_destroyed If a connection was removed
 function SurfaceInterfaceOnObjectDestroyed(id)
-    local first_key = '^' .. id .. '|'
-    local second_key = '|' .. id .. '$'
-
     local was_destroyed = false
 
     ---@type table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
@@ -169,7 +162,7 @@ function SurfaceInterfaceOnObjectDestroyed(id)
 
     for _, entity_pair_keys in pairs(connected_surfaces) do
         for entity_pair_key in pairs(entity_pair_keys) do
-            if string.find(entity_pair_key, first_key) or string.find(entity_pair_key, second_key) then
+            if tools.matchPair(entity_pair_key, id) then
                 entity_pair_keys[entity_pair_key] = nil
                 was_destroyed = true
             end

@@ -75,11 +75,11 @@ local function DispatcherUpdateStops(event)
 
     if stopID and not storage.LogisticTrainStops[stopID] then
         tools.printmsg(2, function()
-            return { 'ltn-message.error-invalid-stop-index', storage.tick_stop_index } --[[@as LocalisedString ]]
+            return { 'ltn-message.error-invalid-stop-index', storage.tick_stop_index }
         end)
 
         tools.log(6, 'OnTick', 'Invalid storage.tick_stop_index %d in storage.LogisticTrainStops. Removing stop and starting over.', function()
-            return storage.tick_stop_index
+            return stopID
         end)
 
         RemoveStop(stopID)
@@ -92,7 +92,7 @@ local function DispatcherUpdateStops(event)
         ---@type ltn.TrainStop?
         local stop
         repeat
-            stopID, stop = next(storage.LogisticTrainStops, storage.tick_stop_index)
+            stopID, stop = next(storage.LogisticTrainStops, stopID)
             if stopID then
                 tools.log(6, 'OnTick', '%d updating stopID %d', function()
                     return event.tick, stopID
@@ -217,11 +217,11 @@ local function DispatcherDispatchTrains(event)
         -- reset on invalid index
         if request_index and not dispatcher.Requests[request_index] then
             tools.printmsg(1, function()
-                return { 'ltn-message.error-invalid-request-index', storage.tick_request_index }  --[[@as LocalisedString ]]
+                return { 'ltn-message.error-invalid-request-index', storage.tick_request_index }
             end)
 
             tools.log(6, 'OnTick', 'Invalid storage.tick_request_index %s in dispatcher Requests. Starting over.', function()
-                return tostring(storage.tick_request_index)
+                return tostring(request_index)
             end)
 
             return ltn_tick_state.reset

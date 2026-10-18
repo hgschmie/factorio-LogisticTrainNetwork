@@ -6,5 +6,4 @@ for _, station in pairs(storage.LogisticTrainStops) do
     ---@cast connector -?
     connector.disconnect_all(defines.wire_origin.script)
     connector.disconnect_all(defines.wire_origin.player)
-    local total_count = connector.connection_count
 end

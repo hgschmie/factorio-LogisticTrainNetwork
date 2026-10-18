@@ -12,18 +12,11 @@ local function handle_ltn_toggle_dispatcher(event)
     local player = game.get_player(event.player_index)
     if not player then return end
 
-    local enabled = settings.global['ltn-dispatcher-enabled'].value
-    if enabled then
-        settings.global['ltn-dispatcher-enabled'] = { value = false }
-        tools.printmsg(0, function()
-            return { 'ltn-message.dispatcher-disabled', player.name }
-        end)
-    else
-        settings.global['ltn-dispatcher-enabled'] = { value = true }
-        tools.printmsg(0, function()
-            return { 'ltn-message.dispatcher-enabled', player.name }
-        end)
-    end
+    local enabled = LtnSettings.dispatcher_enabled
+    settings.global['ltn-dispatcher-enabled'] = { value = not enabled }
+    tools.printmsg(0, function()
+        return { enabled and 'ltn-message.dispatcher-disabled' or 'ltn-message.dispatcher-enabled', player.name }
+    end)
 end
 
 script.on_event('ltn-toggle-dispatcher', handle_ltn_toggle_dispatcher)

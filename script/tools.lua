@@ -137,7 +137,7 @@ function Tools.parseItemIdentifier(identifier)
     ---@cast type SignalIDType
 
     if not name or #name == 0 then return nil end
-    if not prototypes[type][name] then return nil end
+    if not (prototypes[type] and prototypes[type][name]) then return nil end
 
     return {
         type = type,
@@ -419,10 +419,11 @@ function Tools.reduceAvailableCapacity(trainId)
 
     local dispatcher = Tools.getDispatcher()
 
-    if not dispatcher.availableTrains[trainId] then return false end
+    local train = dispatcher.availableTrains[trainId]
+    if not train then return false end
 
-    dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - dispatcher.availableTrains[trainId].capacity
-    dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - dispatcher.availableTrains[trainId].fluid_capacity
+    dispatcher.availableTrains_total_capacity = dispatcher.availableTrains_total_capacity - train.capacity
+    dispatcher.availableTrains_total_fluid_capacity = dispatcher.availableTrains_total_fluid_capacity - train.fluid_capacity
     dispatcher.availableTrains[trainId] = nil
 
     return true

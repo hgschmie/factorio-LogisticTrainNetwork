@@ -4,11 +4,7 @@
  * See LICENSE.md in the project directory for license information.
 --]]
 
-local util = require('util')
-
 local tools = require('script.tools')
-
-local schedule = require('script.schedule')
 
 ---@type table<string, fun(signal: Signal, state: ltn.SignalState)>
 local LTN_SIGNALS = {
@@ -18,7 +14,7 @@ local LTN_SIGNALS = {
     [NETWORKID] = function(signal, state) state.network_id = signal.count end,
     [MINTRAINLENGTH] = function(signal, state) if signal.count > 0 then state.min_carriages = signal.count end end,
     [MAXTRAINLENGTH] = function(signal, state) if signal.count > 0 then state.max_carriages = signal.count end end,
-    [MAXTRAINS] = function(signal, state) if signal.count then state.max_trains = signal.count end end,
+    [MAXTRAINS] = function(signal, state) if signal.count > 0 then state.max_trains = signal.count end end,
     [REQUESTED_THRESHOLD] = function(signal, state) state.requesting_threshold = math.abs(signal.count) end,
     [REQUESTED_STACK_THRESHOLD] = function(signal, state) state.requesting_threshold_stacks = math.abs(signal.count) end,
     [REQUESTED_PRIORITY] = function(signal, state) state.requester_priority = signal.count end,
@@ -88,8 +84,10 @@ function UpdateStop(stopID, stop)
 
     -- remove invalid trains
     if stop.parked_train and not stop.parked_train.valid then
-        storage.LogisticTrainStops[stopID].parked_train = nil
-        storage.LogisticTrainStops[stopID].parked_train_id = nil
+        if storage.LogisticTrainStops[stopID] then
+            storage.LogisticTrainStops[stopID].parked_train = nil
+            storage.LogisticTrainStops[stopID].parked_train_id = nil
+        end
     end
 
     -- remove invalid active_deliveries
@@ -209,7 +207,7 @@ function UpdateStop(stopID, stop)
 
         if new_state == station_type.station then
             if #stop.active_deliveries > 0 then
-                if stop.parked_train_id and stop.parked_train.valid then
+                if stop.parked_train_id and stop.parked_train and stop.parked_train.valid then
                     setLamp(stop, 'blue', #stop.active_deliveries)
                 else
                     setLamp(stop, 'yellow', #stop.active_deliveries)
@@ -218,7 +216,7 @@ function UpdateStop(stopID, stop)
                 setLamp(stop, 'green', 1)
             end
         elseif new_state == station_type.depot then
-            if stop.parked_train_id and stop.parked_train.valid then
+            if stop.parked_train_id and stop.parked_train and stop.parked_train.valid then
                 if dispatcher.Deliveries[stop.parked_train_id] then
                     setLamp(stop, 'yellow', 1)
                 else
@@ -228,7 +226,7 @@ function UpdateStop(stopID, stop)
                 setLamp(stop, 'green', 1)
             end
         elseif new_state == station_type.fuel_stop then
-            if stop.parked_train_id and stop.parked_train.valid then
+            if stop.parked_train_id and stop.parked_train and stop.parked_train.valid then
                 setLamp(stop, 'blue', 1)
             elseif #stop.fuel_signals > 0 then
                 setLamp(stop, 'cyan', 1)
@@ -262,7 +260,7 @@ function UpdateStop(stopID, stop)
         tools.updateStopList(stop, tools.getDepots(), ltn_state.network_id)
 
         -- add parked train to available trains
-        if stop.parked_train_id and stop.parked_train.valid then
+        if stop.parked_train_id and stop.parked_train and stop.parked_train.valid then
             if dispatcher.Deliveries[stop.parked_train_id] then
                 tools.log(5, 'UpdateStop', '%s {%s}, depot priority: %d, assigned train.id: %d', function()
                     network_id_string = network_id_string or tools.networkList(ltn_state.network_id)
@@ -545,7 +543,9 @@ function UpdateStopOutput(train_stop, ignore_existing_cargo)
 
     local bit = 1
     for i = start, stop, inc do
-        for _, signal in pairs { string.format('ltn-position-any-%s', carriages[i].type), string.format('ltn-position-%s', carriages[i].name) } do
+        local carriage = carriages[i]
+        ---@cast carriage -?
+        for _, signal in pairs { string.format('ltn-position-any-%s', carriage.type), string.format('ltn-position-%s', carriage.name) } do
             if prototypes.virtual_signal[signal] then
                 encoded_positions[signal] = bit32.bor((encoded_positions[signal] or 0), bit)
             else

@@ -15,7 +15,7 @@ local ScheduleManager = {}
 
 ---@param wait_conditions WaitCondition[]
 ---@return table<string, ltn.Record>
-function ScheduleManager:analyzeRecord(wait_conditions)
+function ScheduleManager.analyzeRecord(wait_conditions)
     local result = {}
     for _, wait_condition in pairs(wait_conditions) do
         local is_item = (wait_condition.type == 'item_count')
@@ -76,7 +76,7 @@ end
 ---@param train LuaTrain
 ---@param network_id integer
 ---@return ltn.TrainStop? train_stop A depot train stop
-function ScheduleManager:selectDepot(train, network_id)
+function ScheduleManager.selectDepot(train, network_id)
     local all_depots = tools.findMatchingStops(tools.getDepots(), network_id)
     if table_size(all_depots) == 0 then return nil end
 
@@ -89,7 +89,7 @@ function ScheduleManager:selectDepot(train, network_id)
         end
     end
 
-    tools.log(1, 'ScheduleManager:selectDepot', 'Reselecting depot for train %s (%d)', function()
+    tools.log(1, 'ScheduleManager.selectDepot', 'Reselecting depot for train %s (%d)', function()
         return tools.getTrainName(train), train.id
     end)
 
@@ -102,7 +102,7 @@ function ScheduleManager:selectDepot(train, network_id)
     end
 
     if table_size(depots) == 0 then
-        tools.log(1, 'ScheduleManager:selectDepot', 'No valid depot for train %s (%d) found!', function()
+        tools.log(1, 'ScheduleManager.selectDepot', 'No valid depot for train %s (%d) found!', function()
             return tools.getTrainName(train), train.id
         end)
         return nil
@@ -114,8 +114,10 @@ function ScheduleManager:selectDepot(train, network_id)
         goals = depots,
     }
 
+    ---@cast path_results TrainPathAllGoalsResult
+
     if path_results.amount_accessible == 0 then
-        tools.log(1, 'ScheduleManager:selectDepot', 'No accessible depot for train %s (%d) found!', function()
+        tools.log(1, 'ScheduleManager.selectDepot', 'No accessible depot for train %s (%d) found!', function()
             return tools.getTrainName(train), train.id
         end)
         return nil
@@ -127,13 +129,16 @@ function ScheduleManager:selectDepot(train, network_id)
     local accessible_stations = {}
 
     for idx, accessible in pairs(path_results.accessible) do
-        if accessible and tools.isStopValid(all_stops[depots[idx].unit_number]) then
-            accessible_stations[#accessible_stations + 1] = all_stops[depots[idx].unit_number]
+        local depot = depots[idx]
+        ---@cast depot -?
+        if accessible and tools.isStopValid(all_stops[depot.unit_number]) then
+            accessible_stations[#accessible_stations + 1] = all_stops[depot.unit_number]
         end
     end
 
     local depot = accessible_stations[math.random(#accessible_stations)]
-    tools.log(1, 'ScheduleManager:selectDepot', 'Selected %s as depot for train %s (%d)', function()
+    ---@cast depot -?
+    tools.log(1, 'ScheduleManager.selectDepot', 'Selected %s as depot for train %s (%d)', function()
         return depot.entity.backer_name, tools.getTrainName(train), train.id
     end)
 
@@ -144,7 +149,7 @@ end
 ---@param train LuaTrain
 ---@param network_id integer
 ---@return ltn.TrainStop? train_stop A fuel station train stop
-function ScheduleManager:selectFuelStation(train, network_id)
+function ScheduleManager.selectFuelStation(train, network_id)
     local all_fuel_stations = tools.findMatchingStops(tools.getFuelStations(), network_id)
     if table_size(all_fuel_stations) == 0 then return nil end
 
@@ -159,22 +164,27 @@ function ScheduleManager:selectFuelStation(train, network_id)
 
     if #stations == 0 then return nil end
 
-    ---@type TrainPathFinderOneGoalResult
     local path_results = game.train_manager.request_train_path {
         type = 'any-goal-accessible',
         train = train,
         goals = stations,
     }
 
+    ---@cast path_results TrainPathFinderOneGoalResult
+
     if not path_results.found_path then return nil end
 
+    ---@cast path_results.goal_index -?
+    local selected_station = stations[path_results.goal_index]
+    ---@cast selected_station -?
+
     local all_stops = tools.getAllStops()
-    local fuel_station = all_stops[stations[path_results.goal_index].unit_number]
+    local fuel_station = all_stops[selected_station.unit_number]
     return tools.isStopValid(fuel_station) and fuel_station or nil
 end
 
 ---@param train LuaTrain
-function ScheduleManager:resetInterrupts(train)
+function ScheduleManager.resetInterrupts(train)
     if not LtnSettings.reset_interrupts then return end
 
     local train_schedule = train.get_schedule()
@@ -203,7 +213,7 @@ local function find_interrupt_index(train_schedule, name)
 end
 
 ---@param train LuaTrain
-function ScheduleManager:removeFuelInterrupt(train)
+function ScheduleManager.removeFuelInterrupt(train)
     assert(train and train.valid)
 
     -- unconditionally remove fuel interrupt. Do not add a check for use_fuel_interrupt,
@@ -219,13 +229,12 @@ end
 ---@param fuel_signals CircuitCondition[]
 ---@return boolean
 local function must_refuel(train, fuel_signals)
-    ---@type table<string, LuaEntity[]>
-    local locomotives = train.locomotives
+    local locomotives = train.locomotives --[[@as table<string, LuaEntity[]>]]
     for _, movers in pairs(locomotives) do
         for _, locomotive in pairs(movers) do
             ---@type table<string, number>
             local fuel = {}
-            if not storage.ExcludedFromRefuel[locomotive.name] then
+            if locomotive.burner and not storage.ExcludedFromRefuel[locomotive.name] then
                 local key
 
                 local current_fuel = locomotive.burner.currently_burning
@@ -278,7 +287,7 @@ end
 --- in the schedule.
 ---@param train LuaTrain
 ---@param fuel_station ltn.TrainStop
-function ScheduleManager:scheduleDynamicRefueling(train, fuel_station)
+function ScheduleManager.scheduleDynamicRefueling(train, fuel_station)
     if LtnSettings.use_fuel_station_interrupt then return end
     assert(fuel_station.fuel_signals)
 
@@ -319,11 +328,11 @@ end
 ---@param train LuaTrain
 ---@param network_id integer
 function ScheduleManager:updateRefuelSchedule(train, network_id)
-    local fuel_station = self:selectFuelStation(train, network_id)
+    local fuel_station = self.selectFuelStation(train, network_id)
 
     if not (LtnSettings.enable_fuel_stations and fuel_station) then
         -- no fuel station in the network
-        self:removeFuelInterrupt(train)
+        self.removeFuelInterrupt(train)
         return
     end
 
@@ -331,8 +340,8 @@ function ScheduleManager:updateRefuelSchedule(train, network_id)
 
     if not LtnSettings.use_fuel_station_interrupt then
         -- Do not use interrupt, use dynamic fuel scheduling
-        self:removeFuelInterrupt(train)
-        self:scheduleDynamicRefueling(train, fuel_station)
+        self.removeFuelInterrupt(train)
+        self.scheduleDynamicRefueling(train, fuel_station)
         return
     end
 
@@ -430,7 +439,7 @@ function ScheduleManager:resetSchedule(train, depot_stop, force_reset)
 
         local loco = tools.getMainLocomotive(train)
 
-        if loco then create_alert(loco, 'depot-warning', { 'ltn-message.warning-no-depot-found', loco.backer_name } --[[@as LocalisedString]] , loco.force) end
+        if loco then create_alert(loco, 'depot-warning', { 'ltn-message.warning-no-depot-found', loco.backer_name }, loco.force) end
         return
     end
 
@@ -493,7 +502,7 @@ end
 ---@param rail LuaEntity
 ---@param rail_direction defines.rail_direction
 ---@param stop_schedule_index integer?
-function ScheduleManager:temporaryStop(train, rail, rail_direction, stop_schedule_index)
+function ScheduleManager.temporaryStop(train, rail, rail_direction, stop_schedule_index)
     if not (train.carriages[1] and train.carriages[1].valid) then return nil end
     if train.carriages[1].surface_index ~= rail.surface_index then return nil end
 
@@ -555,7 +564,7 @@ local INACTIVITY_CONDITION = {
 }
 
 ---@param wait_conditions WaitCondition[]
-function ScheduleManager:addControlSignals(wait_conditions)
+function ScheduleManager.addControlSignals(wait_conditions)
     if LtnSettings.finish_loading then
         wait_conditions[#wait_conditions + 1] = INACTIVITY_CONDITION
     end
@@ -593,7 +602,7 @@ function ScheduleManager:providerStop(train, stop, loadingList)
         }
     end
 
-    self:addControlSignals(wait_conditions)
+    self.addControlSignals(wait_conditions)
 
     local train_schedule = train.get_schedule()
     train_schedule.add_record {
@@ -622,7 +631,7 @@ function ScheduleManager:requesterStop(train, stop, loadingList)
         }
     end
 
-    self:addControlSignals(wait_conditions)
+    self.addControlSignals(wait_conditions)
 
     local train_schedule = train.get_schedule()
     train_schedule.add_record {
@@ -638,20 +647,20 @@ end
 ---@param train LuaTrain
 ---@param stop_id uint64
 function ScheduleManager:ensureTemporaryStop(train, stop_id)
-    local schedule, current = self:getSchedule(train)
+    local schedule, current = self.getSchedule(train)
     local stop = storage.LogisticTrainStops[stop_id]
     if not stop then return end
     local next_stop_index = (current + 1) > #schedule and 1 or current + 1
-    local stop_name = self:getStopName(train, next_stop_index)
+    local stop_name = self.getStopName(train, next_stop_index)
     if stop_name ~= stop.entity.backer_name then return end
     if not stop.entity.connected_rail then return end
-    self:temporaryStop(train, stop.entity.connected_rail, stop.entity.connected_rail_direction, next_stop_index)
+    self.temporaryStop(train, stop.entity.connected_rail, stop.entity.connected_rail_direction, next_stop_index)
 end
 
 ---@param train LuaTrain
 ---@param index uint32
 ---@return string? stop_name
-function ScheduleManager:getStopName(train, index)
+function ScheduleManager.getStopName(train, index)
     local train_schedule = train.get_schedule()
     local record = train_schedule.get_record { schedule_index = index }
     if not record then return nil end
@@ -660,7 +669,7 @@ end
 
 ---@param train LuaTrain
 ---@return boolean True if train has a schedule
-function ScheduleManager:hasSchedule(train)
+function ScheduleManager.hasSchedule(train)
     local train_schedule = train.get_schedule()
     local record_count = train_schedule.get_record_count()
     return record_count and record_count > 0 or false
@@ -669,7 +678,7 @@ end
 ---@param train LuaTrain
 ---@return ScheduleRecord[] train_schedule Schedule records
 ---@return integer current
-function ScheduleManager:getSchedule(train)
+function ScheduleManager.getSchedule(train)
     local train_schedule = train.get_schedule()
     local records = train_schedule.get_records() or {}
     return records, train_schedule.current

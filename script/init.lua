@@ -187,7 +187,7 @@ local function initialize(oldVersion, newVersion)
 
             for connector_id, connector in pairs(input_connectors) do
                 connector.disconnect_all(defines.wire_origin.script)
-                connector.connect_to(control_connectors[connector_id], false, defines.wire_origin.script)
+                connector.connect_to(assert(control_connectors[connector_id]), false, defines.wire_origin.script)
             end
         end
     end
@@ -221,7 +221,7 @@ local function initializeTrainStops()
     for _, surface in pairs(game.surfaces) do
         local foundStops = surface.find_entities_filtered { type = 'train-stop' }
         if foundStops then
-            for k, stop in pairs(foundStops) do
+            for _, stop in pairs(foundStops) do
                 -- validate storage.LogisticTrainStops
                 if ltn_stop_entity_names[stop.name] then
                     local ltn_stop = storage.LogisticTrainStops[stop.unit_number]
@@ -282,14 +282,13 @@ end
 local function updateAllDeliveries()
     for _, delivery in pairs(storage.Dispatcher.Deliveries) do
         local surface_connections = {}
-        for idx, surface_connection in pairs(delivery.surface_connections) do
+        for _, surface_connection in pairs(delivery.surface_connections) do
             if (surface_connection.entity1 and surface_connection.entity1.valid)
                 and (surface_connection.entity2 and surface_connection.entity2.valid) then
                 surface_connections[#surface_connections + 1] = surface_connection
             end
         end
         delivery.surface_connections = surface_connections
-        delivery.surface_connections_count = #surface_connections
     end
 end
 
@@ -351,7 +350,7 @@ local function registerEvents()
 
     -- blacklist LTN entities from picker dollies
     if remote.interfaces['PickerDollies'] and remote.interfaces['PickerDollies']['add_blacklist_name'] then
-        for name, _ in pairs(ltn_stop_entity_names) do
+        for name in pairs(ltn_stop_entity_names) do
             remote.call('PickerDollies', 'add_blacklist_name', name, true)
         end
         remote.call('PickerDollies', 'add_blacklist_name', ltn_stop_input, true)
@@ -359,7 +358,7 @@ local function registerEvents()
         remote.call('PickerDollies', 'add_blacklist_name', ltn_stop_output_controller, true)
     end
 
-    Console:registerCommands()
+    Console.registerCommands()
 end
 
 script.on_load(function()

@@ -46,14 +46,18 @@ local function list_network(data, text, network_id)
         tools.printmsg(0, function() return { 'console.ltn_command_list_' .. text .. '_network_id_yes', #stops, table_size(storage.LogisticTrainStops) } end, player)
 
         local count = 0
+        ---@type LocalisedString
         local msg
         for _, stop in pairs(stops) do
             if count % 10 == 0 then
                 if count > 0 then tools.printmsg(0, function() return msg end, player) end
-                msg= {''}
+                msg = { '' }
             end
-            msg[#msg + 1] = tools.richTextForStop(stop.entity)
-            count = count + 1
+            local stop_name = tools.richTextForStop(stop.entity)
+            if stop_name then
+                msg[#msg + 1] = stop_name
+                count = count + 1
+            end
         end
         if #msg > 1 then tools.printmsg(0, function() return msg end, player) end
     end
@@ -69,7 +73,7 @@ local function list_zero_network_id(data)
     return list_network(data, 'zero', 0)
 end
 
-function Console:registerCommands()
+function Console.registerCommands()
     commands.add_command('ltn-list-refuel-excluded', { 'console.ltn_command_list_refuel_excluded' }, list_refuel_excluded)
     commands.add_command('ltn-list-default-network-id', { 'console.ltn_command_list_default_network_id' }, list_default_network_id)
     commands.add_command('ltn-list-no-network-id', { 'console.ltn_command_list_zero_network_id' }, list_zero_network_id)

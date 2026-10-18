@@ -155,10 +155,13 @@ function CreateStop(entity)
 
     local input_wire_connectors = input.get_wire_connectors(true)
     local lampctrl_wire_connectors = lampctrl.get_wire_connectors(true)
+    assert(input_wire_connectors[defines.wire_connector_id.circuit_green])
+    assert(lampctrl_wire_connectors[defines.wire_connector_id.circuit_green])
 
     input_wire_connectors[defines.wire_connector_id.circuit_green].connect_to(lampctrl_wire_connectors[defines.wire_connector_id.circuit_green], false, defines.wire_origin.script)
 
-    local input_control = assert(input.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior ]]
+    local input_control = assert(input.get_or_create_control_behavior())
+    ---@cast input_control LuaLampControlBehavior
 
     input_control.use_colors = true
     input_control.circuit_condition = {
@@ -325,7 +328,6 @@ local function renamedStop(targetID, old_name, new_name)
     local dispatcher = tools.getDispatcher()
 
     -- find identical stop names
-    local duplicateName = false
     local renameDeliveries = true
     for stopID, stop in pairs(storage.LogisticTrainStops) do
         if not tools.isStopConsistent(stop) then
@@ -358,9 +360,10 @@ script.on_event(defines.events.on_entity_renamed, function(event)
     local entity = event.entity
     if not (entity.type == 'train-stop' and ltn_stop_entity_names[entity.name]) then return end
 
-    local uid = event.entity.unit_number
+    local uid = entity.unit_number
+    ---@cast uid -?
     local oldName = event.old_name
-    local newName = event.entity.backer_name
+    local newName = entity.backer_name
     assert(newName)
     renamedStop(uid, oldName, newName)
 end)

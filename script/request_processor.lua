@@ -505,8 +505,7 @@ local function select_provider_and_trains(request_stop, primary_is_item, provide
                     local to_gps = tools.richTextForStop(request_stop.entity) or to
                     local to_network_ids, to_network_id_count = tools.networkList(request_network_id)
 
-                    return { 'ltn-message.cache-metrics', to_gps, { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result } --[[@as LocalisedString]]
-                end, force)
+                    return { 'ltn-message.cache-metrics', to_gps, { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result } end, force)
             end
 
             if #forward_free_trains > 0 then
@@ -726,7 +725,7 @@ local function create_train_schedule(train, loading_list, provider_stop, request
     --
     -- schedules cannot have temporary stops on a different surface, those need to be added when the delivery is updated with a train on a different surface
     if current_train_surface == from_rail.surface then
-        schedule:temporaryStop(train, from_rail, from_rail_direction)
+        schedule.temporaryStop(train, from_rail, from_rail_direction)
     else
         tools.log(5, 'create_train_schedule', ' Warning: creating schedule without temporary stop for provider.')
     end
@@ -734,7 +733,7 @@ local function create_train_schedule(train, loading_list, provider_stop, request
     schedule:providerStop(train, provider_stop, loading_list)
 
     if (current_train_surface == to_rail.surface) and (to_rail.surface == from_rail.surface) then
-        schedule:temporaryStop(train, to_rail, to_rail_direction)
+        schedule.temporaryStop(train, to_rail, to_rail_direction)
     else
         tools.log(5, 'create_train_schedule', ' Warning: creating schedule without temporary stop for requester.')
     end
@@ -837,7 +836,7 @@ function RequestProcessor.processRequest(reqIndex, request)
             local metrics_result = provider_metrics:summarize({ '', }, 'PROCESS_REQUEST_METRICS')
 
             tools.printmsg(1, function()
-                return { msg, to_gps, tools.prettyPrint(item_info), { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result, total_count } --[[@as LocalisedString ]]
+                return { msg, to_gps, tools.prettyPrint(item_info), { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result, total_count }
             end, force)
         end
 
@@ -861,7 +860,7 @@ function RequestProcessor.processRequest(reqIndex, request)
 
     tools.printmsg(3, function()
         return { 'ltn-message.provider-found',
-            from_gps, tostring(provider.priority), tostring(provider.activeDeliveryCount), provider.count, tools.prettyPrint(item_info) } --[[@as LocalisedString ]]
+            from_gps, tostring(provider.priority), tostring(provider.activeDeliveryCount), provider.count, tools.prettyPrint(item_info) }
     end, force)
 
     -- limit delivery_size to minimum between provider and requester
@@ -888,11 +887,10 @@ function RequestProcessor.processRequest(reqIndex, request)
             'depot-empty', {
                 'ltn-message.no-train-found',
                 from, to, matched_network_id_str, tostring(min_carriages), tostring(max_carriages)
-            }  --[[@as LocalisedString]],
-            force)
+            }, force)
 
         tools.printmsg(1, function()
-            return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }  --[[@as LocalisedString]]
+            return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }
         end, force)
 
         ---@type ltn.EventData.no_train_found_shipment
@@ -943,16 +941,16 @@ function RequestProcessor.processRequest(reqIndex, request)
         or { '', tostring(loading_list[1].stacks) }
 
     tools.printmsg(3, function()
-        return { 'ltn-message.train-found', from_gps, to_gps, matched_network_id_str, tostring(free_train.inventory_size), total_stacks_str }  --[[@as LocalisedString]]
+        return { 'ltn-message.train-found', from_gps, to_gps, matched_network_id_str, tostring(free_train.inventory_size), total_stacks_str }
     end, force)
 
     tools.printmsg(2, function()
         if #loading_list == 1 then
             return { 'ltn-message.creating-delivery', from_gps, to_gps, tools.richTextForTrain(train), tools.printLoadingList(loading_list),
-                matched_network_id_str }  --[[@as LocalisedString]]
+                matched_network_id_str }
         else
             return { 'ltn-message.creating-delivery-merged', from_gps, to_gps, tools.richTextForTrain(train), tools.printLoadingList(loading_list),
-                matched_network_id_str, total_stacks_str }  --[[@as LocalisedString]]
+                matched_network_id_str, total_stacks_str }
         end
     end, force)
 

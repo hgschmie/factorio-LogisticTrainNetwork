@@ -18,7 +18,7 @@ local flib_data_util = {}
 --- @param remove_icon? boolean
 --- @return T
 function flib_data_util.copy_prototype(prototype, new_name, remove_icon)
-  if not prototype.type or not prototype.name then
+  if not (prototype and prototype.type and prototype.name) then
     error("Invalid prototype: prototypes must have name and type properties.")
   end
 
@@ -146,31 +146,6 @@ function flib_data_util.get_energy_value(energy_string)
     end
   end
   return nil
-end
-
---- Build a sprite from constituent parts.
---- @param name? string
---- @param position? MapPosition
---- @param filename? string
---- @param size? Vector
---- @param mods? table
---- @return Sprite
-function flib_data_util.build_sprite(name, position, filename, size, mods)
-  --- @type Sprite
-  local def = {
-    type = "sprite",
-    name = name,
-    filename = filename,
-    position = position,
-    size = size,
-    flags = { "icon" },
-  }
-  if mods then
-    for k, v in pairs(mods) do
-      def[k] = v
-    end
-  end
-  return def
 end
 
 --- An empty image. This image is 8x8 to facilitate usage with GUI styles.
