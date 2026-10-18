@@ -1033,8 +1033,8 @@ Date: 3.2.2018
     - support entity icons with sizes other than 32x32 https://forums.factorio.com/viewtopic.php?f=48&t=57151
   Bugfixes:
     - renaming could cause wrong stations being removed from station name list https://forums.factorio.com/viewtopic.php?f=214&t=57371
-  Removed:
-    - Chinese translation, please use a language pack like https://mods.factorio.com/mod/zh-CN
+  Changes:
+    - removed Chinese translation, please use a language pack like https://mods.factorio.com/mod/zh-CN
 ---------------------------------------------------------------------------------------------------
 Version: 1.7.1
 Date: 20.1.2018
@@ -1079,13 +1079,12 @@ Date: 20.12.2017
   Features:
     - hr graphics
     - yellow depot lamp color indicating a train with assigned delivery still being parked
-  Removed:
-    - migration support for versions < 1.1.1 (final Factorio 0.14 release)
   Changes:
     - stop timeout description no longer mentions inactivity #83
     - train references from MainLocomotive.unit_number to train.id
     - deliveries will be removed instantly if the assigned train changes composition e.g a wagon is removed
     - lamp colors update faster
+    - removed migration support for versions < 1.1.1 (final Factorio 0.14 release)
   Bugfixes:
     - mining a single locomotive parked at an ltn stop would not update the stop
 ---------------------------------------------------------------------------------------------------
@@ -1244,10 +1243,9 @@ Date: 8.7.2017
   Features:
     - "message level" for console messages only (no level 4: debug)
     - "write debug logfile" checkbox for debug log generation into Factorio-current.log
-  Removed:
-    - "log level" and "log output" settings
   Changes:
     - provider prioritization making deliveries merge more reliably (#trains > provider priority > #existing deliveries from provider > amount)
+    - removed "log level" and "log output" settings
   Bugfixes:
     - potential nil reference during stop update
 ---------------------------------------------------------------------------------------------------
@@ -1284,10 +1282,10 @@ Date: 2.6.2017
     - Disable Warnings Messages control signal #34
     - limit messages to force where possible #40
     - workaround for fluid wagon residue #31
-  Removed:
-    - Minimum Delivery Size and Ignore Minimum Delivery Size
-    - Best Effort, Provide Threshold = 1 does the same now
-    - toggle to loading list, stops only show expected inventory after loading
+  Changes:
+    - removed Minimum Delivery Size and Ignore Minimum Delivery Size
+    - removed Best Effort, Provide Threshold = 1 does the same now
+    - removed toggle to loading list, stops only show expected inventory after loading
 ---------------------------------------------------------------------------------------------------
 Version: 1.2.8
 Date: 24.5.2017
@@ -1355,11 +1353,10 @@ Date: 29.4.2017
     - updated to Factorio 0.15
     - added support for any Fluid Wagon for fluid transport
     - config.lua settings moved to options-mod settings
-  Removed:
-    - support of RailTanker (RailTankers will be ignored, removed fake item conversions)
-    - removed grey detection signal from output
   Changes:
     - short circuit detection uses network id
+    - removed support of RailTanker (RailTankers will be ignored, removed fake item conversions)
+    - removed grey detection signal from output
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.3 - last version for Factorio 0.14
 Date: 19.5.2017
