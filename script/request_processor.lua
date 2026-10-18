@@ -244,8 +244,8 @@ local function get_providers(request, request_stop, metrics)
         if a.priority ~= b.priority then
             return a.priority > b.priority
         -- sort providers without surface transition to top
-        elseif a.surface_connections_count ~= b.surface_connections_count then
-            return math.min(a.surface_connections_count, 1) < math.min(b.surface_connections_count, 1)
+        elseif (a.surface_connections_count == 0) ~= (b.surface_connections_count == 0) then
+            return a.surface_connections_count == 0
         -- sort by #deliveries
         elseif a.activeDeliveryCount ~= b.activeDeliveryCount then
             return a.activeDeliveryCount < b.activeDeliveryCount
