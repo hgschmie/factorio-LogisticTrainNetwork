@@ -40,7 +40,6 @@
 ---@field on_stops_updated fun(): defines.events
 ---@field on_dispatcher_updated fun(): defines.events
 ---@field on_dispatcher_no_train_found fun(): defines.events
----@field on_delivery_created fun(): defines.events
 ---@field on_delivery_pickup_complete fun(): defines.events
 ---@field on_delivery_completed fun(): defines.events
 ---@field on_delivery_failed fun(): defines.events

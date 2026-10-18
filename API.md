@@ -11,6 +11,35 @@ local ltn_present = remote.interfaces["logistic-train-network"] and true or fals
 
 The documentation refers to LTN data types, which are defined [in the types.lua](https://github.com/hgschmie/factorio-LogisticTrainNetwork/blob/master/types.lua) metadata file.
 
+If you want to use LTN in your own mod, you can add this definition to your types.lua to get correct function parameters when using `remote`:
+
+```lua
+---@class (partial) LuaRemote.InterfaceMap
+---@field logistic-train-network ltn.RemoteInterface
+
+---@class ltn.RemoteInterface
+---@field on_stops_updated fun(): defines.events
+---@field on_dispatcher_updated fun(): defines.events
+---@field on_dispatcher_no_train_found fun(): defines.events
+---@field on_delivery_pickup_complete fun(): defines.events
+---@field on_delivery_completed fun(): defines.events
+---@field on_delivery_failed fun(): defines.events
+---@field on_delivery_reassigned fun(): defines.events
+---@field on_provider_missing_cargo fun(): defines.events
+---@field on_provider_unscheduled_cargo fun(): defines.events
+---@field on_requester_unscheduled_cargo fun(): defines.events
+---@field on_requester_remaining_cargo fun(): defines.events
+---@field connect_surfaces fun(entity1: LuaEntity?, entity2: LuaEntity?, network_id: (integer|string)?)
+---@field disconnect_surfaces fun(entity1: LuaEntity?, entity2: LuaEntity?)
+---@field clear_all_surface_connections fun()
+---@field reassign_delivery fun(old_train_id: uint32, new_train: LuaTrain): boolean
+---@field get_or_create_next_temp_stop fun(train: LuaTrain, schedule_index: integer?): integer?
+---@field get_next_logistic_stop fun(train: LuaTrain, schedule_index: integer?) : integer?, integer?, ("provider"|"requester")?
+---@field exclude_from_fuel_schedule fun(name: string?)
+```
+
+The remote interface may contain additional methods. Those are deprecated and should not be used for new code.
+
 ----
 
 ## API Changelog

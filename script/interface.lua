@@ -14,8 +14,6 @@ on_dispatcher_updated_event = script.generate_event_name()
 ---@type defines.events
 on_dispatcher_no_train_found_event = script.generate_event_name()
 ---@type defines.events
-on_delivery_created_event = script.generate_event_name()
----@type defines.events
 on_delivery_pickup_complete_event = script.generate_event_name()
 ---@type defines.events
 on_delivery_completed_event = script.generate_event_name()
@@ -41,7 +39,6 @@ remote.add_interface('logistic-train-network', {
     -- updates for dispatcher
     on_dispatcher_updated = function() return on_dispatcher_updated_event end,
     on_dispatcher_no_train_found = function() return on_dispatcher_no_train_found_event end,
-    on_delivery_created = function() return on_delivery_created_event end,
 
     -- update for updated deliveries after leaving provider
     on_delivery_pickup_complete = function() return on_delivery_pickup_complete_event end,
