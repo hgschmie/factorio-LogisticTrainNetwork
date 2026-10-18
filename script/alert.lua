@@ -24,8 +24,8 @@ function create_alert(entity, icon, msg, force)
 
     assert(icons[icon])
 
-    for player_index, player in pairs(force.players) do
-        if player.valid and LtnSettings.get_player_settings(player_index).factorio_alerts then
+    for _, player in pairs(force.players) do
+        if player.valid and LtnSettings.get_player_settings(player.index).factorio_alerts then
             player.add_custom_alert(entity, icons[icon], msg, true)
         end
     end

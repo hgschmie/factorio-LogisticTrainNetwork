@@ -45,7 +45,6 @@
 ---@field on_delivery_completed fun(): defines.events
 ---@field on_delivery_failed fun(): defines.events
 ---@field on_delivery_reassigned fun(): defines.events
----@field on_stops_updated_event fun(): defines.events
 ---@field on_provider_missing_cargo fun(): defines.events
 ---@field on_provider_unscheduled_cargo fun(): defines.events
 ---@field on_requester_unscheduled_cargo fun(): defines.events
@@ -54,7 +53,7 @@
 ---@field disconnect_surfaces fun(entity1: LuaEntity?, entity2: LuaEntity?)
 ---@field clear_all_surface_connections fun()
 ---@field reassign_delivery fun(old_train_id: uint32, new_train: LuaTrain): boolean
----@field get_or_create_next_temp_stop fun(train: LuaTrain, schedule_index: integer?)
+---@field get_or_create_next_temp_stop fun(train: LuaTrain, schedule_index: integer?): integer?
 ---@field get_next_logistic_stop fun(train: LuaTrain, schedule_index: integer?) : integer?, integer?, ("provider"|"requester")?
 ---@field exclude_from_fuel_schedule fun(name: string?)
 

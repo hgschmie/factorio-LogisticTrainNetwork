@@ -39,7 +39,7 @@ local player_settings = {}
 ---@field dispatcher_stop_updates_per_tick integer
 ---@field route_cache_lifetime integer
 ---@field depot_reset_filters boolean
----@field depot_fluid_cleaning integer
+---@field depot_fluid_cleaning number
 ---@field default_network integer
 ---@field provider_show_existing_cargo boolean
 ---@field requester_ignores_trains boolean
@@ -56,10 +56,16 @@ local player_settings = {}
 LtnSettings = LtnSettings or {}
 
 ---@param x ModSetting?
+---@return double value
+local function setting_number(x)
+    assert(x)
+    return tonumber(x.value)
+end
+
+---@param x ModSetting?
 ---@return integer value
 local function setting_int(x)
-    assert(x)
-    return math.floor(tonumber(x.value))
+    return math.floor(setting_number(x))
 end
 
 ---@param x ModSetting?
@@ -97,7 +103,7 @@ local change_settings = {
     ['ltn-dispatcher-stop-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_stop_updates_per_tick = setting_int(settings.global[name]) end,
     ['ltn-dispatcher-route-cache-lifetime'] = function(ltn_settings, name) ltn_settings.route_cache_lifetime = setting_int(settings.global[name]) * 3600 end,
     ['ltn-depot-reset-filters'] = function(ltn_settings, name) ltn_settings.depot_reset_filters = setting_bool(settings.global[name]) end,
-    ['ltn-depot-fluid-cleaning'] = function(ltn_settings, name) ltn_settings.depot_fluid_cleaning = setting_int(settings.global[name]) end,
+    ['ltn-depot-fluid-cleaning'] = function(ltn_settings, name) ltn_settings.depot_fluid_cleaning = setting_number(settings.global[name]) end,
     ['ltn-stop-default-network'] = function(ltn_settings, name) ltn_settings.default_network = setting_int(settings.global[name]) end,
     ['ltn-provider-show-existing-cargo'] = function(ltn_settings, name) ltn_settings.provider_show_existing_cargo = setting_bool(settings.global[name]) end,
     ['ltn-provider-ignore-stopped-train'] = function(ltn_settings, name) ltn_settings.requester_ignores_trains = setting_bool(settings.global[name]) end,

@@ -76,8 +76,8 @@ function Tools.printmsg(level, msg_func, target)
         target.print(msg_func(), print_settings)
     else
         local msg = msg_func()
-        for player_index, player in pairs(target.players) do
-            if player.valid and LtnSettings.get_player_settings(player_index).console_messages then
+        for _, player in pairs(target.players) do
+            if player.valid and LtnSettings.get_player_settings(player.index).console_messages then
                 player.print(msg, print_settings)
             end
         end
