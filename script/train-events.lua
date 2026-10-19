@@ -490,18 +490,22 @@ function Update_Delivery(old_train_id, new_train)
         if not tools.isStopConsistent(stop) then
             RemoveStop(stopID)
         else
+            local change_lamp = false
             for i = #stop.active_deliveries, 1, -1 do --trainID should be unique => checking matching stop name not required
                 if stop.active_deliveries[i] == old_train_id then
                     if delivery then
                         stop.active_deliveries[i] = new_train.id -- update train id if delivery exists
                     else
+                        change_lamp = true
                         table.remove(stop.active_deliveries, i)  -- otherwise remove entry
-                        if #stop.active_deliveries > 0 then
-                            setLamp(stop, 'yellow', #stop.active_deliveries)
-                        else
-                            setLamp(stop, 'green', 1)
-                        end
                     end
+                end
+            end
+            if change_lamp then
+                if #stop.active_deliveries > 0 then
+                    setLamp(stop, 'yellow', #stop.active_deliveries)
+                else
+                    setLamp(stop, 'green', 1)
                 end
             end
         end

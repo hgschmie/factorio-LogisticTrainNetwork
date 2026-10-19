@@ -331,19 +331,23 @@ function RemoveDelivery(trainID)
     local dispatcher = tools.getDispatcher()
 
     for stopID, stop in pairs(storage.LogisticTrainStops) do
+        local change_lamp = false
         for i = #stop.active_deliveries, 1, -1 do --trainID should be unique => checking matching stop name not required
             if stop.active_deliveries[i] == trainID then
+                change_lamp = true
                 table.remove(stop.active_deliveries, i)
-                if tools.isStopConsistent(stop) then
-                    if #stop.active_deliveries > 0 then
-                        setLamp(stop, 'yellow', #stop.active_deliveries)
-                    else
-                        setLamp(stop, 'green', 1)
-                    end
+            end
+        end
+        if tools.isStopConsistent(stop) then
+            if change_lamp then
+                if #stop.active_deliveries > 0 then
+                    setLamp(stop, 'yellow', #stop.active_deliveries)
                 else
-                    RemoveStop(stopID)
+                    setLamp(stop, 'green', 1)
                 end
             end
+        else
+            RemoveStop(stopID)
         end
     end
     dispatcher.Deliveries[trainID] = nil

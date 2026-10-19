@@ -580,7 +580,7 @@ local function select_train(free_trains, provider_surface_index, stacks)
     local same_surface = nearest_train.surface.index == provider_surface_index
     ---@type ltn.FreeTrain?
     local selected_train
-    for _, candidate in ipairs(free_trains) do
+    for _, candidate in pairs(free_trains) do
         if (candidate.surface.index == provider_surface_index) == same_surface
             and candidate.depot_priority == nearest_train.depot_priority
             and candidate.inventory_size == nearest_train.inventory_size

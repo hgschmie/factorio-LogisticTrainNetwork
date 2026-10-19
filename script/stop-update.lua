@@ -334,8 +334,10 @@ function UpdateStop(stopID, stop)
             local signal_name = signal.name
             local item = tools.createItemIdentifier(signal)
 
-            for trainID, delivery in pairs(dispatcher.Deliveries) do
-                local deliverycount = delivery.shipment[item]
+            -- Only deliveries still active at this stop can affect its supply or demand.
+            for _, trainID in pairs(stop.active_deliveries) do
+                local delivery = dispatcher.Deliveries[trainID]
+                local deliverycount = delivery and delivery.shipment[item]
                 if deliverycount then
                     if stop.parked_train and stop.parked_train_id == trainID then
                         -- calculate items +- train inventory

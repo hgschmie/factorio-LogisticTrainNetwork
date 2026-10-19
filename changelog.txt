@@ -3,15 +3,19 @@ Version: 3.3.1
 Date: ????
   Changes:
     - removed on_delivery_created() from the remote API, the functionality was removed in 1.18
-      and it did nothing ever since. Suggested by @chrisjmendoza on github.
+      and it did nothing ever since. API cleanup prompted by PR #78 from @chrisjmendoza.
+    - Only examine a stop's active deliveries when updating its item and fluid signals, instead
+      of scanning every delivery for each signal. Suggested by @chrisjmendoza in PR #78.
   Bugfixes:
     - Apply depot distance tolerance relative to the nearest equally suitable train, then prefer
       less-used trains within that range. Fixes inconsistent pairwise distance comparisons while
       preserving surface, depot-priority and train-capacity preferences.
+      Addresses the sorting problem reported by @chrisjmendoza in PR #78.
     - Compare delivery and item counts when choosing between providers that both require a surface
       transfer, even when they have different numbers of matching surface connections.
+      Found while reviewing PR #78 by @chrisjmendoza.
     - Generate position signals for infinity cargo wagons and include them in the generic cargo-wagon
-      position signal. Fixes missing-signal errors with editor wagons, reported in #78 by @chrisjmendoza.
+      position signal. Fixes missing-signal errors with editor wagons. Suggested by @chrisjmendoza in PR #78.
 
 ---------------------------------------------------------------------------------------------------
 Version: 3.3.0
