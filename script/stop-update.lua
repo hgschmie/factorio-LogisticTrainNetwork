@@ -350,7 +350,7 @@ function UpdateStop(stopID, stop)
             for _, trainID in pairs(stop.active_deliveries) do
                 local delivery = dispatcher.Deliveries[trainID]
                 local deliverycount = delivery and delivery.shipment[item]
-                if deliverycount then
+                if delivery and deliverycount then
                     if stop.parked_train and stop.parked_train_id == trainID then
                         -- calculate items +- train inventory
                         local traincount = 0

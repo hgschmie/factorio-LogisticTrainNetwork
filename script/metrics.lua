@@ -35,8 +35,6 @@ Metrics.CACHE_METRICS = {
     'compute_backward',
     'unknown_forward',
     'unknown_backward',
-    'expired_forward',
-    'expired_backward',
     'unreachable_forward',
     'unreachable_backward',
 }
@@ -123,5 +121,8 @@ end
 function Metrics.create()
     return setmetatable({}, Metrics)
 end
+
+-- Restore methods on metrics collectors persisted in storage.
+script.register_metatable('ltn.Metrics', Metrics)
 
 return Metrics

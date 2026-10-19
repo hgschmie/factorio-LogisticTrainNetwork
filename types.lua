@@ -14,7 +14,7 @@
 ---@field LogisticTrainStops    table<integer, ltn.TrainStop>
 ---@field ConnectedSurfaces     table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
 ---@field StoppedTrains         table<integer, ltn.StoppedTrain>
----@field StopDistances         table<string, ltn.StopDistance>
+---@field StopCache             ltn.StopCache
 ---@field WagonCapacity         table<string, table<string, number>>
 ---@field FuelStations          ltn.TrainStop[][]
 ---@field Depots                ltn.TrainStop[][]
@@ -161,9 +161,22 @@ storage = {}
 ---@field entity2    LuaEntity
 ---@field network_id integer
 
+---@class ltn.StopCache
+---@field distances         table<string, ltn.StopDistance>
+---@field expirations       table<uint64, ltn.EntityPairKey[]>
+---@field metrics           ltn.Metrics Current entries and cumulative expired/evicted counts since the last cache reset.
+---@field expiration_cursor uint64?
+
 ---@class ltn.StopDistance
 ---@field distance   number?
----@field tick       uint64
+---@field tick       uint64 First tick at which the entry is expired.
+---@field expiration_index integer? Position in its expiration bucket.
+
+---@class ltn.RouteCacheStatistics
+---@field size integer
+---@field limit integer Soft size target.
+---@field expired integer Entries with cached results removed at or after their deadline since the last cache reset; excludes UNKNOWN placeholders.
+---@field evicted integer Entries removed early to meet the size target since the last cache reset.
 
 ---------------------------------------------------------
 --- Internal types used in various methods

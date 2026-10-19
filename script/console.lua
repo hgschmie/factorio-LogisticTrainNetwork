@@ -3,6 +3,7 @@
 ------------------------------------------------------------------------
 
 local tools = require('script.tools')
+local RailCache = require('script.cache')
 
 ---@class ltn.Console
 local Console = {}
@@ -73,7 +74,22 @@ local function list_zero_network_id(data)
     return list_network(data, 'zero', 0)
 end
 
+---@param data CustomCommandData
+local function route_cache_stats(data)
+    local stats = RailCache.getStatistics()
+    local message = { 'console.ltn_command_route_cache_stats_msg', stats.size, stats.limit,
+        stats.expired, stats.evicted }
+    if data.player_index then
+        local player = game.get_player(data.player_index)
+        if player then player.print(message) end
+    else
+        rcon.print(message)
+        localised_print(message)
+    end
+end
+
 function Console.registerCommands()
+    commands.add_command('ltn-route-cache-stats', { 'console.ltn_command_route_cache_stats' }, route_cache_stats)
     commands.add_command('ltn-list-refuel-excluded', { 'console.ltn_command_list_refuel_excluded' }, list_refuel_excluded)
     commands.add_command('ltn-list-default-network-id', { 'console.ltn_command_list_default_network_id' }, list_default_network_id)
     commands.add_command('ltn-list-no-network-id', { 'console.ltn_command_list_zero_network_id' }, list_zero_network_id)

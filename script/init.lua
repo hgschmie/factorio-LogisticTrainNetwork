@@ -65,6 +65,7 @@ local function initialize(oldVersion, newVersion)
     storage.Dispatcher.UpdateInterval = nil ---@diagnostic disable-line: inject-field
     storage.Dispatcher.UpdateStopsPerTick = nil ---@diagnostic disable-line: inject-field
     storage.TrainStopNames = nil ---@diagnostic disable-line: inject-field
+    storage.StopDistances = nil ---@diagnostic disable-line: inject-field
 
     -- update to 1.3.0
     if oldVersion and oldVersion < '01.03.00' then

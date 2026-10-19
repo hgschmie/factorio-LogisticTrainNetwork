@@ -2,6 +2,10 @@
 Version: 3.3.1
 Date: ????
   Changes:
+    - Expire unused route-cache entries in the background, with gradual early expiration above
+      the configurable cache size. Add /ltn-route-cache-stats to report the entry count and
+      cumulative expirations and early evictions since the last cache reset.
+      Cache cleanup prompted by PR #78 from @chrisjmendoza.
     - removed on_delivery_created() from the remote API, the functionality was removed in 1.18
       and it did nothing ever since. API cleanup prompted by PR #78 from @chrisjmendoza.
     - Only examine a stop's active deliveries when updating its item and fluid signals, instead
@@ -9,6 +13,8 @@ Date: ????
     - Cache fuel-item prototypes across fuel-station updates instead of repeating the same query.
       Suggested by @chrisjmendoza in PR #78.
   Bugfixes:
+    - Preserve cross-surface cache entries until expiration instead of renewing their lifetime
+      on every evaluation. Found while reviewing the cache behavior for PR #78 by @chrisjmendoza.
     - Apply depot distance tolerance relative to the nearest equally suitable train, then prefer
       less-used trains within that range. Fixes inconsistent pairwise distance comparisons while
       preserving surface, depot-priority and train-capacity preferences.

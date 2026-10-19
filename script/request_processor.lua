@@ -465,8 +465,12 @@ local function select_provider_and_trains(request_stop, primary_is_item, provide
 
                 local front_distance, back_distance = RailCache.getCachedDistance(train, provider_stop)
                 if not priority_train_group.same_surface then
-                    RailCache.updateDistance(front_distance, DISTANCE_RESULT.OTHER_SURFACE)
-                    RailCache.updateDistance(back_distance, DISTANCE_RESULT.OTHER_SURFACE)
+                    if front_distance.distance ~= DISTANCE_RESULT.OTHER_SURFACE then
+                        RailCache.updateDistance(front_distance, DISTANCE_RESULT.OTHER_SURFACE)
+                    end
+                    if back_distance.distance ~= DISTANCE_RESULT.OTHER_SURFACE then
+                        RailCache.updateDistance(back_distance, DISTANCE_RESULT.OTHER_SURFACE)
+                    end
 
                     cache_metrics:inc('other_surface')
                     free_train.provider_distance  = nil

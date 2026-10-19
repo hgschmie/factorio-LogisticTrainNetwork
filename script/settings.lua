@@ -38,6 +38,7 @@ local player_settings = {}
 ---@field dispatcher_updates_per_tick integer
 ---@field dispatcher_stop_updates_per_tick integer
 ---@field route_cache_lifetime integer
+---@field route_cache_size integer
 ---@field depot_reset_filters boolean
 ---@field depot_fluid_cleaning number
 ---@field default_network integer
@@ -102,6 +103,7 @@ local change_settings = {
     ['ltn-dispatcher-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_updates_per_tick = setting_int(settings.global[name]) end,
     ['ltn-dispatcher-stop-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_stop_updates_per_tick = setting_int(settings.global[name]) end,
     ['ltn-dispatcher-route-cache-lifetime'] = function(ltn_settings, name) ltn_settings.route_cache_lifetime = setting_int(settings.global[name]) * 3600 end,
+    ['ltn-dispatcher-route-cache-size'] = function(ltn_settings, name) ltn_settings.route_cache_size = setting_int(settings.startup[name]) end,
     ['ltn-depot-reset-filters'] = function(ltn_settings, name) ltn_settings.depot_reset_filters = setting_bool(settings.global[name]) end,
     ['ltn-depot-fluid-cleaning'] = function(ltn_settings, name) ltn_settings.depot_fluid_cleaning = setting_number(settings.global[name]) end,
     ['ltn-stop-default-network'] = function(ltn_settings, name) ltn_settings.default_network = setting_int(settings.global[name]) end,

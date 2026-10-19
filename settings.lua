@@ -50,6 +50,15 @@ data:extend {
     },
     {
         type = 'int-setting',
+        name = 'ltn-dispatcher-route-cache-size',
+        order = 'ae-a',
+        setting_type = 'startup',
+        default_value = 10000,
+        minimum_value = 100,
+        maximum_value = 250000,
+    },
+    {
+        type = 'int-setting',
         name = 'ltn-limit-eligible-trains',
         order = 'af',
         setting_type = 'runtime-global',

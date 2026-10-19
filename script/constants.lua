@@ -84,5 +84,4 @@ DISTANCE_RESULT = {
     OTHER_SURFACE = -1,
     UNREACHABLE = -2,
     UNKNOWN = -3,
-    EXPIRED = -4,
 }
