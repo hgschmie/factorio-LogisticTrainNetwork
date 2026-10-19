@@ -526,6 +526,36 @@ local function select_provider_and_trains(request_stop, primary_is_item, provide
     return nil, {}
 end
 
+---@param a ltn.FreeTrain
+---@param b ltn.FreeTrain
+---@param provider_surface_index integer
+---@param stacks integer
+---@return boolean
+local function prefer(a, b, provider_surface_index, stacks)
+    -- if A is on the same surface as the stop and B is not, return true
+    if a.surface.index == provider_surface_index and b.surface.index ~= provider_surface_index then
+        return true
+        -- if B is on the same surface as the stop and A is not, return false
+    elseif b.surface.index == provider_surface_index and a.surface.index ~= provider_surface_index then
+        return false
+        -- else do normal checks (either both stops are on the same or on a different surface)
+    elseif a.depot_priority ~= b.depot_priority then
+        -- Prefer higher depot priority.
+        return a.depot_priority > b.depot_priority
+    elseif a.inventory_size ~= b.inventory_size and a.inventory_size >= stacks then
+        -- Prefer the smallest inventory that can carry the whole delivery.
+        return b.inventory_size < stacks or a.inventory_size < b.inventory_size
+    elseif a.inventory_size ~= b.inventory_size and a.inventory_size < stacks then
+        -- Otherwise prefer the largest inventory for a partial delivery.
+        return b.inventory_size < stacks and b.inventory_size < a.inventory_size
+    else
+        -- Prefer known distances, then the nearest train within this group.
+        if not a.provider_distance or a.provider_distance <= 0 then return false end
+        if not b.provider_distance or b.provider_distance <= 0 then return true end
+        return a.provider_distance < b.provider_distance
+    end
+end
+
 -- Selects a train for the delivery
 ---@param free_trains ltn.FreeTrain[]?
 ---@param provider_surface_index integer
@@ -534,41 +564,34 @@ end
 local function select_train(free_trains, provider_surface_index, stacks)
     if not free_trains or #free_trains < 1 then return nil end
 
-    local fudge_factor = LtnSettings.depot_fudge_factor or 0
+    -- Find the best surface/priority/capacity group and its nearest known route.
+    local nearest_train = free_trains[1]
+    for i = 2, #free_trains do
+        local candidate = free_trains[i]
+        if prefer(candidate, nearest_train, provider_surface_index, stacks) then nearest_train = candidate end
+    end
 
-    table.sort(free_trains, function(a, b)
-        -- if A is on the same surface as the stop and B is not, return true
-        if a.surface.index == provider_surface_index and b.surface.index ~= provider_surface_index then
-            return true
-            -- if B is on the same surface as the stop and A is not, return false
-        elseif b.surface.index == provider_surface_index and a.surface.index ~= provider_surface_index then
-            return false
-            -- else do normal checks (either both stops are on the same or on a different surface)
-        elseif a.depot_priority ~= b.depot_priority then
-            --sort by priority
-            return a.depot_priority > b.depot_priority
-        elseif a.inventory_size ~= b.inventory_size and a.inventory_size >= stacks then
-            --sort inventories capable of whole deliveries
-            -- return not(b.inventory_size => size and a.inventory_size > b.inventory_size)
-            return b.inventory_size < stacks or a.inventory_size < b.inventory_size
-        elseif a.inventory_size ~= b.inventory_size and a.inventory_size < stacks then
-            --sort inventories for partial deliveries
-            -- return not(b.inventory_size >= size or b.inventory_size > a.inventory_size)
-            return b.inventory_size < stacks and b.inventory_size < a.inventory_size
-        else
-            -- if one stop is on the same surface and the other is not, return
-            if not a.provider_distance or a.provider_distance <= 0 then return false end
-            if not b.provider_distance or b.provider_distance <= 0 then return true end
+    local nearest_distance = nearest_train.provider_distance
+    if not nearest_distance or nearest_distance <= 0 then return nearest_train end
 
-            if math.abs(a.provider_distance - b.provider_distance) > fudge_factor then
-                return a.provider_distance < b.provider_distance
-            end
-
-            return a.select_count < b.select_count
+    -- One fixed threshold makes small depot-distance differences irrelevant. Pairwise
+    -- tolerance comparisons can form a cycle and do not define a consistent ordering.
+    local distance_limit = nearest_distance + (LtnSettings.depot_fudge_factor or 0)
+    local same_surface = nearest_train.surface.index == provider_surface_index
+    ---@type ltn.FreeTrain?
+    local selected_train
+    for _, candidate in ipairs(free_trains) do
+        if (candidate.surface.index == provider_surface_index) == same_surface
+            and candidate.depot_priority == nearest_train.depot_priority
+            and candidate.inventory_size == nearest_train.inventory_size
+            and candidate.provider_distance and candidate.provider_distance > 0
+            and candidate.provider_distance <= distance_limit
+            and (not selected_train or candidate.select_count < selected_train.select_count) then
+            selected_train = candidate
         end
-    end)
+    end
 
-    return free_trains[1]
+    return selected_train
 end
 
 ---@param train_capacity integer Either stacks (item) or total capacity (fluid)

@@ -5,6 +5,9 @@ Date: ????
     - removed on_delivery_created() from the remote API, the functionality was removed in 1.18
       and it did nothing ever since. Suggested by @chrisjmendoza on github.
   Bugfixes:
+    - Apply depot distance tolerance relative to the nearest equally suitable train, then prefer
+      less-used trains within that range. Fixes inconsistent pairwise distance comparisons while
+      preserving surface, depot-priority and train-capacity preferences.
     - Compare delivery and item counts when choosing between providers that both require a surface
       transfer, even when they have different numbers of matching surface connections.
     - Generate position signals for infinity cargo wagons and include them in the generic cargo-wagon
