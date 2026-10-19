@@ -117,7 +117,7 @@ local function DispatcherUpdateDeliveries(event)
     local dispatcher = tools.getDispatcher()
 
     -- clean up deliveries in case train was destroyed or removed
-    local activeDeliveryTrains = ''
+    local activeDeliveryTrains = {}
 
     for trainID, delivery in pairs(dispatcher.Deliveries) do
         if not (delivery.train and delivery.train.valid) then
@@ -163,12 +163,12 @@ local function DispatcherUpdateDeliveries(event)
 
             RemoveDelivery(trainID)
         else
-            activeDeliveryTrains = activeDeliveryTrains .. ' ' .. trainID
+            activeDeliveryTrains[#activeDeliveryTrains + 1] = trainID
         end
     end
 
     tools.log(6, 'OnTick', 'Trains on deliveries: %s', function()
-        return activeDeliveryTrains
+        return table.concat(activeDeliveryTrains, ' ')
     end)
 
     -- remove no longer active requests from dispatcher RequestAge[stopID]
