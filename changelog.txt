@@ -6,6 +6,8 @@ Date: ????
       and it did nothing ever since. API cleanup prompted by PR #78 from @chrisjmendoza.
     - Only examine a stop's active deliveries when updating its item and fluid signals, instead
       of scanning every delivery for each signal. Suggested by @chrisjmendoza in PR #78.
+    - Cache fuel-item prototypes across fuel-station updates instead of repeating the same query.
+      Suggested by @chrisjmendoza in PR #78.
   Bugfixes:
     - Apply depot distance tolerance relative to the nearest equally suitable train, then prefer
       less-used trains within that range. Fixes inconsistent pairwise distance comparisons while

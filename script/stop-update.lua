@@ -60,6 +60,20 @@ local function detectShortCircuit(checkStop)
     return false
 end
 
+---@type LuaCustomTable<string, LuaItemPrototype>?
+local fuel_prototypes_cache
+
+--- Prototypes are immutable during play; this cache is rebuilt lazily after loading a save.
+---@return LuaCustomTable<string, LuaItemPrototype>
+local function get_fuel_prototypes()
+    if not fuel_prototypes_cache then
+        fuel_prototypes_cache = prototypes.get_item_filtered {
+            { filter = 'fuel', },
+        }
+    end
+    return fuel_prototypes_cache
+end
+
 -- update stop input signals
 ---@param stopID integer
 ---@param stop ltn.TrainStop
@@ -292,9 +306,7 @@ function UpdateStop(stopID, stop)
         -- Refuel operations
         -- ----------------------------------------------------------------------------------------
 
-        local fuel_prototypes = prototypes.get_item_filtered {
-            { filter = 'fuel', },
-        }
+        local fuel_prototypes = get_fuel_prototypes()
 
         ---@type CircuitCondition[]
         local fuel_signals = {}
