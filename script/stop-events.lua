@@ -12,7 +12,7 @@ local RailCache = require('script.cache')
 function CreateStop(entity)
     if storage.LogisticTrainStops[entity.unit_number] then
         tools.printmsg(1, function()
-            return { 'ltn-message.error-duplicated-unit_number', entity.unit_number }
+            return { 'ltn-message.error-duplicated-unit-number', entity.unit_number }
         end, entity.force)
 
         tools.log(5, 'CreateStop', 'duplicate stop unit number %d', function()
