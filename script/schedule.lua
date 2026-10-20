@@ -232,18 +232,20 @@ local function must_refuel(train, fuel_signals)
     local locomotives = train.locomotives --[[@as table<string, LuaEntity[]>]]
     for _, movers in pairs(locomotives) do
         for _, locomotive in pairs(movers) do
-            ---@type table<string, number>
+            ---@type table<ltn.ItemIdentifier, number>
             local fuel = {}
             if locomotive.burner and not storage.ExcludedFromRefuel[locomotive.name] then
+
+                ---@type ltn.ItemIdentifier?
                 local key
 
                 local current_fuel = locomotive.burner.currently_burning
                 if current_fuel then
-                    key = table.concat({
-                        current_fuel.name.type,
-                        current_fuel.name.name,
-                        current_fuel.quality and current_fuel.quality.name or nil,
-                    }, ',')
+                    key = tools.createItemIdentifier {
+                        name = current_fuel.name.name,
+                        type = 'item',
+                        quality = current_fuel.quality and current_fuel.quality.name,
+                    }
                     -- set the fuel key but quantity is 0
                     fuel[key] = (fuel[key] or 0)
                 end
