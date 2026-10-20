@@ -62,6 +62,12 @@ local print_settings = {
     skip = defines.print_skip.if_visible,
 }
 
+---@type PrintSettings
+local console_settings = {
+    sound = defines.print_sound.use_player_settings,
+    skip = defines.print_skip.if_redundant,
+}
+
 ---@alias msg_func fun():LocalisedString
 
 --- write msg to console for all member of force or all players
@@ -73,6 +79,7 @@ function Tools.printmsg(level, msg_func, target)
 
     if not target then target = game end
     if target.object_name == 'LuaPlayer' then
+        ---@cast target LuaPlayer
         target.print(msg_func(), print_settings)
     else
         local msg = msg_func()
@@ -81,6 +88,20 @@ function Tools.printmsg(level, msg_func, target)
                 player.print(msg, print_settings)
             end
         end
+    end
+end
+
+---@param msg_func msg_func
+---@param target CustomCommandData
+function Tools.console(msg_func, target)
+    if target.player_index then
+        local player = game.get_player(target.player_index)
+        if not player then return end
+        local msg = msg_func()
+        player.print(msg, console_settings)
+    else
+        local msg = msg_func()
+        rcon.print(msg)
     end
 end
 

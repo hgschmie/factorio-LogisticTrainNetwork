@@ -10,7 +10,6 @@ local Console = {}
 
 ---@param data CustomCommandData
 local function list_refuel_excluded(data)
-    local player = game.players[data.player_index]
     local excluded_locos = { '' }
 
     for name, status in pairs(storage.ExcludedFromRefuel) do
@@ -20,16 +19,15 @@ local function list_refuel_excluded(data)
             excluded_locos[#excluded_locos + 1] = ', '
         end
     end
-    excluded_locos[#excluded_locos] = nil
+    if #excluded_locos > 1 then excluded_locos[#excluded_locos] = nil end
 
-    tools.printmsg(0, function() return { '', { 'console.ltn_command_list_refuel_excluded_msg' }, ' ', excluded_locos } end, player)
+    tools.console(function() return { '', { 'console.ltn_command_list_refuel_excluded_msg' }, ' ', excluded_locos } end, data)
 end
 
 ---@param data CustomCommandData
 ---@param text string
 ---@param network_id integer
 local function list_network(data, text, network_id)
-    local player = game.players[data.player_index]
     ---@type ltn.TrainStop[]
     local stops = {}
     for stop_id, stop in pairs(storage.LogisticTrainStops) do
@@ -42,16 +40,16 @@ local function list_network(data, text, network_id)
         end
     end
     if #stops == 0 then
-        tools.printmsg(0, function() return { 'console.ltn_command_list_' .. text .. '_network_id_no', table_size(storage.LogisticTrainStops) } end, player)
+        tools.console(function() return { 'console.ltn_command_list_' .. text .. '_network_id_no', table_size(storage.LogisticTrainStops) } end, data)
     else
-        tools.printmsg(0, function() return { 'console.ltn_command_list_' .. text .. '_network_id_yes', #stops, table_size(storage.LogisticTrainStops) } end, player)
+        tools.console(function() return { 'console.ltn_command_list_' .. text .. '_network_id_yes', #stops, table_size(storage.LogisticTrainStops) } end, data)
 
         local count = 0
         ---@type LocalisedString
         local msg
         for _, stop in pairs(stops) do
             if count % 10 == 0 then
-                if count > 0 then tools.printmsg(0, function() return msg end, player) end
+                if count > 0 then tools.console(function() return msg end, data) end
                 msg = { '' }
             end
             local stop_name = tools.richTextForStop(stop.entity)
@@ -60,7 +58,7 @@ local function list_network(data, text, network_id)
                 count = count + 1
             end
         end
-        if #msg > 1 then tools.printmsg(0, function() return msg end, player) end
+        if #msg > 1 then tools.console(function() return msg end, data) end
     end
 end
 
@@ -77,15 +75,9 @@ end
 ---@param data CustomCommandData
 local function route_cache_stats(data)
     local stats = RailCache.getStatistics()
-    local message = { 'console.ltn_command_route_cache_stats_msg', stats.size, stats.limit,
-        stats.expired, stats.evicted }
-    if data.player_index then
-        local player = game.get_player(data.player_index)
-        if player then player.print(message) end
-    else
-        rcon.print(message)
-        localised_print(message)
-    end
+    tools.console(function()
+        return { 'console.ltn_command_route_cache_stats_msg', stats.size, stats.limit, stats.expired, stats.evicted }
+    end, data)
 end
 
 function Console.registerCommands()
