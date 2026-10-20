@@ -13,6 +13,10 @@ Date: ????
     - Cache fuel-item prototypes across fuel-station updates instead of repeating the same query.
       Suggested by @chrisjmendoza in PR #78.
   Bugfixes:
+    - Remove parked trains from the available pool when their stop ceases to be a depot.
+      Keep trains parked when the depot signal is removed and reapplied during rewiring.
+      Send parked trains to the first scheduled stop on other station-type changes.
+      Fixes a stale-train crash investigated from PR #78 by @chrisjmendoza.
     - Prevent excessive locked slots from producing negative cargo capacity and shipment counts.
       Suggested by @chrisjmendoza in PR #78.
     - Fix the missing translated message for duplicate train-stop unit numbers.

@@ -5,6 +5,7 @@
 --]]
 
 local tools = require('script.tools')
+local schedule = require('script.schedule')
 
 ---@type table<string, fun(signal: Signal, state: ltn.SignalState)>
 local LTN_SIGNALS = {
@@ -215,6 +216,38 @@ function UpdateStop(stopID, stop)
     local new_state = GetStationType(ltn_state)
     local current_state = GetStationType(stop)
 
+    -- Clean up the old role before updating the station and its lamp.
+    if new_state ~= current_state then
+        if current_state == station_type.depot then
+            tools.removeStop(tools.getDepots(), stopID)
+            tools.reduceAvailableCapacity(stop.parked_train_id)
+        elseif current_state == station_type.fuel_stop then
+            tools.removeStop(tools.getFuelStations(), stopID)
+        end
+
+        -- Toggling the depot signal during rewiring must leave the train parked.
+        local depot_toggle = (current_state == station_type.depot and new_state == station_type.station)
+            or (current_state == station_type.station and new_state == station_type.depot)
+
+        -- For other type changes, finish departure bookkeeping under the old role.
+        local train = stop.parked_train
+        if not depot_toggle and train and train.valid and schedule.hasSchedule(train) then
+            TrainLeaves(train.id)
+            -- Requester departure handling can reset or clear the schedule.
+            if schedule.hasSchedule(train) then
+                train.go_to_station(1)
+            end
+        end
+    end
+
+    -- Arrival handling below must see the new role and network when a depot is re-enabled.
+    stop.is_depot = ltn_state.is_depot
+    stop.is_fuel_station = ltn_state.is_fuel_station
+    stop.network_id = ltn_state.network_id
+    stop.min_carriages = ltn_state.min_carriages
+    stop.max_carriages = ltn_state.max_carriages
+    stop.max_trains = ltn_state.max_trains
+
     --update lamp colors when error_code or is_depot changed state
     if stop.error_code ~= 0 or new_state ~= current_state then
         stop.error_code = 0 -- we are error free here
@@ -251,15 +284,6 @@ function UpdateStop(stopID, stop)
         else
             -- unknown station type
             setLamp(stop, 'red', 1)
-        end
-    end
-
-    -- Clean up old state, as the actual state has changed
-    if new_state ~= current_state then
-        if current_state == station_type.depot then
-            tools.removeStop(tools.getDepots(), stopID)
-        elseif current_state == station_type.fuel_stop then
-            tools.removeStop(tools.getFuelStations(), stopID)
         end
     end
 
@@ -485,13 +509,6 @@ function UpdateStop(stopID, stop)
         stop.locked_slots = ltn_state.locked_slots
         stop.no_warnings = ltn_state.no_warnings
     end
-
-    stop.is_depot = ltn_state.is_depot
-    stop.is_fuel_station = ltn_state.is_fuel_station
-    stop.network_id = ltn_state.network_id
-    stop.min_carriages = ltn_state.min_carriages
-    stop.max_carriages = ltn_state.max_carriages
-    stop.max_trains = ltn_state.max_trains
 end
 
 ---@param train_stop ltn.TrainStop
