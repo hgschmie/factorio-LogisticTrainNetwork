@@ -51,7 +51,7 @@ function TrainInterface.GetNextLogisticStop(train, schedule_index)
     local records, current = schedule.getSchedule(train)
 
     ---@type integer
-    local record_index = schedule_index or ( train.schedule and train.schedule.current) or 2 -- defaulting to 1 is pointless because that's the depot
+    local record_index = schedule_index or current or 2 -- defaulting to 1 is pointless because that's the depot
     if record_index == current and train.state == defines.train_state.wait_station then
         record_index = record_index + 1
     end
