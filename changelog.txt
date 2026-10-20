@@ -13,6 +13,8 @@ Date: ????
     - Cache fuel-item prototypes across fuel-station updates instead of repeating the same query.
       Suggested by @chrisjmendoza in PR #78.
   Bugfixes:
+    - Count parked cargo by signal quality when updating requester demand and provider shipments.
+      Fixes the quality-accounting issue reported by @chrisjmendoza in PR #78.
     - Fix the server-console/RCON command crash reported by @chrisjmendoza in PR #78.
       Return command output to the caller and handle empty refuel-exclusion lists safely.
     - Preserve cross-surface cache entries until expiration instead of renewing their lifetime

@@ -359,7 +359,10 @@ function UpdateStop(stopID, stop)
                             if signal_type == 'fluid' then
                                 traincount = math.floor(stop.parked_train.get_fluid_count(signal_name))
                             else
-                                traincount = stop.parked_train.get_item_count(signal_name)
+                                traincount = stop.parked_train.get_item_count {
+                                    name = signal_name,
+                                    quality = signal.quality or 'normal',
+                                }
                             end
                         end
 
