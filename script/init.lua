@@ -221,26 +221,24 @@ local function initializeTrainStops()
     -- add missing ltn stops
     for _, surface in pairs(game.surfaces) do
         local foundStops = surface.find_entities_filtered { type = 'train-stop' }
-        if foundStops then
-            for _, stop in pairs(foundStops) do
-                -- validate storage.LogisticTrainStops
-                if ltn_stop_entity_names[stop.name] then
-                    local ltn_stop = storage.LogisticTrainStops[stop.unit_number]
-                    if ltn_stop then
-                        if not tools.isStopConsistent(ltn_stop) then
-                            -- I/O entities are corrupted
-                            tools.log(0, 'initializeTrainStops', 'recreating corrupt stop %s', function()
-                                return stop.backer_name
-                            end)
-                            storage.LogisticTrainStops[stop.unit_number] = nil
-                            CreateStop(stop) -- recreate to spawn missing I/O entities
-                        end
-                    else
-                        tools.log(0, 'initializeTrainStops', 'recreating stop missing from storage.LogisticTrainStops - %s', function()
-                            return tostring(stop.backer_name)
+        for _, stop in pairs(foundStops) do
+            -- validate storage.LogisticTrainStops
+            if ltn_stop_entity_names[stop.name] then
+                local ltn_stop = storage.LogisticTrainStops[stop.unit_number]
+                if ltn_stop then
+                    if not tools.isStopConsistent(ltn_stop) then
+                        -- I/O entities are corrupted
+                        tools.log(0, 'initializeTrainStops', 'recreating corrupt stop %s', function()
+                            return stop.backer_name
                         end)
-                        CreateStop(stop) -- recreate LTN stops missing from storage.LogisticTrainStops
+                        storage.LogisticTrainStops[stop.unit_number] = nil
+                        CreateStop(stop) -- recreate to spawn missing I/O entities
                     end
+                else
+                    tools.log(0, 'initializeTrainStops', 'recreating stop missing from storage.LogisticTrainStops - %s', function()
+                        return tostring(stop.backer_name)
+                    end)
+                    CreateStop(stop) -- recreate LTN stops missing from storage.LogisticTrainStops
                 end
             end
         end
