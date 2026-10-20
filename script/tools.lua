@@ -41,13 +41,13 @@ function Tools.getAllStops()
 end
 
 --- Typed access to the fuel stops.
----@return ltn.TrainStop[][]
+---@return (table<uint64, ltn.TrainStop>)[]
 function Tools.getFuelStations()
     return assert(storage.FuelStations)
 end
 
 --- Typed access to the depots.
----@return ltn.TrainStop[][]
+---@return (table<uint64, ltn.TrainStop>)[]
 function Tools.getDepots()
     return assert(storage.Depots)
 end
@@ -510,24 +510,25 @@ end
 -----------------------------------------------------------------------
 
 ---@param stop ltn.TrainStop
----@param stop_list ltn.TrainStop[][]
+---@param stop_list (table<uint64, ltn.TrainStop>)[]
 ---@param network_id integer
 function Tools.updateStopList(stop, stop_list, network_id)
     for i = 1, 32 do
         local stops = stop_list[i] or {}
         local in_network = bit32.btest(network_id, bit32.lshift(1, i - 1))
         ---@cast stop.entity.unit_number -?
-        stops[stop.entity.unit_number] = in_network and stop or nil
+        stops[stop.entity.unit_number] = (in_network and stop or nil)
         stop_list[i] = stops
     end
 end
 
 --- Find all stations in the stop list that are a match for the given network id.
----@param stop_list ltn.TrainStop[][]
+---@param stop_list (table<uint64, ltn.TrainStop>)[]
 ---@param network_id integer
----@return ltn.TrainStop[] train_stops Available train stops
+---@return table<uint64, ltn.TrainStop> train_stops Available train stops
 function Tools.findMatchingStops(stop_list, network_id)
     local all_stops = Tools.getAllStops()
+    ---@type table<uint64, ltn.TrainStop>
     local result = {}
 
     for i = 1, 32 do
@@ -547,8 +548,8 @@ function Tools.findMatchingStops(stop_list, network_id)
     return result
 end
 
----@param stop_list ltn.TrainStop[][]
----@param stop_id integer
+---@param stop_list (table<uint64, ltn.TrainStop>)[]
+---@param stop_id uint64
 function Tools.removeStop(stop_list, stop_id)
     for i = 1, 32 do
         if stop_list[i] then stop_list[i][stop_id] = nil end

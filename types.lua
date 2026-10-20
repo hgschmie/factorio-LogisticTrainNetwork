@@ -16,8 +16,8 @@
 ---@field StoppedTrains         table<integer, ltn.StoppedTrain>
 ---@field StopCache             ltn.StopCache
 ---@field WagonCapacity         table<string, table<string, number>>
----@field FuelStations          ltn.TrainStop[][]
----@field Depots                ltn.TrainStop[][]
+---@field FuelStations          (table<uint64, ltn.TrainStop>)[]
+---@field Depots                (table<uint64, ltn.TrainStop>)[]
 ---@field ExcludedFromRefuel    table<string, boolean>
 
 ---@type ltn.Storage

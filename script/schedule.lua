@@ -78,7 +78,12 @@ end
 ---@return ltn.TrainStop? train_stop A depot train stop
 function ScheduleManager.selectDepot(train, network_id)
     local all_depots = tools.findMatchingStops(tools.getDepots(), network_id)
-    if table_size(all_depots) == 0 then return nil end
+    if table_size(all_depots) == 0 then
+        tools.log(1, 'ScheduleManager.selectDepot', 'No valid depot for train %s (%d) found!', function()
+            return tools.getTrainName(train), train.id
+        end)
+        return nil
+    end
 
     if not LtnSettings.reselect_depot then
         local depot_record = find_depot_record(train.get_schedule())
@@ -99,13 +104,6 @@ function ScheduleManager.selectDepot(train, network_id)
     local depots = {}
     for _, depot in pairs(all_depots) do
         depots[#depots + 1] = depot.entity
-    end
-
-    if table_size(depots) == 0 then
-        tools.log(1, 'ScheduleManager.selectDepot', 'No valid depot for train %s (%d) found!', function()
-            return tools.getTrainName(train), train.id
-        end)
-        return nil
     end
 
     local path_results = game.train_manager.request_train_path {
@@ -131,7 +129,7 @@ function ScheduleManager.selectDepot(train, network_id)
     for idx, accessible in pairs(path_results.accessible) do
         local depot = depots[idx]
         ---@cast depot -?
-        if accessible and tools.isStopValid(all_stops[depot.unit_number]) then
+        if accessible then
             accessible_stations[#accessible_stations + 1] = all_stops[depot.unit_number]
         end
     end
