@@ -141,7 +141,7 @@ end
 ---@param metrics ltn.Metrics
 ---@return integer inventory_size
 local function get_train_inventory_size(train, locked_slots, primary_is_item, metrics)
-    local item_inventory_size = (train.capacity - (locked_slots * #train.train.cargo_wagons))
+    local item_inventory_size = math.max(0, train.capacity - (locked_slots * #train.train.cargo_wagons))
     ---@cast item_inventory_size integer
     local fluid_inventory_size = math.floor(train.fluid_capacity)
 

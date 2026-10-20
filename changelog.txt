@@ -13,6 +13,8 @@ Date: ????
     - Cache fuel-item prototypes across fuel-station updates instead of repeating the same query.
       Suggested by @chrisjmendoza in PR #78.
   Bugfixes:
+    - Prevent excessive locked slots from producing negative cargo capacity and shipment counts.
+      Suggested by @chrisjmendoza in PR #78.
     - Fix the missing translated message for duplicate train-stop unit numbers.
       Reported by @chrisjmendoza in PR #78.
     - Fix missed dynamic refueling when the last normal-quality fuel item is already burning.
