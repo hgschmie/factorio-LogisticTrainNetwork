@@ -58,6 +58,7 @@ function TrainInterface.GetNextLogisticStop(train, schedule_index)
 
     local record = records[record_index]
     while record do
+        ---@cast record.wait_conditions -?
         local results = schedule.analyzeRecord(record.wait_conditions)
         local result = results[identifier]
         if result then

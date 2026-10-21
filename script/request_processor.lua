@@ -898,11 +898,13 @@ function RequestProcessor.processRequest(reqIndex, request)
     -- more things added for merged deliveries. This is also not yet the final size as the train may be too small
     -- to accommodate all of the requested items.
 
+    local item_prototype = assert(prototypes[item_info.type] and prototypes[item_info.type][item_info.name])
+
     ---@type ltn.ItemLoadingElement[]
     local loading_list = {
         {
             item = item_info,
-            localname = assert(prototypes[item_info.type][item_info.name]).localised_name,
+            localname = item_prototype.localised_name,
             count = delivery_size,
             stacks = stacks
         }

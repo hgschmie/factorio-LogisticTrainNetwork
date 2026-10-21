@@ -11,7 +11,7 @@ local Console = require('script.console')
 local RailCache = require('script.cache')
 
 ---@param oldVersion string?
----@param newVersion string
+---@param newVersion string?
 local function initialize(oldVersion, newVersion)
     tools.log(0, 'initialize', 'oldVersion: %s, newVersion: %s', function()
         return tostring(oldVersion), tostring(newVersion)

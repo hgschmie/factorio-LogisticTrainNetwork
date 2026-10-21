@@ -237,9 +237,11 @@ function OnEntityCreated(event)
 end
 
 -- stop removed
----@param stopID integer
+---@param stopID uint64?
 ---@param create_ghosts boolean?
 function RemoveStop(stopID, create_ghosts)
+    if not stopID then return end
+
     -- clean lookup tables
     RailCache.clearStopEntries(stopID)
 

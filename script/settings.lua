@@ -60,7 +60,7 @@ LtnSettings = LtnSettings or {}
 ---@return double value
 local function setting_number(x)
     assert(x)
-    return tonumber(x.value)
+    return assert(tonumber(x.value))
 end
 
 ---@param x ModSetting?

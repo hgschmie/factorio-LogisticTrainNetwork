@@ -56,6 +56,8 @@ function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
         return
     end
 
+    ---@cast network_id integer
+
     if entity1.surface == entity2.surface then
         tools.log(5, 'ConnectSurfaces', 'Entities [%d] and [%d] are on the same surface %s [%d].', function()
             return entity1.unit_number, entity2.unit_number, entity1.surface.name, entity1.surface.index

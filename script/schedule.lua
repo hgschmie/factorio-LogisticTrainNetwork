@@ -262,6 +262,7 @@ local function must_refuel(train, fuel_signals)
                     end
                 end
                 for _, fuel_signal in pairs(fuel_signals) do
+                    ---@cast fuel_signal.first_signal -?
                     assert(fuel_signal.constant)
                     key = tools.createItemIdentifier(fuel_signal.first_signal)
                     if fuel[key] and fuel[key] < fuel_signal.constant then return true end
