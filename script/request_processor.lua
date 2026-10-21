@@ -994,10 +994,12 @@ function RequestProcessor.processRequest(reqIndex, request)
     -- 7) Create schedule for train
 
     local depot_stop = create_train_schedule(train, loading_list, provider_stop, request_stop)
+    local network_id = bit32.band(depot_stop.network_id, provider.network_id)
 
     -- increase select count for the train, now that it has a schedule
     local known_train = tools.getOrCreateKnownTrain(train)
     known_train.select_count = known_train.select_count + 1
+    known_train.current_network_id = network_id
 
     dispatcher.new_Deliveries[#dispatcher.new_Deliveries + 1] = train.id
 
@@ -1008,7 +1010,7 @@ function RequestProcessor.processRequest(reqIndex, request)
         from_id = from_id,
         to = to or '',
         to_id = to_id,
-        network_id = provider.network_id,
+        network_id = network_id,
         started = game.tick,
         surface_connections = provider.surface_connections,
         shipment = shipment,

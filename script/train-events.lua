@@ -65,6 +65,10 @@ function TrainArrives(train)
             -- Depot Operations
             -- ----------------------------------------------------------------------------------------
 
+            -- train is back in depot
+            local known_train = tools.getOrCreateKnownTrain(train)
+            known_train.current_network_id = nil
+
             local delivery = dispatcher.Deliveries[train.id]
             if delivery then
                 -- delivery should have been removed when leaving requester. Handle like delivery timeout.
@@ -199,6 +203,16 @@ function TrainArrives(train)
                     if fuel_station then
                         schedule.scheduleDynamicRefueling(train, fuel_station)
                     end
+                end
+            else
+                -- delivery got lost or removed or timed out
+                local known_train = tools.getOrCreateKnownTrain(train)
+                local depot = schedule.selectDepot(train, known_train.current_network_id)
+                schedule:resetSchedule(train, depot, true)
+                RemoveDelivery(train.id)
+                TrainLeaves(train.id)
+                if schedule.hasSchedule(train) then
+                    train.go_to_station(1)
                 end
             end
 

@@ -113,9 +113,10 @@ storage = {}
 
 --- LTN Train memory
 ---@class ltn.KnownTrain
----@field train             LuaTrain
----@field select_count      integer     How often the train was selected for a delivery
----@field invalid_tick      integer?
+---@field train              LuaTrain
+---@field select_count       integer     How often the train was selected for a delivery
+---@field invalid_tick       integer?
+---@field current_network_id integer?   The current network id of this train
 
 
 --- LTN Train information

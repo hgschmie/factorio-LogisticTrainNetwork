@@ -500,6 +500,7 @@ function Tools.reassignTrainRecord(old_train_id, new_train)
 
     if old_known_train then
         new_known_train.select_count = new_known_train.select_count + old_known_train.select_count
+        new_known_train.current_network_id = old_known_train.current_network_id or new_known_train.current_network_id
     end
 
     return true

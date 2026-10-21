@@ -74,10 +74,10 @@ end
 
 --- Selects a depot to send the train to.
 ---@param train LuaTrain
----@param network_id integer
+---@param network_id integer? Without a known network, only retain the scheduled depot
 ---@return ltn.TrainStop? train_stop A depot train stop
 function ScheduleManager.selectDepot(train, network_id)
-    local all_depots = tools.findMatchingStops(tools.getDepots(), network_id)
+    local all_depots = tools.findMatchingStops(tools.getDepots(), network_id or -1)
     if table_size(all_depots) == 0 then
         tools.log(1, 'ScheduleManager.selectDepot', 'No valid depot for train %s (%d) found!', function()
             return tools.getTrainName(train), train.id
@@ -85,14 +85,20 @@ function ScheduleManager.selectDepot(train, network_id)
         return nil
     end
 
-    if not LtnSettings.reselect_depot then
+    if not LtnSettings.reselect_depot or not network_id then
+        local carriage = train.carriages[1]
+        ---@cast carriage -?
         local depot_record = find_depot_record(train.get_schedule())
         if depot_record and depot_record.station then
             for _, depot in pairs(all_depots) do
-                if depot.entity.backer_name == depot_record.station then return depot end
+                if depot.entity.backer_name == depot_record.station
+                    and depot.entity.force == carriage.force then return depot end
             end
         end
     end
+
+    -- Older deliveries have no retained network. Do not guess a different depot.
+    if not network_id then return nil end
 
     tools.log(1, 'ScheduleManager.selectDepot', 'Reselecting depot for train %s (%d)', function()
         return tools.getTrainName(train), train.id

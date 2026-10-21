@@ -232,6 +232,9 @@ function UpdateStop(stopID, stop)
         -- For other type changes, finish departure bookkeeping under the old role.
         local train = stop.parked_train
         if not depot_toggle and train and train.valid and schedule.hasSchedule(train) then
+            local known_train = tools.getOrCreateKnownTrain(train)
+            local depot = schedule.selectDepot(train, known_train.current_network_id)
+            schedule:resetSchedule(train, depot, true)
             TrainLeaves(train.id)
             -- Requester departure handling can reset or clear the schedule.
             if schedule.hasSchedule(train) then

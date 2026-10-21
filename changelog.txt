@@ -12,6 +12,8 @@ Date: ????
     - Cache fuel-item prototypes across fuel-station updates instead of repeating the same query.
       Suggested by @chrisjmendoza in PR #78.
   Bugfixes:
+    - If a delivery times out or gets removed, clear schedule at provider and send the
+      train back to the depot.
     - Remove parked trains from the available pool when their stop ceases to be a depot.
     - Prevent excessive locked slots from producing negative cargo capacity and shipment counts.
       Suggested by @chrisjmendoza in PR #78.
