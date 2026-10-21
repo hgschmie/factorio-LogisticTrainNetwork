@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------------------------------------
-Version: 3.3.1
+Version: 3.4.0
 Date: ????
   Changes:
     - Expire unused route-cache entries in the background, with gradual early expiration above
