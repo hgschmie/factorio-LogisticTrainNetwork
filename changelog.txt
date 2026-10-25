@@ -3,6 +3,7 @@ Version: 3.4.1
 Date: ????
   Bugfixes:
     - Multiple fuel station interrupts in different networks must have different names
+    - Use 2.1 API to compute fluid capacity for wagons. Reported by @PoPiSowy on the forums
 ---------------------------------------------------------------------------------------------------
 Version: 3.4.0
 Date: 2026-10-21

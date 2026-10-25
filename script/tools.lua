@@ -317,8 +317,11 @@ end
 ---@return integer
 function Tools.getFluidWagonCapacity(wagon)
     return get_wagon_capacity(wagon, function()
-        local capacity = wagon.prototype.fluid_capacity
-        return capacity * (1 + 0.3 * wagon.quality.level)
+        local capacity = 0
+        for i = 1, wagon.fluids_count, 1 do
+            capacity = capacity + wagon.get_fluid_capacity(i)
+        end
+        return capacity
     end)
 end
 
