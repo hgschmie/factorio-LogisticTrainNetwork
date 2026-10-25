@@ -198,7 +198,7 @@ function ScheduleManager.resetInterrupts(train)
     else
         for i = train_schedule.interrupt_count, 1, -1 do
             local interrupt = train_schedule.get_interrupt(i)
-            if interrupt and interrupt.name ~= LTN_INTERRUPT_NAME then
+            if interrupt and interrupt.name and interrupt.name:find(LTN_INTERRUPT_NAME, 1, true) == 1 then
                 train_schedule.remove_interrupt(i)
             end
         end
@@ -211,7 +211,7 @@ end
 local function find_interrupt_index(train_schedule, name)
     for i = 1, train_schedule.interrupt_count do
         local interrupt = train_schedule.get_interrupt(i)
-        if interrupt and interrupt.name == name then return i end
+        if interrupt and interrupt.name and interrupt.name:find(name, 1, true) == 1 then return i end
     end
     return nil
 end
@@ -374,7 +374,7 @@ function ScheduleManager:updateRefuelSchedule(train, network_id)
 
     ---@type ScheduleInterrupt
     local schedule_interrupt = {
-        name = LTN_INTERRUPT_NAME,
+        name = ('%s %08x'):format(LTN_INTERRUPT_NAME, network_id),
         inside_interrupt = false,
         conditions = interrupt_conditions,
         targets = {

@@ -1,7 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.4.1
 Date: ????
-  Changes:
+  Bugfixes:
+    - Multiple fuel station interrupts in different networks must have different names
 ---------------------------------------------------------------------------------------------------
 Version: 3.4.0
 Date: 2026-10-21
