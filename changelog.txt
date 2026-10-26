@@ -3,6 +3,8 @@ Version: 3.4.2
 Date: ????
   Minor Features:
     - Add /ltn-forget-train <train-id> to remove a train from LTN's known-train records.
+  Bugfixes:
+    - When a non-LTN train arrives at a station, do not reset their schedule (reported by @bushdoctor on the Factorio Forums)
 ---------------------------------------------------------------------------------------------------
 Version: 3.4.1
 Date: 2026-10-25

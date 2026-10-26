@@ -205,14 +205,16 @@ function TrainArrives(train)
                     end
                 end
             else
-                -- delivery got lost or removed or timed out
-                local known_train = tools.getOrCreateKnownTrain(train)
-                local depot = schedule.selectDepot(train, known_train.current_network_id)
-                schedule:resetSchedule(train, depot, true)
-                RemoveDelivery(train.id)
-                TrainLeaves(train.id)
-                if schedule.hasSchedule(train) then
-                    train.go_to_station(1)
+                local known_train = tools.findKnownTrain(train.id)
+                if known_train then
+                    -- delivery got lost or removed or timed out
+                    local depot = schedule.selectDepot(train, known_train.current_network_id)
+                    schedule:resetSchedule(train, depot, true)
+                    RemoveDelivery(train.id)
+                    TrainLeaves(train.id)
+                    if schedule.hasSchedule(train) then
+                        train.go_to_station(1)
+                    end
                 end
             end
 
