@@ -659,4 +659,14 @@ function Tools.findKnownTrain(train_id)
     return dispatcher.knownTrains[train_id]
 end
 
+---@param train_id integer
+---@return boolean removed
+function Tools.removeKnownTrain(train_id)
+    local dispatcher = Tools.getDispatcher()
+    if not dispatcher.knownTrains[train_id] then return false end
+
+    dispatcher.knownTrains[train_id] = nil
+    return true
+end
+
 return Tools

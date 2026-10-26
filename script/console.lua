@@ -80,7 +80,23 @@ local function route_cache_stats(data)
     end, data)
 end
 
+---@param data CustomCommandData
+local function forget_train(data)
+    local train_id = tonumber(data.parameter)
+    if not train_id or train_id % 1 ~= 0 then
+        tools.console(function() return { 'console.ltn_command_forget_train_invalid' } end, data)
+        return
+    end
+
+    if tools.removeKnownTrain(train_id) then
+        tools.console(function() return { 'console.ltn_command_forget_train_removed', train_id } end, data)
+    else
+        tools.console(function() return { 'console.ltn_command_forget_train_not_found', train_id } end, data)
+    end
+end
+
 function Console.registerCommands()
+    commands.add_command('ltn-forget-train', { 'console.ltn_command_forget_train' }, forget_train)
     commands.add_command('ltn-route-cache-stats', { 'console.ltn_command_route_cache_stats' }, route_cache_stats)
     commands.add_command('ltn-list-refuel-excluded', { 'console.ltn_command_list_refuel_excluded' }, list_refuel_excluded)
     commands.add_command('ltn-list-default-network-id', { 'console.ltn_command_list_default_network_id' }, list_default_network_id)
