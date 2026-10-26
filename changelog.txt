@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.4.2
-Date: ????
+Date: 2026-10-26
   Minor Features:
     - Add /ltn-forget-train <train-id> to remove a train from LTN's known-train records.
   Bugfixes:
