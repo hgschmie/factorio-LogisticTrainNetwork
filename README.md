@@ -26,6 +26,20 @@ If trains with the right length are available, and they are in the right network
 
 Starting with 2.8.2, if multiple providers exist, LTN will retry with another provider. However, this still means that it is possible that you have a provider that is never accessed by a train. If this message persists and LTN consistently chooses another provider (especially if it is further away than the "best" provider, has the wrong priority or fewer items), check whether there is a rail signal on the wrong side of the track or a break in the track that leading to the provider. Turn on GPS tags in the settings to quickly navigate to the provider.
 
+### I have a personal train that is not supposed to be managed by LTN and it keeps resetting the train schedule every time I send the train to an LTN stop
+
+Note that this only ever happens in two cases:
+- you sent your train to an LTN depot stop at some point
+- you hit a bug in LTN 3.4.0 or LTN 3.4.1 by sending the train to any LTN stop. This is fixed in 3.4.2
+
+If you never sent your personal train to an LTN depot and if you run LTN 3.4.2 or later, LTN will not mess with your train's schedule.
+
+LTN keeps track of all "known" trains and checks the delivery schedule whenever a train arrives at an LTN station (depot, provider, requester, fuel-station). If you send your personal train to a depot stop, then LTN assumes you want it to take over managing the train and registers it as "known".
+
+If the train is "known" to LTN and you take over manual control again and send it to any LTN station (provider or requester), LTN will check whether the train is "known" and a delivery exists for it. If LTN can't find a delivery, it assumes that the train had a delivery, and it got somehow lost (timed out, was cancelled etc.), so the train is now running on a schedule for a delivery that no longer exists. In that case, LTN tries to send the train back to a depot without following the route by resetting the schedule.
+
+This can be solved by telling LTN to "forget" that train. Find the train id (if you hover over the train, it is shown in the info box on the right). Then run the console command `/ltn-forget-train <the train id>`. This removes the train from LTN and it will then no longer touch the train schedule. This is a permanent fix that will last until you send your train to an LTN Depot again.
+
 ### What is 'Advanced Cross-Surface Delivery'?
 
 If you are not using an expansion that allows trains to travel between surfaces (planets, moons, orbital, etc.) such as [Space Exploration](https://mods.factorio.com/mod/space-exploration) and the [LTN - Space Exploration](https://mods.factorio.com/mod/ltn-space-exploration) mod, this setting is not for you and you should leave it off.
