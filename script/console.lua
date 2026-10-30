@@ -90,7 +90,8 @@ local function forget_train(data)
         return
     end
 
-    if tools.removeKnownTrain(train_id) then
+    local train = tools.removeKnownTrain(train_id)
+    if train then
         tools.console(function() return { 'console.ltn_command_forget_train_removed', train_id } end, data)
     else
         tools.console(function() return { 'console.ltn_command_forget_train_not_found', train_id } end, data)

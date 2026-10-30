@@ -25,6 +25,7 @@ local player_settings = {}
 ---@field message_level integer
 ---@field debug_log integer?
 ---@field message_include_gps boolean
+---@field show_train_icons boolean
 ---@field delivery_timeout integer
 ---@field depot_inactivity integer
 ---@field dispatcher_enabled boolean
@@ -83,6 +84,7 @@ end
 local change_settings = {
     ['ltn-interface-console-level'] = function(ltn_settings, name) ltn_settings.message_level = setting_int(settings.global[name]) end,
     ['ltn-interface-message-gps'] = function(ltn_settings, name) ltn_settings.message_include_gps = setting_bool(settings.global[name]) end,
+    ['ltn-interface-show-train-icons'] = function(ltn_settings, name) ltn_settings.show_train_icons = setting_bool(settings.global[name]) end,
     ['ltn-interface-debug-logfile'] = function(ltn_settings, name)
         local value = setting_int(settings.global[name])
         ltn_settings.debug_log = value > 0 and value or nil

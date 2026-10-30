@@ -657,13 +657,16 @@ function Tools.findKnownTrain(train_id)
 end
 
 ---@param train_id integer
----@return boolean removed
+---@return LuaTrain? train The removed train
 function Tools.removeKnownTrain(train_id)
     local dispatcher = Tools.getDispatcher()
-    if not dispatcher.knownTrains[train_id] then return false end
+    if not dispatcher.knownTrains[train_id] then return nil end
+
+    local train = dispatcher.knownTrains[train_id].train
+    Tools.setTrainIcon(train, nil)
 
     dispatcher.knownTrains[train_id] = nil
-    return true
+    return train
 end
 
 -----------------------------------------------------------------------
@@ -683,7 +686,7 @@ function Tools.setTrainIcon(train, color)
         known_train.icon = nil
     end
 
-    if not color then return end
+    if not color or not LtnSettings.show_train_icons then return end
 
     local locomotive = Tools.getMainLocomotive(train)
     if not locomotive then return end

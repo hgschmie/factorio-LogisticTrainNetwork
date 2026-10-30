@@ -47,6 +47,17 @@ This setting is per-player. The map-wide Message Level still controls which mess
 
 Console messages contain [Factorio rich text](https://wiki.factorio.com/rich_text) GPS tags which can be clicked.
 
+## [NEW in 3.5.0] Show Train Icons (ltn-show-train-icons) - boolean, default is false
+
+If `true`, an icon will hover over the train and show its LTN status. Any train with an icon is managed by LTN.
+
+- `green` - Train is waiting in the depot
+- `red` - Train has left the depot / is on the way to a provider
+- `cyan` - Train has left the provider / is on the way to the requester
+- `orange` - Train has left the requester / is on the way back to the depot
+
+Note that interruptions (such as going to a fuel station or another temporary stop) does not change the color of the icon.
+
 ## Send Factorio Alerts (ltn-interface-factorio-alerts) - boolean, default is true
 
 If `true`, any alert message will be registered as a [Factorio Alert](https://wiki.factorio.com/Alerts) with the game.
