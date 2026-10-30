@@ -69,6 +69,8 @@ function TrainArrives(train)
             local known_train = tools.getOrCreateKnownTrain(train)
             known_train.current_network_id = nil
 
+            tools.setTrainIcon(train, 'green')
+
             local delivery = dispatcher.Deliveries[train.id]
             if delivery then
                 -- delivery should have been removed when leaving requester. Handle like delivery timeout.
@@ -289,6 +291,9 @@ function TrainLeaves(trainID)
         tools.log(5, 'TrainLeaves', 'Train [%d] "%s": left Depot [%d] "%s".', function()
             return trainID, leavingTrain.name, stopID, stop.entity.backer_name
         end)
+
+        tools.setTrainIcon(train, 'red')
+
     elseif stop_type == station_type.station then
         -- ----------------------------------------------------------------------------------------
         -- Provider / Requester operations
@@ -389,6 +394,9 @@ function TrainLeaves(trainID)
                 script.raise_event(on_delivery_pickup_complete_event, data)
 
                 delivery.shipment = actual_load
+
+                tools.setTrainIcon(train, 'cyan')
+
             elseif delivery.to_id == stop.entity.unit_number then
                 -- reset schedule before API events
                 if LtnSettings.requester_delivery_reset then
@@ -440,6 +448,8 @@ function TrainLeaves(trainID)
                 script.raise_event(on_delivery_completed_event, data)
 
                 RemoveDelivery(trainID)
+
+                tools.setTrainIcon(train, 'orange')
             else
                 tools.log(5, 'TrainLeaves', 'Train [%d] "%s": left LTN-stop [%d] "%s".', function()
                     return trainID, leavingTrain.name, stopID, stop.entity.backer_name

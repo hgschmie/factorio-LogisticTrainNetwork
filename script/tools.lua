@@ -666,4 +666,43 @@ function Tools.removeKnownTrain(train_id)
     return true
 end
 
+-----------------------------------------------------------------------
+-- Icons
+-----------------------------------------------------------------------
+
+---@param train LuaTrain?
+---@param color string?
+function Tools.setTrainIcon(train, color)
+    if not train then return end
+
+    local known_train = Tools.findKnownTrain(train.id)
+    if not known_train then return end
+
+    if known_train.icon then
+        known_train.icon.destroy()
+        known_train.icon = nil
+    end
+
+    if not color then return end
+
+    local locomotive = Tools.getMainLocomotive(train)
+    if not locomotive then return end
+
+    ---@type ScriptRenderTarget
+    local target = {
+        entity = locomotive,
+    }
+
+    known_train.icon = rendering.draw_sprite {
+        sprite = 'ltn-sprite-' .. color,
+        surface = locomotive.surface,
+        target = locomotive,
+        x_scale = 0.2,
+        y_scale = 0.2,
+        only_in_alt_mode = false,
+    }
+
+    known_train.icon.bring_to_front()
+end
+
 return Tools

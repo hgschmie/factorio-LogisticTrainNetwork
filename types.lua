@@ -117,6 +117,7 @@ storage = {}
 ---@field select_count       integer     How often the train was selected for a delivery
 ---@field invalid_tick       integer?
 ---@field current_network_id integer?   The current network id of this train
+---@field icon               LuaRenderObject?
 
 
 --- LTN Train information
