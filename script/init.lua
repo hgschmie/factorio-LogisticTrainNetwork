@@ -422,10 +422,12 @@ script.on_configuration_changed(function(data)
             end)
         end
     end
+
     initializeTrainStops()
     updateAllTrains()
     updateAllDeliveries()
     checkStopNetworkId()
+    tools.updateTrainIcons()
 
     tools.log(0, 'on_configuration_changed', '%s %s configuration updated.', function()
         return MOD_NAME, script.active_mods[MOD_NAME]

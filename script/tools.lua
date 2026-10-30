@@ -657,13 +657,60 @@ function Tools.findKnownTrain(train_id)
 end
 
 ---@param train_id integer
----@return boolean removed
+---@return LuaTrain? train The removed train
 function Tools.removeKnownTrain(train_id)
     local dispatcher = Tools.getDispatcher()
-    if not dispatcher.knownTrains[train_id] then return false end
+    if not dispatcher.knownTrains[train_id] then return nil end
+
+    local train = dispatcher.knownTrains[train_id].train
+    Tools.setTrainIcon(train, nil)
 
     dispatcher.knownTrains[train_id] = nil
-    return true
+    return train
+end
+
+-----------------------------------------------------------------------
+-- Icons
+-----------------------------------------------------------------------
+
+---@param train LuaTrain?
+---@param color string?
+function Tools.setTrainIcon(train, color)
+    if not train then return end
+
+    local known_train = Tools.findKnownTrain(train.id)
+    if not known_train then return end
+
+    if known_train.icon then
+        known_train.icon.destroy()
+        known_train.icon = nil
+    end
+
+    known_train.icon_color = color
+
+    if not known_train.icon_color or not LtnSettings.show_train_icons then return end
+
+    local locomotive = Tools.getMainLocomotive(train)
+    if not locomotive then return end
+
+    known_train.icon = rendering.draw_sprite {
+        sprite = 'ltn-sprite-' .. known_train.icon_color,
+        surface = locomotive.surface,
+        target = locomotive,
+        render_layer = 'higher-object-under',
+        x_scale = 0.2,
+        y_scale = 0.2,
+        only_in_alt_mode = LtnSettings.train_icons_only_in_alt_mode,
+    }
+
+    known_train.icon.bring_to_front()
+end
+
+function Tools.updateTrainIcons()
+    local dispatcher = Tools.getDispatcher()
+    for _, known_train in pairs(dispatcher.knownTrains) do
+        Tools.setTrainIcon(known_train.train, known_train.icon_color)
+    end
 end
 
 return Tools
