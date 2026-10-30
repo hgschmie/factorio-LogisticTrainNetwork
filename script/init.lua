@@ -181,7 +181,7 @@ local function initialize(oldVersion, newVersion)
     -- update to 1.9.4
     if oldVersion and oldVersion < '01.09.04' then
         for _, stop in pairs(storage.LogisticTrainStops) do
-            stop.lamp_control.teleport { stop.input.position.x, stop.input.position.y } -- move control under lamp
+            stop.lamp_control.teleport(stop.input.position) -- move control under lamp
 
             local input_connectors = stop.input.get_wire_connectors(true)
             local control_connectors = stop.lamp_control.get_wire_connectors(true)

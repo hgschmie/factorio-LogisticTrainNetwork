@@ -83,6 +83,8 @@ end
 ---@param data CustomCommandData
 local function forget_train(data)
     local train_id = tonumber(data.parameter)
+    ---@cast train_id integer?
+
     if not train_id or train_id % 1 ~= 0 then
         tools.console(function() return { 'console.ltn_command_forget_train_invalid' } end, data)
         return

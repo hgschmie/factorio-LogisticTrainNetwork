@@ -133,7 +133,7 @@ function Tools.createItemIdentifier(item)
     return table.concat({
         item.type or 'item',
         item.name,
-        item.quality and item.quality ~= 'normal' and item.quality or nil
+        item.quality and item.quality ~= 'normal' and item.quality or nil,
     }, ',')
 end
 
@@ -183,15 +183,14 @@ end
 ---@param key ltn.EntityPairKey
 ---@param id integer
 function Tools.matchPair(key, id)
-    local separator = key:find("|", 1, true)
+    local separator = key:find('|', 1, true)
     if not separator then return false end
-    local suffix = key:find("_", 1, true)
+    local suffix = key:find('_', 1, true)
     if suffix then
         key = key:sub(1, suffix - 1)
     end
 
-    return (id == tonumber(key:sub(1, separator - 1)))
-            or (id == tonumber(key:sub(separator + 1)))
+    return (id == tonumber(key:sub(1, separator - 1))) or (id == tonumber(key:sub(separator + 1)))
 end
 
 ---@param item_info SignalID
@@ -247,9 +246,9 @@ function Tools.createLoadingList(loadingList)
 
     for _, element in pairs(loadingList) do
         result[#result + 1] = {
-            name = element.item.name --[[@as string]],
-            type = element.item.type --[[@as ltn.ItemFluid]],
-            quality = element.item.quality --[[@as string]],
+            name = element.item.name,       --[[@as string]]
+            type = element.item.type,       --[[@as ltn.ItemFluid]]
+            quality = element.item.quality, --[[@as string]]
             count = element.count,
             localname = element.localname,
             stacks = element.stacks,
@@ -263,25 +262,25 @@ end
 -----------------------------------------------------------------------
 
 --- Get the main locomotive in a given train. -- from flib
---- @param train LuaTrain
---- @return LuaEntity? locomotive The primary locomotive entity or `nil` when no locomotive was found
+---@param train LuaTrain
+---@return LuaEntity? locomotive The primary locomotive entity or `nil` when no locomotive was found
 function Tools.getMainLocomotive(train)
     if not (train and train.valid) then return end
     return train.locomotives.front_movers and train.locomotives.front_movers[1] or train.locomotives.back_movers[1]
 end
 
 --- Get the backer_name of the main locomotive in a given train (which is the main train name). -- from flib
---- @param train LuaTrain
---- @return string? backer_name The backer_name of the primary locomotive or `nil` when no locomotive was found
+---@param train LuaTrain
+---@return string? backer_name The backer_name of the primary locomotive or `nil` when no locomotive was found
 function Tools.getTrainName(train)
     local loco = Tools.getMainLocomotive(train)
     return loco and loco.backer_name
 end
 
 --- Calculate the eucledian distance between an entity and a position.
---- @param entity LuaEntity?
---- @param pos2 MapPosition
---- @return number
+---@param entity LuaEntity?
+---@param pos2 MapPosition
+---@return number
 function Tools.getEucledianDistance(entity, pos2)
     assert(entity)
     local pos1 = entity.position
@@ -426,10 +425,8 @@ end
 ---@return boolean is_consistent
 function Tools.isStopConsistent(stop)
     assert(stop)
-    return (stop.entity and stop.entity.valid)
-        and (stop.input and stop.input.valid)
-        and (stop.output and stop.output.valid)
-        and (stop.lamp_control and stop.lamp_control.valid)
+    return (stop.entity and stop.entity.valid) and (stop.input and stop.input.valid)
+        and (stop.output and stop.output.valid) and (stop.lamp_control and stop.lamp_control.valid)
 end
 
 -----------------------------------------------------------------------
@@ -492,9 +489,9 @@ function Tools.isTrainAvailable(train_id)
     return dispatcher.availableTrains[train_id]
 end
 
---- @param old_train_id integer? old train id
---- @param new_train LuaTrain? new train object
---- @return boolean success
+---@param old_train_id integer? old train id
+---@param new_train LuaTrain? new train object
+---@return boolean success
 function Tools.reassignTrainRecord(old_train_id, new_train)
     if not old_train_id or not (new_train and new_train.valid) then return false end
 
