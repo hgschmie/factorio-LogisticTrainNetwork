@@ -707,6 +707,8 @@ function Tools.setTrainIcon(train, color)
 end
 
 function Tools.updateTrainIcons()
+    if not rendering then return end
+
     local dispatcher = Tools.getDispatcher()
     for _, known_train in pairs(dispatcher.knownTrains) do
         Tools.setTrainIcon(known_train.train, known_train.icon_color)
