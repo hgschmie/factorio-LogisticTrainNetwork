@@ -78,19 +78,21 @@ local function setting_bool(x)
     return x.value and true or false
 end
 
----@alias ltn.SettingFunction fun(ltn_settings: ltn.Settings, name: string): boolean?
----@alias ltn.PlayerSettingFunction fun(ltn_player_settings: ltn.PlayerSettings, name: string, player_index: integer): boolean?
+---@alias ltn.SettingFunction fun(ltn_settings: ltn.Settings, name: string, update: boolean?)
+---@alias ltn.PlayerSettingFunction fun(ltn_player_settings: ltn.PlayerSettings, name: string, player_index: integer)
 
 ---@type table<string, ltn.SettingFunction>
 local change_settings = {
     ['ltn-interface-console-level'] = function(ltn_settings, name) ltn_settings.message_level = setting_int(settings.global[name]) end,
     ['ltn-interface-message-gps'] = function(ltn_settings, name) ltn_settings.message_include_gps = setting_bool(settings.global[name]) end,
-    ['ltn-interface-show-train-icons'] = function(ltn_settings, name)
+    ['ltn-interface-show-train-icons'] = function(ltn_settings, name, update)
         local value = assert(settings.global[name]).value
         ltn_settings.show_train_icons = value ~= 'no'
         ltn_settings.train_icons_only_in_alt_mode = value == 'alt-mode'
 
-        tools.updateTrainIcons()
+        if update then
+            tools.updateTrainIcons()
+        end
     end,
     ['ltn-interface-debug-logfile'] = function(ltn_settings, name)
         local value = setting_int(settings.global[name])
@@ -105,9 +107,11 @@ local change_settings = {
     ['ltn-dispatcher-finish-loading'] = function(ltn_settings, name) ltn_settings.finish_loading = setting_bool(settings.global[name]) end,
     ['ltn-dispatcher-requester-delivery-reset'] = function(ltn_settings, name) ltn_settings.requester_delivery_reset = setting_bool(settings.global[name]) end,
     ['ltn-dispatcher-enabled'] = function(ltn_settings, name) ltn_settings.dispatcher_enabled = setting_bool(settings.global[name]) end,
-    ['ltn-dispatcher-nth_tick'] = function(ltn_settings, name)
+    ['ltn-dispatcher-nth_tick'] = function(ltn_settings, name, update)
         ltn_settings.dispatcher_nth_tick = setting_int(settings.global[name])
-        return true -- reconfigure the ticker
+        if update then
+            tools.updateDispatchTicker()
+        end
     end,
     ['ltn-dispatcher-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_updates_per_tick = setting_int(settings.global[name]) end,
     ['ltn-dispatcher-stop-updates-per-tick'] = function(ltn_settings, name) ltn_settings.dispatcher_stop_updates_per_tick = setting_int(settings.global[name]) end,
@@ -137,6 +141,7 @@ local change_player_settings = {
         ltn_player_settings.console_messages = setting_bool(settings.get_player_settings(player_index)[name] or settings.player_default[name]) end,
 }
 
+-- Also called during on_load and before storage is initialized; setters must only update local settings.
 function LtnSettings:init()
     for name, setter in pairs(change_settings) do
         setter(self, name)
@@ -171,10 +176,7 @@ function LtnSettings.on_config_changed(event)
         end
     else
         if change_settings[name] then
-            local tick_update = change_settings[name](LtnSettings, name) or false
-            if tick_update then
-                tools.updateDispatchTicker()
-            end
+            change_settings[name](LtnSettings, name, true)
         end
     end
 end
