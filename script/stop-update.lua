@@ -454,7 +454,7 @@ function UpdateStop(stopID, stop)
             if signal_type == 'item' then
                 useProvideStackThreshold = ltn_state.providing_threshold_stacks > 0
                 useRequestStackThreshold = ltn_state.requesting_threshold_stacks > 0
-                assert(prototypes.item[signal_name], 'item prototype undefined!', signal_name)
+
                 if prototypes.item[signal_name] then
                     stack_count = count / prototypes.item[signal_name].stack_size
                 end
