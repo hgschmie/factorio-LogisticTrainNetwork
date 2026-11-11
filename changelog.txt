@@ -1,7 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.5.3
 Date: ????
-  Changes:
+  Bugfixes:
+    - Do not register non-LTN trains as known trains when rolling stock is attached or detached,
+      which caused their schedules to be wiped when arriving at an LTN station.
 ---------------------------------------------------------------------------------------------------
 Version: 3.5.2
 Date: 2026-11-02
