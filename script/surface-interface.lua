@@ -40,7 +40,7 @@ end
 --- adds a surface connection between the given entities; the network_id will be used in delivery processing to discard providers that don't match the surface connection's network_id
 ---@param entity1 LuaEntity?
 ---@param entity2 LuaEntity?
----@param network_id (integer|string)?
+---@param network_id (number|string)?
 function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
     -- ensure received data is valid and usable
     if not (entity1 and entity1.valid and entity1.surface and entity1.surface.index and game.surfaces[entity1.surface.index]) then
@@ -51,12 +51,15 @@ function SurfaceInterface.ConnectSurfaces(entity1, entity2, network_id)
         tools.log(5, 'ConnectSurfaces', 'Received entity2 was invalid.')
         return
     end
-    if not (network_id and tonumber(network_id, 10)) then
+
+    network_id = network_id and tonumber(network_id) or nil
+
+    ---@cast network_id integer?
+
+    if not network_id then
         tools.log(5, 'ConnectSurfaces', 'Received network_id was not a valid integer.')
         return
     end
-
-    ---@cast network_id integer
 
     if entity1.surface == entity2.surface then
         tools.log(5, 'ConnectSurfaces', 'Entities [%d] and [%d] are on the same surface %s [%d].', function()

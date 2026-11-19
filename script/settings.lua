@@ -151,7 +151,12 @@ end
 ---@param player_index integer
 ---@return ltn.PlayerSettings new_settings
 function LtnSettings.init_player(player_index)
-    local new_settings = {}
+    ---@type ltn.PlayerSettings
+    local new_settings = {
+        console_messages = false,
+        factorio_alerts = false,
+    }
+
     for name, setter in pairs(change_player_settings) do
         setter(new_settings, name, player_index)
     end
