@@ -496,12 +496,11 @@ function Tools.reassignTrainRecord(old_train_id, new_train)
     if not old_train_id or not (new_train and new_train.valid) then return false end
 
     local old_known_train = Tools.findKnownTrain(old_train_id)
-    local new_known_train = Tools.getOrCreateKnownTrain(new_train)
+    if not old_known_train then return false end
 
-    if old_known_train then
-        new_known_train.select_count = new_known_train.select_count + old_known_train.select_count
-        new_known_train.current_network_id = old_known_train.current_network_id or new_known_train.current_network_id
-    end
+    local new_known_train = Tools.getOrCreateKnownTrain(new_train)
+    new_known_train.select_count = new_known_train.select_count + old_known_train.select_count
+    new_known_train.current_network_id = old_known_train.current_network_id or new_known_train.current_network_id
 
     return true
 end
