@@ -676,7 +676,7 @@ end
 ---@param train LuaTrain?
 ---@param color string?
 function Tools.setTrainIcon(train, color)
-    if not train then return end
+    if not (train and train.valid) then return end
 
     local known_train = Tools.findKnownTrain(train.id)
     if not known_train then return end
